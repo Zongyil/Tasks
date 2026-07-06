@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>⏳ TaskFlow 时间管理</title>
+
+<style>
+/* 核心 macOS ＆ 现代 UI 设计系统定义 */
+:root {
+    --bg-main: #f5f5f7;
+    --apple-blue: #007aff;
+    --apple-blue-hover: #0063cc;
+    --apple-gray: #86868b;
+    --text-primary: #1d1d1f;
+    --text-secondary: #6e6e73;
+    --border-color: rgba(0, 0, 0, 0.1);
+    --card-bg: rgba(255, 255, 255, 0.7);
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 20px;
+    --ease-macos: cubic-bezier(0.16, 1, 0.3, 1);
+    --shadow-popover: 0 10px 30px rgba(0, 0, 0, 0.08), 0 1px 8px rgba(0, 0, 0, 0.04);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", "PingFang SC", sans-serif;
+    -webkit-font-smoothing: antialiased;
+}
+
+body {
+    min-height: 100vh;
+    color: var(--text-primary);
+    background-color: var(--bg-main);
+    background-image: 
+        radial-gradient(circle at 0% 0%, rgba(0, 122, 255, 0.05) 0%, transparent 40%),
+        radial-gradient(circle at 100% 100%, rgba(139, 92, 246, 0.04) 0%, transparent 40%);
+    padding: 32px 24px;
+}
+
+.app {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 32px;
+    max-width: 1440px;
+    margin: 0 auto;
+}
+
+/* 侧边栏卡片风 */
+.sidebar {
+    position: sticky;
+    top: 32px;
+    height: calc(100vh - 64px);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.logo-area {
+    padding: 8px 4px;
+}
+.logo { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; color: var(--text-primary); }
+.subtitle { color: var(--apple-gray); font-size: 12px; margin-top: 4px; font-weight: 500; }
+
+.side-card {
+    background: var(--card-bg);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: var(--radius-md);
+    padding: 16px 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+}
+.side-label { color: var(--text-secondary); font-size: 12px; font-weight: 500; margin-bottom: 6px; }
+.side-number { font-size: 24px; font-weight: 700; letter-spacing: -0.5px; }
+
+/* 主面板结构 */
+.main { display: flex; flex-direction: column; gap: 32px; }
+.panel { 
+    background: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    border-radius: var(--radius-lg); 
+    padding: 32px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.02);
+}
+.section-title { font-size: 22px; font-weight: 700; margin-bottom: 24px; letter-spacing: -0.3px; }
+
+/* 精准重构：学科选择区域 macOS Grid 样式 */
+.subject-box { 
+    display: grid; 
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); 
+    gap: 8px;
+    background: rgba(0, 0, 0, 0.03);
+    padding: 8px;
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(0, 0, 0, 0.02);
+}
+.subject-item { position: relative; cursor: pointer; }
+.subject-item input { display: none; }
+.subject-item span {
+    display: flex; align-items: center; justify-content: center;
+    height: 34px; border-radius: var(--radius-sm);
+    background: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+    transition: all 0.2s var(--ease-macos); font-size: 13px; font-weight: 500; color: var(--text-primary);
+}
+.subject-item span::before {
+    content: ""; width: 6px; height: 6px; border-radius: 50%; margin-right: 6px;
+    background: currentColor; opacity: 0.5; transition: transform 0.2s;
+}
+.subject-item:hover span { background: #f5f5f7; }
+.subject-item input:checked + span {
+    background: var(--apple-blue);
+    color: white;
+    border-color: var(--apple-blue);
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(0, 122, 255, 0.25);
+}
+.subject-item input:checked + span::before { transform: scale(1.2); opacity: 1; background: #fff; }
+
+/* 输入表单域 */
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; }
+.field { display: flex; flex-direction: column; gap: 8px; }
+label { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+
+/* 原生输入框净化 */
+input, select {
+    width: 100%; height: 38px; padding: 0 12px; border-radius: var(--radius-sm);
+    border: 1px solid rgba(0, 0, 0, 0.15);
+    background: #ffffff;
+    color: var(--text-primary); font-size: 14px;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.04);
+    transition: all 0.15s var(--ease-macos);
+}
+input:focus {
+    border-color: var(--apple-blue);
+    box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.25), inset 0 1px 2px rgba(0,0,0,0.04);
+    outline: none;
+}
+input::placeholder { color: var(--apple-gray); font-size: 13px; }
+
+/* 完美解决：全新定制的 macOS 展开式下拉候选菜单 */
+.macos-dropdown {
+    position: relative;
+    display: inline-block;
+    min-width: 130px;
+}
+.macos-dropdown-trigger {
+    height: 36px;
+    background: linear-gradient(180deg, #ffffff, #f5f5f7);
+    border: 1px solid rgba(0,0,0,0.15);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    border-radius: var(--radius-sm);
+    padding: 0 12px;
+    display: flex; align-items: center; justify-content: space-between;
+    cursor: pointer; font-size: 14px; font-weight: 500; color: var(--text-primary);
+    user-select: none;
+}
+.macos-dropdown-trigger:active { background: #e5e5ea; }
+.macos-dropdown-trigger .chevron {
+    width: 0; height: 0; 
+    border-left: 4px solid transparent; border-right: 4px solid transparent;
+    border-top: 4px solid var(--text-secondary); margin-left: 8px;
+}
+.macos-dropdown-menu {
+    position: absolute; top: calc(100% + 4px); left: 0; min-width: 100%;
+    background: rgba(255, 255, 255, 0.86);
+    backdrop-filter: blur(25px) saturate(190%); -webkit-backdrop-filter: blur(25px) saturate(190%);
+    border: 0.5px solid rgba(0, 0, 0, 0.15); border-radius: 10px; padding: 4px;
+    box-shadow: var(--shadow-popover); z-index: 1000; display: none;
+}
+.macos-dropdown-menu.show { display: block; }
+.macos-dropdown-item {
+    padding: 6px 10px 6px 24px; font-size: 13px; color: var(--text-primary);
+    border-radius: 6px; cursor: pointer; user-select: none; position: relative;
+    transition: background 0.08s, color 0.08s;
+}
+.macos-dropdown-item:hover { background: var(--apple-blue); color: white; }
+.macos-dropdown-item.active::before {
+    content: "✓"; position: absolute; left: 8px; top: 5px; font-weight: bold; font-size: 12px;
+}
+
+/* 按钮设计 */
+button {
+    height: 36px; padding: 0 16px; border-radius: var(--radius-sm);
+    font-size: 14px; font-weight: 500; cursor: pointer; border: 1px solid transparent;
+    transition: all 0.15s var(--ease-macos); display: inline-flex; align-items: center; justify-content: center;
+}
+button:active { transform: scale(0.98); }
+.primary { background: var(--apple-blue); color: white; }
+.primary:hover { background: var(--apple-blue-hover); }
+.secondary { background: #ffffff; border-color: rgba(0,0,0,0.15); color: var(--text-primary); box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+.secondary:hover { background: #f5f5f7; }
+.danger { background: #ff3b30; color: white; }
+.danger:hover { background: #d7261b; }
+
+.toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 24px; }
+
+/* 统计卡片与汇总 */
+.summary {
+    padding: 12px 16px; border-radius: var(--radius-sm); margin-bottom: 24px;
+    background: rgba(0, 122, 255, 0.06); color: var(--apple-blue); font-size: 14px; font-weight: 600;
+}
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.card { padding: 16px 20px; border-radius: var(--radius-md); background: #ffffff; border: 1px solid rgba(0,0,0,0.05); }
+.card-title { color: var(--apple-gray); font-size: 12px; font-weight: 500; margin-bottom: 4px; }
+.card-value { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
+
+/* 任务流卡片式列表 */
+.task-card {
+    background: #ffffff; border: 1px solid rgba(0, 0, 0, 0.05);
+    padding: 20px; border-radius: var(--radius-md); margin-bottom: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.01);
+    transition: box-shadow 0.2s var(--ease-macos), transform 0.2s var(--ease-macos);
+}
+.task-card:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.04); }
+.task-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+.task-name { font-size: 16px; font-weight: 600; color: var(--text-primary); }
+.tag { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 6px; margin-top: 8px; font-size: 11px; font-weight: 600; margin-right: 6px; }
+.task-info { margin-top: 12px; font-size: 13px; line-height: 1.6; color: var(--text-secondary); }
+
+/* 图表面板净化 */
+.chart-container {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px;
+}
+.chart-wrap {
+    height: 320px; padding: 24px; border-radius: var(--radius-lg);
+    background: #ffffff; border: 1px solid rgba(0,0,0,0.05);
+    display: flex; flex-direction: column;
+}
+.chart-title { font-size: 14px; font-weight: 600; margin-bottom: 16px; color: var(--text-primary); text-align: center; letter-spacing: -0.1px; }
+.chart-wrap canvas { flex: 1; width: 100% !important; height: 100% !important; }
+
+.empty { text-align: center; color: var(--apple-gray); padding: 48px 0; font-size: 14px; }
+.hidden { display: none !important; }
+.note { margin-top: 16px; color: var(--apple-gray); font-size: 12px; line-height: 1.5; }
+
+@media(max-width: 960px) { .app { grid-template-columns: 1fr; } .sidebar { height: auto; position: relative; top: 0; } }
+
+/* Flatpickr 完美仿苹果原生 Popover 样式净化 */
+.flatpickr-calendar {
+    background: rgba(255, 255, 255, 0.85) !important;
+    backdrop-filter: blur(25px) saturate(190%) !important; -webkit-backdrop-filter: blur(25px) saturate(190%) !important;
+    border: 0.5px solid rgba(0, 0, 0, 0.15) !important; border-radius: 14px !important;
+    box-shadow: var(--shadow-popover) !important; overflow: hidden;
+}
+.flatpickr-months .flatpickr-month { color: var(--text-primary) !important; }
+.flatpickr-current-month .flatpickr-monthDropdown-months { font-weight: 600 !important; color: var(--text-primary) !important; }
+.flatpickr-weekday { color: var(--apple-gray) !important; font-weight: 600 !important; }
+.flatpickr-day { color: var(--text-primary) !important; border-radius: 50% !important; }
+.flatpickr-day.today { border-color: var(--apple-blue) !important; color: var(--apple-blue) !important; }
+.flatpickr-day.selected, .flatpickr-day.selected:hover { background: var(--apple-blue) !important; border-color: var(--apple-blue) !important; color: #ffffff !important; }
+.flatpickr-time { border-top: 1px solid rgba(0,0,0,0.06) !important; background: transparent !important; }
+.flatpickr-time input { color: var(--text-primary) !important; font-weight: 600 !important; }
+</style>
+</head>
+
+<body>
+
+<div class="app">
+    <aside class="sidebar">
+        <div class="logo-area">
+            <div class="logo">⏳ TaskFlow</div>
+            <div class="subtitle">Project ALPHA™ | 时间资产复盘</div>
+        </div>
+        <div class="side-card">
+            <div class="side-label">当前日期</div>
+            <div class="side-number" id="todayText">-</div>
+        </div>
+        <div class="side-card">
+            <div class="side-label">任务总计数</div>
+            <div class="side-number" id="taskCount">0</div>
+        </div>
+        <div class="side-card">
+            <div class="side-label">精细总耗时</div>
+            <div class="side-number" id="totalTime">0 min</div>
+        </div>
+    </aside>
+
+    <main class="main">
+        <section class="panel">
+            <div class="section-title">添加任务记录</div>
+            <div class="grid">
+                <div class="field" style="grid-column: span 1;">
+                    <label>日期</label>
+                    <input type="date" id="dateInput">
+                </div>
+                <div class="field" style="grid-column: span 1;">
+                    <label>任务名称</label>
+                    <input type="text" id="taskName" placeholder="如：数学练习册">
+                </div>
+                
+                <div class="field" style="grid-column: span 2;">
+                    <label>学科类别（可多选）</label>
+                    <div class="subject-box" id="subjectBox">
+                        <label class="subject-item"><input type="checkbox" value="语文"><span>语文</span></label>
+                        <label class="subject-item"><input type="checkbox" value="数学"><span>数学</span></label>
+                        <label class="subject-item"><input type="checkbox" value="英语"><span>英语</span></label>
+                        <label class="subject-item"><input type="checkbox" value="物理"><span>物理</span></label>
+                        <label class="subject-item"><input type="checkbox" value="化学"><span>化学</span></label>
+                        <label class="subject-item"><input type="checkbox" value="历史"><span>历史</span></label>
+                        <label class="subject-item"><input type="checkbox" value="生物"><span>生物</span></label>
+                        <label class="subject-item"><input type="checkbox" value="道法" data-alias="道德与法治"><span>道法</span></label>
+                        <label class="subject-item"><input type="checkbox" value="准备" data-alias="整理"><span>准备</span></label>
+                    </div>
+                    <input type="text" id="customCategory" placeholder="自定义其他类别（用「+」隔开）" style="margin-top:8px; height:34px;">
+                </div>
+
+                <div class="field">
+                    <label>时长（分钟）</label>
+                    <input type="number" id="duration" min="1" placeholder="自动计算或手动输入">
+                </div>
+                <div class="field">
+                    <label>开始时间</label>
+                    <input type="time" id="startTime">
+                </div>
+                <div class="field">
+                    <label>结束时间</label>
+                    <input type="time" id="endTime">
+                </div>
+                <div class="field">
+                    <label>流水备注</label>
+                    <input type="text" id="remark" placeholder="选填选项">
+                </div>
+            </div>
+
+            <div style="margin-top:24px; display:flex; gap:12px;">
+                <button class="primary" id="addBtn">添加记录</button>
+                <button class="secondary hidden" id="cancelEditBtn" onclick="cancelEdit()">取消编辑</button>
+            </div>
+            <div class="note">
+                💡 提示：输入任务名可匹配自动套用学科；支持回车自动聚焦下一框；起止时间错误系统会自动倒置修复。
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="section-title">数据核算中心</div>
+            <div class="toolbar">
+                <button class="secondary" onclick="selectAllTasks()">全选</button>
+                <button class="danger" onclick="deleteSelectedTasks()">批量删除</button>
+                
+                <div class="macos-dropdown" id="viewTypeDropdown">
+                    <div class="macos-dropdown-trigger" id="viewTypeTrigger">
+                        <span id="viewTypeLabel">查看当天</span>
+                        <span class="chevron"></span>
+                    </div>
+                    <div class="macos-dropdown-menu" id="viewTypeMenu">
+                        <div class="macos-dropdown-item active" data-value="day">查看当天</div>
+                        <div class="macos-dropdown-item" data-value="week">查看本周</div>
+                        <div class="macos-dropdown-item" data-value="month">查看本月</div>
+                    </div>
+                </div>
+                
+                <button class="secondary" id="exportBtn">导出明细 (TXT)</button>
+                <button class="secondary" id="importBtn">导入历史 (TXT)</button>
+                <input type="file" id="importFile" hidden accept=".txt">
+
+                <button class="danger" style="margin-left:auto;" id="deleteDayBtn">清空当日</button>
+            </div>
+
+            <div class="summary" id="summary">暂无历史排查数据</div>
+
+            <div class="stats">
+                <div class="card">
+                    <div class="card-title">观察区间任务数</div>
+                    <div class="card-value" id="showCount">0</div>
+                </div>
+                <div class="card">
+                    <div class="card-title">区间归档总耗时</div>
+                    <div class="card-value" id="showDuration">0 min</div>
+                </div>
+                <div class="card">
+                    <div class="card-title">视窗对应轴日期</div>
+                    <div class="card-value" id="viewDate" style="font-size:18px; padding-top:4px;">-</div>
+                </div>
+            </div>
+
+            <div id="taskList"></div>
+        </section>
+
+        <section class="panel">
+            <div class="chart-container">
+                <div class="chart-wrap">
+                    <h3 class="chart-title">📈 近7天时域演变趋势</h3>
+                    <canvas id="trendChart"></canvas>
+                </div>
+
+                <div class="chart-wrap">
+                    <h3 class="chart-title">📊 各品类时间权重分布</h3>
+                    <canvas id="subjectChart"></canvas>
+                </div>
+            </div>
+
+            <div id="focusAnalysis" style="margin-top:24px; padding:16px; background:#f5f5f7; border-radius:12px; font-size:13px; line-height:1.8; color:var(--text-secondary);"></div>
+        </section>
+    </main>
+</div>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+const STORAGE_KEY = "taskflow_data";
+
+const subjectKeywordMap = {
+    语文: ["语文","作文","阅读","古诗","文言文"],
+    数学: ["数学","几何","函数","方程"],
+    英语: ["英语","单词","听力","阅读"],
+    物理: ["物理","电路","力学"],
+    化学: ["化学","方程式"],
+    历史: ["历史"],
+    生物: ["生物"],
+    道法: ["道法","道德与法治"],
+    准备: ["准备","整理","休息","洗澡","洗漱","厕所","如厕","上厕所","收拾","AI"]
+};
+
+// 苹果原生规范调色板
+function getSubjectColor(subject) {
+    const map = {
+        语文:"#ff3b30", 数学:"#007aff", 英语:"#34c759", 物理:"#af52de",
+        化学:"#55befc", 历史:"#ff9500", 生物:"#5856d6", 道法:"#ff2d55", 准备:"#ffcc00"
+    };
+    return map[subject] || "#8e8e93";
+}
+
+const dateInput = document.getElementById("dateInput");
+const taskName = document.getElementById("taskName");
+const customCategory = document.getElementById("customCategory");
+const duration = document.getElementById("duration");
+const startTime = document.getElementById("startTime");
+const endTime = document.getElementById("endTime");
+const remark = document.getElementById("remark");
+const taskList = document.getElementById("taskList");
+const addBtn = document.getElementById("addBtn");
+const cancelEditBtn = document.getElementById("cancelEditBtn");
+
+let currentViewMode = "day"; // 替换原下拉绑定状态
+let editingTaskInfo = null;
+
+// 定制下拉框的交互状态链
+const viewTypeTrigger = document.getElementById("viewTypeTrigger");
+const viewTypeMenu = document.getElementById("viewTypeMenu");
+const viewTypeLabel = document.getElementById("viewTypeLabel");
+
+viewTypeTrigger.addEventListener("click", (e) => {
+    e.stopPropagation();
+    viewTypeMenu.classList.toggle("show");
+});
+
+document.querySelectorAll(".macos-dropdown-item").forEach(item => {
+    item.addEventListener("click", function() {
+        document.querySelectorAll(".macos-dropdown-item").forEach(i => i.classList.remove("active"));
+        this.classList.add("active");
+        currentViewMode = this.dataset.value;
+        viewTypeLabel.textContent = this.textContent;
+        viewTypeMenu.classList.remove("show");
+        render();
+    });
+});
+
+document.addEventListener("click", () => viewTypeMenu.classList.remove("show"));
+
+function getToday() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+}
+
+function formatDate(dateStr) {
+    if (!dateStr) return "-";
+    const parts = dateStr.split("-");
+    if (parts.length !== 3) return dateStr;
+    return `${parts[0]}/${Number(parts[1])}/${Number(parts[2])}`;
+}
+
+function loadData() {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}"); } 
+    catch { return {}; }
+}
+
+function saveData(data) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+function calculateDuration(start, end) {
+    if (!start || !end) return null;
+    let [sh,sm] = start.split(":").map(Number);
+    let [eh,em] = end.split(":").map(Number);
+    let startMin = sh*60+sm;
+    let endMin = eh*60+em;
+
+    if (endMin < startMin) {
+        const diff = startMin - endMin;
+        if (diff <= 180) {
+            [startMin,endMin] = [endMin,startMin];
+        } else {
+            endMin += 1440;
+        }
+    }
+    return endMin - startMin;
+}
+
+function autoCategory() {
+    const text = taskName.value.trim();
+    document.querySelectorAll(".subject-item input").forEach(cb => cb.checked = false);
+    if (!text) return;
+
+    Object.entries(subjectKeywordMap).forEach(([subject,keywords]) => {
+        const matched = keywords.some(keyword => text.includes(keyword));
+        if (!matched) return;
+        document.querySelectorAll(".subject-item input").forEach(cb => {
+            if (cb.value === subject) cb.checked = true;
+        });
+    });
+}
+
+function getSelectedCategories() {
+    const checked = Array.from(document.querySelectorAll(".subject-item input:checked")).map(cb => cb.value);
+    const custom = customCategory.value.split("+").map(v => v.trim()).filter(Boolean);
+    return [...new Set([...checked,...custom])];
+}
+
+function autoCalculateDuration() {
+    if (startTime.value && endTime.value) {
+        const val = calculateDuration(startTime.value, endTime.value);
+        if (val !== null) duration.value = val;
+    }
+}
+
+function autoCalculateEndTime() {
+    if (startTime.value && duration.value) {
+        const [h,m] = startTime.value.split(":").map(Number);
+        let total = h*60 + m + Number(duration.value);
+        total %= 1440;
+        const eh = String(Math.floor(total/60)).padStart(2,"0");
+        const em = String(total%60).padStart(2,"0");
+        endTime.value = `${eh}:${em}`;
+    }
+}
+
+function addTask() {
+    const name = taskName.value.trim();
+    const category = getSelectedCategories();
+    const date = dateInput.value;
+
+    if (!name || category.length === 0) {
+        alert("请填写任务名称并至少选择一个学科类别！");
+        return;
+    }
+
+    let taskDuration = parseInt(duration.value);
+    if (startTime.value && endTime.value) {
+        taskDuration = calculateDuration(startTime.value, endTime.value);
+    }
+
+    if (!taskDuration || taskDuration <= 0) {
+        alert("请确认时长输入正确。");
+        return;
+    }
+
+    const data = loadData();
+    if (editingTaskInfo) {
+        data[editingTaskInfo.date] = data[editingTaskInfo.date].filter(t => t.id !== editingTaskInfo.id);
+    }
+
+    if (!data[date]) data[date] = [];
+
+    data[date].push({
+        id: editingTaskInfo?.id || (window.crypto?.randomUUID?.() || Date.now()),
+        date, name, category, duration: taskDuration,
+        start: startTime.value, end: endTime.value, remark: remark.value.trim()
+    });
+
+    data[date].sort((a,b)=>{
+        if (!a.start && !b.start) return 0;
+        if (!a.start) return 1;
+        if (!b.start) return -1;
+        return a.start.localeCompare(b.start);
+    });
+
+    saveData(data);
+    clearInputs();
+    render();
+}
+
+function clearInputs() {
+    taskName.value = ""; customCategory.value = ""; duration.value = "";
+    startTime.value = ""; endTime.value = ""; remark.value = "";
+    document.querySelectorAll(".subject-item input").forEach(cb => cb.checked = false);
+    editingTaskInfo = null;
+    addBtn.textContent = "添加记录";
+    cancelEditBtn.classList.add("hidden");
+}
+
+function editTask(date,id) {
+    const data = loadData();
+    const task = data[date].find(t => String(t.id) === String(id));
+    if (!task) return;
+
+    editingTaskInfo = {date,id};
+    dateInput.value = task.date;
+    taskName.value = task.name;
+    duration.value = task.duration;
+    startTime.value = task.start || "";
+    endTime.value = task.end || "";
+    remark.value = task.remark || "";
+
+    document.querySelectorAll(".subject-item input").forEach(cb => cb.checked = false);
+    const extra = [];
+    task.category.forEach(cat => {
+        let found = false;
+        document.querySelectorAll(".subject-item input").forEach(cb => {
+            if (cb.value === cat) { cb.checked = true; found = true; }
+        });
+        if (!found) extra.push(cat);
+    });
+
+    customCategory.value = extra.join(" + ");
+    addBtn.textContent = "保存修改";
+    cancelEditBtn.classList.remove("hidden");
+}
+
+function cancelEdit() { clearInputs(); }
+
+function deleteTask(date,id) {
+    if (!confirm("确定彻底除去此条分析记录吗？")) return;
+    const data = loadData();
+    data[date] = data[date].filter(t => String(t.id)!==String(id));
+    saveData(data);
+    render();
+}
+
+function selectAllTasks() {
+    const boxes = document.querySelectorAll(".batch-check");
+    const allChecked = Array.from(boxes).every(v=>v.checked);
+    boxes.forEach(v=>v.checked=!allChecked);
+}
+
+function deleteSelectedTasks() {
+    const checked = document.querySelectorAll(".batch-check:checked");
+    if (!checked.length) { alert("没有需要删减的批量项。"); return; }
+    if (!confirm(`确认流水化移去当前选中的 ${checked.length} 项？`)) return;
+
+    const data = loadData();
+    checked.forEach(cb=>{
+        const date = cb.dataset.date;
+        const id = cb.value;
+        data[date] = data[date].filter(t=>String(t.id)!==String(id));
+    });
+    saveData(data);
+    render();
+}
+
+function matchDate(date,target,mode) {
+    const d = new Date(date); const t = new Date(target);
+    if (mode==="day") return date===target;
+    if (mode==="month") return ( d.getFullYear()===t.getFullYear() && d.getMonth()===t.getMonth() );
+    if (mode==="week") {
+        const start = new Date(t);
+        const day = t.getDay() || 7;
+        start.setDate(t.getDate()-day+1); start.setHours(0,0,0,0);
+        const end = new Date(start);
+        end.setDate(start.getDate()+6); end.setHours(23,59,59,999);
+        return d>=start && d<=end;
+    }
+}
+
+// 精英级纯净图表重绘渲染
+function renderAnalysis(tasks) {
+    const allData = loadData();
+    const trendLabels = [];
+    const trendValues = [];
+    const targetDateObj = new Date(dateInput.value || getToday());
+    
+    for (let i = 6; i >= 0; i--) {
+        const d = new Date(targetDateObj);
+        d.setDate(d.getDate() - i);
+        const dStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        trendLabels.push(formatDate(dStr));
+        
+        let dayTotal = 0;
+        if (allData[dStr]) {
+            allData[dStr].forEach(t => dayTotal += t.duration);
+        }
+        trendValues.push(dayTotal);
+    }
+
+    const fontConfig = { family: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif", size: 11 };
+
+    // 1. 折线图无接缝净化
+    const canvas = document.getElementById("trendChart");
+    if (canvas) {
+        const ctx = canvas.getContext("2d");
+        if (window.taskChart) window.taskChart.destroy();
+        window.taskChart = new Chart(ctx, {
+            type:"line",
+            data:{
+                labels: trendLabels,
+                datasets:[{
+                    label:"分钟", data: trendValues,
+                    tension:0.36, borderWidth:2.5, borderColor:"#007aff",
+                    pointRadius:2, pointBorderWidth:0, pointBackgroundColor:"#007aff",
+                    pointHoverRadius:6, pointHoverBackgroundColor:"#ffffff", pointHoverBorderColor:"#007aff", pointHoverBorderWidth:3,
+                    fill:true,
+                    backgroundColor:(context)=>{
+                        const chart = context.chart; const {ctx,chartArea} = chart;
+                        if (!chartArea) return null;
+                        const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+                        gradient.addColorStop(0, "rgba(0, 122, 255, 0.12)");
+                        gradient.addColorStop(1, "rgba(0, 122, 255, 0.00)");
+                        return gradient;
+                    }
+                }]
+            },
+            options:{
+                responsive:true, maintainAspectRatio:false,
+                interaction:{ intersect:false, mode:"index" },
+                plugins:{ legend:{ display: false }, tooltip:{ padding:10, cornerRadius:8 } },
+                scales:{
+                    x:{ grid:{ display: false }, ticks:{ color:"#86868b", font: fontConfig } },
+                    y:{ grid:{ color:"rgba(0,0,0,0.03)", drawBorder:false }, ticks:{ color:"#86868b", font: fontConfig } }
+                }
+            }
+        });
+    }
+
+    // 2. 柱状图无国界净化
+    const subjectMap = {};
+    tasks.forEach(task => {
+        task.category.forEach(cat => {
+            const allottedTime = task.duration / task.category.length;
+            subjectMap[cat] = (subjectMap[cat] || 0) + allottedTime;
+        });
+    });
+
+    const barLabels = Object.keys(subjectMap);
+    const barValues = Object.values(subjectMap).map(v => Math.round(v));
+    const barColors = barLabels.map(cat => getSubjectColor(cat));
+
+    const barCanvas = document.getElementById("subjectChart");
+    if (barCanvas) {
+        const barCtx = barCanvas.getContext("2d");
+        if (window.subjectChartInstance) window.subjectChartInstance.destroy();
+        window.subjectChartInstance = new Chart(barCtx, {
+            type: "bar",
+            data: {
+                labels: barLabels.length ? barLabels : ["无"],
+                datasets: [{
+                    data: barValues.length ? barValues : [0],
+                    backgroundColor: barColors.length ? barColors : ["#86868b"],
+                    barThickness: 16, borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false }, tooltip: { padding:10, cornerRadius:8 } },
+                scales: {
+                    x: { grid: { display: false }, ticks: { color: "#86868b", font: fontConfig } },
+                    y: { beginAtZero: true, grid: { color: "rgba(0,0,0,0.03)", drawBorder:false }, ticks: { color: "#86868b", font: fontConfig } }
+                }
+            }
+        });
+    }
+
+    let total = 0; let prepare = 0;
+    tasks.forEach(task=>{
+        total += task.duration;
+        if (task.category.includes("准备")) { prepare += task.duration; }
+    });
+
+    const focus = total===0 ? 0 : Math.round((1-prepare/total)*100);
+    const focusBox = document.getElementById("focusAnalysis");
+    if (focusBox) {
+        focusBox.innerHTML = `⏱️ 状态总结：在当前分析区间内，系统共抓取到深度可支配时间 <b>${total}</b> 分钟。核心行为纯净度（剔除置备行为）达 <b>${focus}%</b>，过滤杂项整理消耗共计 <b>${prepare}</b> 分钟。`;
+    }
+}
+
+function render() {
+    const data = loadData();
+    const current = dateInput.value;
+    const mode = currentViewMode; // 使用全面解包的状态控制
+    let tasks = [];
+
+    for (const date in data) {
+        if (matchDate(date,current,mode)) { tasks.push(...data[date]); }
+    }
+
+    taskList.innerHTML = "";
+    let total = 0;
+
+    tasks.forEach(task=>{
+        total += task.duration;
+        const card = document.createElement("div");
+        card.className = "task-card";
+        card.innerHTML = `
+            <div class="task-top">
+                <div style="flex:1;">
+                    <div class="task-name">${task.name}</div>
+                    <div style="display:flex; flex-wrap:wrap;">
+                        ${task.category.map(cat=>`<div class="tag" style="background:${getSubjectColor(cat)}15; color:${getSubjectColor(cat)};">${cat}</div>`).join("")}
+                    </div>
+                </div>
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <input type="checkbox" class="batch-check" value="${task.id}" data-date="${task.date}" style="width:16px; height:16px; margin-right:4px;">
+                    <button class="secondary" style="height:28px; padding:0 10px; font-size:12px;" onclick="editTask('${task.date}','${task.id}')">编辑</button>
+                    <button class="secondary" style="height:28px; padding:0 10px; font-size:12px; color:#ff3b30;" onclick="deleteTask('${task.date}','${task.id}')">删除</button>
+                </div>
+            </div>
+            <div class="task-info">
+                📅 归属日期：${formatDate(task.date)} &nbsp;&nbsp;|&nbsp;&nbsp; ⏱️ 历时时长：${task.duration} min &nbsp;&nbsp;|&nbsp;&nbsp; 🕒 相对视窗：${task.start && task.end ? `${task.start} - ${task.end}` : "无固定断点数据"}<br>
+                📝 补充摘要：${task.remark || "无增补流水纪实"}
+            </div>
+        `;
+        taskList.appendChild(card);
+    });
+
+    if (!tasks.length) {
+        taskList.innerHTML = `<div class="empty">🫧 没有捕捉到任何符合视窗的任务。开启极简记录吧！</div>`;
+    }
+
+    document.getElementById("showCount").textContent = tasks.length;
+    document.getElementById("taskCount").textContent = tasks.length;
+    document.getElementById("showDuration").textContent = `${total} min`;
+    document.getElementById("totalTime").textContent = `${total} min`;
+    document.getElementById("summary").textContent = `当前筛选池共计整合 ${tasks.length} 项关键流，统计学累算时长 ${total} 分钟。`;
+    document.getElementById("viewDate").textContent = formatDate(current);
+
+    renderAnalysis(tasks);
+}
+
+function exportTXT() {
+    const data = loadData();
+    const date = dateInput.value;
+    if (!data[date]?.length) { alert("当前选中日期下方没有任何可供导出的流数据。"); return; }
+    let text = `日期：${formatDate(date)}\n\n`;
+    data[date].forEach((task,i)=>{
+        text += `任务 ${i+1}\n任务名称：${task.name}\n类别：${task.category.join(" + ")}\n完成时间：${task.duration} 分钟\n`;
+        if (task.start && task.end) text += `时间段：${task.start}~${task.end}\n`;
+        if (task.remark) text += `备注：${task.remark}\n`;
+        text += "\n";
+    });
+    const blob = new Blob([text], {type:"text/plain;charset=utf-8"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `${date}_TaskFlow资产包.txt`;
+    a.click();
+}
+
+function importTXT(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(ev){
+        try {
+            const content = ev.target.result.replace(/\r/g,"");
+            const dateMatch = content.match(/日期[:：]\s*(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+            let targetDate = getToday();
+            if (dateMatch) {
+                targetDate = `${dateMatch[1]}-${String(dateMatch[2]).padStart(2,"0")}-${String(dateMatch[3]).padStart(2,"0")}`;
+            }
+
+            const blocks = content.split(/(?:\n|^)任务\s*\d+/).map(v=>v.trim()).filter(v=>v.includes("任务名称"));
+            if (!blocks.length) { alert("无法解析出标准任务包内容。"); return; }
+
+            const data = loadData();
+            if (!data[targetDate]) data[targetDate] = [];
+
+            let imported = 0;
+            blocks.forEach(block=>{
+                const name = (block.match(/任务名称[:：](.*)/)||[])[1]?.trim() || "未命名";
+                const categoryText = (block.match(/类别[:：](.*)/)||[])[1]?.trim() || "其他";
+                const category = categoryText.split("+").map(v=>v.trim()).filter(Boolean);
+                const duration = Number((block.match(/完成时间[:：](\d+)/)||[])[1]) || 0;
+                const timeMatch = block.match(/时间段[:：]\s*(\d{2}:\d{2})\s*[~～-]\s*(\d{2}:\d{2})/);
+                const remark = (block.match(/备注[:：](.*)/)||[])[1]?.trim() || "";
+
+                const duplicated = data[targetDate].some(task=>
+                    task.name===name && task.duration===duration &&
+                    task.start===(timeMatch?.[1]||"") && task.end===(timeMatch?.[2]||"")
+                );
+                if (duplicated) return;
+
+                data[targetDate].push({
+                    id: window.crypto?.randomUUID?.() || String(Date.now()+Math.random()),
+                    date:targetDate, name, category, duration,
+                    start:timeMatch?.[1] || "", end:timeMatch?.[2] || "", remark
+                });
+                imported++;
+            });
+
+            data[targetDate].sort((a,b)=>{
+                if (!a.start && !b.start) return 0;
+                if (!a.start) return 1;
+                if (!b.start) return -1;
+                return a.start.localeCompare(b.start);
+            });
+
+            saveData(data);
+            dateInput.value = targetDate;
+            render();
+            alert(`成功导入 ${imported} 条记录。`);
+        } catch(err) {
+            alert("导入异常，请确保载入标准 TaskFlow 导出的文本资产。");
+        }
+        e.target.value = "";
+    };
+    reader.readAsText(file,"utf-8");
+}
+
+function deleteCurrentDay() {
+    const date = dateInput.value;
+    const data = loadData();
+    if (!data[date]) return;
+    if (!confirm("确认彻底清扫洗涤当天的全部归集条目？不可回溯。")) return;
+    delete data[date];
+    saveData(data);
+    render();
+}
+
+function setupAutoNext() {
+    const inputs = ["taskName", "customCategory", "duration", "startTime", "endTime", "remark"];
+    inputs.forEach((id,index)=>{
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener("keydown",e=>{
+            if (e.key==="Enter") {
+                e.preventDefault();
+                const next = inputs[index+1];
+                if (next) { document.getElementById(next).focus(); } 
+                else { addTask(); }
+            }
+        });
+    });
+}
+
+// 引擎初始化
+document.getElementById("todayText").textContent = formatDate(getToday());
+dateInput.value = getToday();
+setupAutoNext();
+render();
+
+// 全局监听总控
+taskName.addEventListener("input", autoCategory);
+dateInput.addEventListener("change", render);
+addBtn.addEventListener("click", addTask);
+document.getElementById("deleteDayBtn").addEventListener("click", deleteCurrentDay);
+document.getElementById("importBtn").addEventListener("click",()=>document.getElementById("importFile").click());
+document.getElementById("importFile").addEventListener("change",importTXT);
+document.getElementById("exportBtn").addEventListener("click", exportTXT);
+
+duration.addEventListener("input", autoCalculateEndTime);
+endTime.addEventListener("change", autoCalculateDuration);
+startTime.addEventListener("change", () => {
+    if (endTime.value) { autoCalculateDuration(); } 
+    else if (duration.value) { autoCalculateEndTime(); }
+});
+
+// 全新引入优雅、无痕的 macOS 味道 Flatpickr 实例控制层
+flatpickr("#dateInput", { dateFormat: "Y-m-d", defaultDate: getToday(), disableMobile: true });
+flatpickr("#startTime", { enableTime: true, noCalendar: true, dateFormat: "H:i", time_24hr: true, disableMobile: true });
+flatpickr("#endTime", { enableTime: true, noCalendar: true, dateFormat: "H:i", time_24hr: true, disableMobile: true });
+</script>
+</body>
+</html>
