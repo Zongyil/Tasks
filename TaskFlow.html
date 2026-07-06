@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>⏳ TaskFlow 时间管理</title>
+<title>⏳ Tasks v0.1-alpha</title>
 
 <style>
 /* 核心 macOS ＆ 现代 UI 设计系统定义 */
@@ -265,18 +265,18 @@ button:active { transform: scale(0.98); }
     <aside class="sidebar">
         <div class="logo-area">
             <div class="logo">⏳ TaskFlow</div>
-            <div class="subtitle">Project ALPHA™ | 时间资产复盘</div>
+            <div class="subtitle"> 轻量化时间管理</div>
         </div>
         <div class="side-card">
             <div class="side-label">当前日期</div>
             <div class="side-number" id="todayText">-</div>
         </div>
         <div class="side-card">
-            <div class="side-label">任务总计数</div>
+            <div class="side-label">任务总数</div>
             <div class="side-number" id="taskCount">0</div>
         </div>
         <div class="side-card">
-            <div class="side-label">精细总耗时</div>
+            <div class="side-label">总耗时</div>
             <div class="side-number" id="totalTime">0 min</div>
         </div>
     </aside>
@@ -362,7 +362,7 @@ button:active { transform: scale(0.98); }
                 <button class="danger" style="margin-left:auto;" id="deleteDayBtn">清空当日</button>
             </div>
 
-            <div class="summary" id="summary">暂无历史排查数据</div>
+            <div class="summary" id="summary">暂无历史数据</div>
 
             <div class="stats">
                 <div class="card">
@@ -385,12 +385,12 @@ button:active { transform: scale(0.98); }
         <section class="panel">
             <div class="chart-container">
                 <div class="chart-wrap">
-                    <h3 class="chart-title">📈 近7天时域演变趋势</h3>
+                    <h3 class="chart-title">📈 近7天完成任务时间趋势</h3>
                     <canvas id="trendChart"></canvas>
                 </div>
 
                 <div class="chart-wrap">
-                    <h3 class="chart-title">📊 各品类时间权重分布</h3>
+                    <h3 class="chart-title">📊 各学科时间权重分布</h3>
                     <canvas id="subjectChart"></canvas>
                 </div>
             </div>
@@ -775,7 +775,7 @@ function renderAnalysis(tasks) {
     const focus = total===0 ? 0 : Math.round((1-prepare/total)*100);
     const focusBox = document.getElementById("focusAnalysis");
     if (focusBox) {
-        focusBox.innerHTML = `⏱️ 状态总结：在当前分析区间内，系统共抓取到深度可支配时间 <b>${total}</b> 分钟。核心行为纯净度（剔除置备行为）达 <b>${focus}%</b>，过滤杂项整理消耗共计 <b>${prepare}</b> 分钟。`;
+        focusBox.innerHTML = `⏱️ 状态总结：在当前分析区间内，学习时间共 <b>${total}</b> 分钟。专注效率达 <b>${focus}%</b>，整理准备共耗时 <b>${prepare}</b> 分钟。`;
     }
 }
 
@@ -811,15 +811,15 @@ function render() {
                 </div>
             </div>
             <div class="task-info">
-                📅 归属日期：${formatDate(task.date)} &nbsp;&nbsp;|&nbsp;&nbsp; ⏱️ 历时时长：${task.duration} min &nbsp;&nbsp;|&nbsp;&nbsp; 🕒 相对视窗：${task.start && task.end ? `${task.start} - ${task.end}` : "无固定断点数据"}<br>
-                📝 补充摘要：${task.remark || "无增补流水纪实"}
+                📅 归属日期：${formatDate(task.date)} &nbsp;&nbsp;|&nbsp;&nbsp; ⏱️ 时长：${task.duration} min &nbsp;&nbsp;|&nbsp;&nbsp; 🕒 相对视窗：${task.start && task.end ? `${task.start} - ${task.end}` : "无固定断点数据"}<br>
+                📝 补充摘要：${task.remark || "无备注内容"}
             </div>
         `;
         taskList.appendChild(card);
     });
 
     if (!tasks.length) {
-        taskList.innerHTML = `<div class="empty">🫧 没有捕捉到任何符合视窗的任务。开启极简记录吧！</div>`;
+        taskList.innerHTML = `<div class="empty">🫧 暂无任务记录。立即开启极简记录吧！</div>`;
     }
 
     document.getElementById("showCount").textContent = tasks.length;
@@ -835,7 +835,7 @@ function render() {
 function exportTXT() {
     const data = loadData();
     const date = dateInput.value;
-    if (!data[date]?.length) { alert("当前选中日期下方没有任何可供导出的流数据。"); return; }
+    if (!data[date]?.length) { alert("当前选中日期下方没有任何可供导出的数据。"); return; }
     let text = `日期：${formatDate(date)}\n\n`;
     data[date].forEach((task,i)=>{
         text += `任务 ${i+1}\n任务名称：${task.name}\n类别：${task.category.join(" + ")}\n完成时间：${task.duration} 分钟\n`;
@@ -904,7 +904,7 @@ function importTXT(e) {
             render();
             alert(`成功导入 ${imported} 条记录。`);
         } catch(err) {
-            alert("导入异常，请确保载入标准 TaskFlow 导出的文本资产。");
+            alert("导入异常，请确保导入文件未损坏。");
         }
         e.target.value = "";
     };
@@ -959,7 +959,7 @@ startTime.addEventListener("change", () => {
     else if (duration.value) { autoCalculateEndTime(); }
 });
 
-// 全新引入优雅、无痕的 macOS 味道 Flatpickr 实例控制层
+// flatpickr 控制层
 flatpickr("#dateInput", { dateFormat: "Y-m-d", defaultDate: getToday(), disableMobile: true });
 flatpickr("#startTime", { enableTime: true, noCalendar: true, dateFormat: "H:i", time_24hr: true, disableMobile: true });
 flatpickr("#endTime", { enableTime: true, noCalendar: true, dateFormat: "H:i", time_24hr: true, disableMobile: true });
