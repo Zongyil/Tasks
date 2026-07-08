@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>专注 | Tasks</title>
+<base href="./">
+<style>
+/* ================== 全局与动态色彩体系 ================== */
+:root {
+    /* 默认主题色 (可通过壁纸取色动态修改) */
+    --theme-hue: 210;
+    --theme-sat: 20%;
+    --theme-light: 85%;
+    
+    --text: #0f172a; 
+    --sub: #64748b;
+    
+    /* 根据主题色生成的动态 Liquid Glass 颜色 */
+    --dyn-bg: hsl(var(--theme-hue), var(--theme-sat), 96%);
+    --dyn-panel: hsla(var(--theme-hue), var(--theme-sat), 98%, 0.45);
+    --dyn-panel-border: hsla(var(--theme-hue), var(--theme-sat), 100%, 0.6);
+    --dyn-primary: linear-gradient(135deg, hsla(var(--theme-hue), 50%, 85%, 0.85), hsla(var(--theme-hue), 60%, 88%, 0.85));
+    --dyn-primary-hover: linear-gradient(135deg, hsla(var(--theme-hue), 50%, 90%, 0.95), hsla(var(--theme-hue), 60%, 93%, 0.95));
+    --dyn-shadow: hsla(var(--theme-hue), 25%, 55%, 0.12);
+
+    --glass: var(--dyn-panel);
+    --glass-border: var(--dyn-panel-border);
+
+    --shadow-xl: 0 40px 80px rgba(15,23,42,.08);
+    --shadow-sm: 0 8px 20px rgba(15,23,42,.04);
+
+    --spacing-main: 32px;   /* Panel 级内边距 */
+    --spacing-card: 24px;   /* Card 级内边距 */
+    --spacing-inside: 16px; /* 元素级内边距 */
+    
+    /* 4 级同心圆角体系 (Concentric Radius System) */
+    --radius-panel: 32px;   /* L1: 主面板、侧边栏、全局弹窗 (原 main) */
+    --radius-card: 24px;    /* L2: 任务卡片、图表容器、侧边小卡 */
+    --radius-element: 16px; /* L3: 按钮、输入框、视图切换器 (独立出来) */
+    --radius-sm: 10px;      /* L4: 内部小标签、日历箭头、下拉项 */
+
+    --ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* 1. 首先声明并挂载你的自定义字体 */
+@font-face {
+  font-family: 'AlphaFont';
+  src: url('./fonts/OPPO Sans 4.0.ttf') format('truetype'); 
+  font-weight: medium;
+  font-style: normal;
+}
+
+/* 2. 全局重置与字体栈融合 */
+* {
+    margin: 0; 
+    padding: 0; 
+    box-sizing: border-box;
+    
+    /* 【终极字体栈解析】
+      1. AlphaFont: 最高优先级，全局强制使用你的自定义字体
+      2. -apple-system...: 如果你的字体包里缺少某些字符(比如 Emoji)，自动降级使用苹果原生字体
+      3. Segoe UI Variable: Windows 11 的原生字体，确保在 Windows 上的极致体验
+      4. PingFang SC / Microsoft YaHei: 兜底的中文字体
+    */
+    font-family: 'AlphaFont', -apple-system, BlinkMacSystemFont, "Segoe UI Variable", "SF Pro Display", "PingFang SC", "Microsoft YaHei", sans-serif;
+    
+    -webkit-tap-highlight-color: transparent; 
+    outline: none !important;
+}
+
+/* ⚠️ 补丁：确保表单元素强制继承字体 */
+input, textarea, button, select {
+    font-family: inherit;
+}
+
+html, body {
+    scroll-behavior: smooth;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    /* 🚨 核心改动 1：严格锁定视口高度，禁止整个窗口级滚动 */
+    height: 100vh; 
+    overflow: hidden; 
+    background: transparent !important; 
+}
+
+body {
+    color: var(--text);
+    color-scheme: light;
+    position: relative;
+    box-sizing: border-box;
+    /* 🚨 核心改动 2：将 body 变为 Flex 容器，为了让内部的 .app 完美撑满剩余高度 */
+    display: flex;
+    flex-direction: column;
+}
+
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+/* ================== 背景高斯模糊引擎 ================== */
+.wallpaper-layer {
+    position: absolute; inset: -50px;
+    background-size: cover; background-position: center;
+    filter: blur(50px) brightness(0.35) saturate(1.4);
+    transform: scale(1.1);
+    transition: background-image 1s ease;
+    z-index: 0;
+}
+
+/* ================== 核心内容容器与入场 ================== */
+.focus-container {
+    position: relative; z-index: 10;
+    width: 100%; height: 100%;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    animation: slideUpIn 0.8s var(--ease) forwards;
+}
+
+@keyframes slideUpIn {
+    0% { opacity: 0; transform: translateY(100vh) scale(0.95); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.focus-container.exiting {
+    animation: slideDownOut 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes slideDownOut {
+    0% { opacity: 1; transform: translateY(0) scale(1); }
+    100% { opacity: 0; transform: translateY(100vh) scale(0.95); }
+}
+
+/* ================== 纯净悬浮时钟排版 ================== */
+.clock-display-group {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: transform 0.3s var(--ease);
+}
+
+.clock-display-group:hover {
+    transform: scale(1.03);
+}
+
+.clock-display-group:active {
+    transform: scale(0.98);
+}
+
+.time-wrapper {
+    display: flex; align-items: baseline; gap: 20px;
+}
+
+
+.time-main {
+    font-size: 230px; font-weight: 800; letter-spacing: -6px;
+    font-variant-numeric: tabular-nums;
+    line-height: 0.9;
+    
+    /* 恢复实体白，但赋予 95% 的透明度，让其带有一点底层背景的呼吸感 */
+    color: rgba(255, 255, 255, 0.95); 
+    
+    /* 玻璃边缘的锐利高光倒角 */
+    text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3),
+                 0 0 20px rgba(255, 255, 255, 0.2); 
+    
+    /* 这里是重点：通过 drop-shadow 模拟玻璃实体的折射边缘 */
+    filter: drop-shadow(0px 10px 20px rgba(0, 0, 0, 0.4));
+}
+
+/* 秒表：降低透明度，通过材质对比拉开层级 */
+.time-sec {
+    font-size: 56px; font-weight: 700; 
+    /* 将秒表颜色调成深沉的、半透明的灰白色，体现出比主时间更远的物理层级 */
+    color: rgba(255, 255, 255, 0.5); 
+    font-variant-numeric: tabular-nums;
+    
+    /* 极简折射阴影 */
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* 日期文本：保持适度的可见性 */
+.date-display {
+    margin-top: 24px; font-size: 32px; font-weight: 600;
+    color: rgba(255, 255, 255, 0.7); 
+    letter-spacing: 2px;
+    text-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+/* ================== 顶部 Apple 悬浮小白条 ================== */
+.apple-home-bar {
+    position: absolute; top: 24px; left: 50%; /* 移动到页面顶部 */
+    width: 140px; height: 5px;
+    /* 提升透明度，使其更轻盈 */
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    z-index: 100;
+    
+    /* 引入平滑的上下呼吸摆动动画 */
+    animation: bounceY 2.5s infinite ease-in-out;
+    transition: background 0.3s ease, transform 0.4s var(--ease), opacity 0.3s ease;
+}
+
+/* 摆动动画内核：保持居中同时实现 translateY 位移 */
+@keyframes bounceY {
+    0%, 100% { transform: translateX(-50%) translateY(0); }
+    50% { transform: translateX(-50%) translateY(-6px); }
+}
+
+/* 模拟系统级交互悬停 */
+.apple-home-bar:hover {
+    background: rgba(255, 255, 255, 0.6);
+    animation: none; /* 悬停时停止摆动 */
+    transform: translateX(-50%) translateY(0) scaleY(1.5);
+}
+
+/* 随退出动效协同向上飞出 */
+.exiting .apple-home-bar {
+    animation: none;
+    transform: translateX(-50%) translateY(-40px);
+    opacity: 0;
+}
+
+/* ================== 全局毛玻璃轻量提示 ================== */
+.hint-toast {
+    position: absolute; bottom: 50px; left: 50%; transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.5); 
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.08); border-radius: var(--radius-element);
+    padding: 15px 20px; color: rgba(255, 255, 255, 0.85); font-size: 15px; font-weight: 600;
+    pointer-events: none; opacity: 1; 
+    transition: opacity 0.6s cubic-bezier(0.25, 1, 0.5, 1), transform 0.6s var(--ease);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+.hint-toast.fade-out { 
+    opacity: 0; 
+    transform: translateX(-50%) translateY(15px); 
+}
+
+</style>
+</head>
+<body>
+<div class="alpha-titlebar"></div>
+
+<div class="wallpaper-layer" id="bgLayer"></div>
+
+<div class="focus-container" id="mainContainer">
+    <div class="apple-home-bar"></div>
+
+    <div class="clock-display-group" id="clockPanel" title="双击切换全屏">
+        <div class="time-wrapper">
+            <div class="time-main" id="timeMain">--:--</div>
+            <div class="time-sec" id="timeSec">--</div>
+        </div>
+        <div class="date-display" id="dateDisplay">加载中...</div>
+    </div>
+    
+    <div class="hint-toast" id="hintToast">💡 双击任意区域进入全屏 / 向上滚动返回</div>
+</div>
+
+<script>
+// ================== 壁纸色彩同步与自适应色彩提取 ==================
+const bgLayer = document.getElementById('bgLayer');
+const savedWp = localStorage.getItem('alpha_wallpaper');
+
+if (savedWp) {
+    bgLayer.style.backgroundImage = `url(${savedWp})`;
+    extractColorFromBase64(savedWp);
+} else {
+    bgLayer.style.backgroundColor = '#0d1117';
+    document.documentElement.style.setProperty('--theme-hue', '215');
+}
+
+function extractColorFromBase64(base64) {
+    const img = new Image();
+    img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = 50; canvas.height = 50;
+        ctx.drawImage(img, 0, 0, 50, 50);
+        const data = ctx.getImageData(0, 0, 50, 50).data;
+        let r = 0, g = 0, b = 0, count = 0;
+        for (let i = 0; i < data.length; i += 4) {
+            if (data[i] < 30 && data[i+1] < 30 && data[i+2] < 30) continue; 
+            r += data[i]; g += data[i+1]; b += data[i+2]; count++;
+        }
+        if (count === 0) return;
+        r = Math.floor(r/count)/255; g = Math.floor(g/count)/255; b = Math.floor(b/count)/255;
+        const max = Math.max(r, g, b), min = Math.min(r, g, b);
+        let h, d = max - min;
+        if (max === min) h = 0;
+        else {
+            switch (max) {
+                case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+                case g: h = (b - r) / d + 2; break;
+                case b: h = (r - g) / d + 4; break;
+            }
+            h /= 6;
+        }
+        document.documentElement.style.setProperty('--theme-hue', Math.round(h * 360));
+    };
+    img.src = base64;
+}
+
+// ================== 高精度时间渲染引擎 ==================
+const timeMainEl = document.getElementById('timeMain');
+const timeSecEl = document.getElementById('timeSec');
+const dateDisplayEl = document.getElementById('dateDisplay');
+const weekdays = ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"];
+
+function updateClock() {
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2, '0');
+    const mm = String(now.getMinutes()).padStart(2, '0');
+    const ss = String(now.getSeconds()).padStart(2, '0');
+    
+    timeMainEl.textContent = `${hh}:${mm}`;
+    timeSecEl.textContent = ss;
+    
+    if (ss === '00' && mm === '00' && hh === '00' || dateDisplayEl.textContent === '加载中...') {
+        dateDisplayEl.textContent = `${now.getMonth() + 1}月${now.getDate()}日 ${weekdays[now.getDay()]}`;
+    }
+    requestAnimationFrame(updateClock);
+}
+requestAnimationFrame(updateClock);
+
+// ================== 全屏系统控制 ==================
+document.addEventListener('dblclick', () => {
+    if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => console.log(err.message));
+    } else {
+        document.exitFullscreen();
+    }
+});
+
+// 精准控制：提示显示2s后以阻尼曲率自动向下滑出隐藏
+setTimeout(() => {
+    document.getElementById('hintToast').classList.add('fade-out');
+}, 2000);
+
+// ================== 物理惯性退出路由 (返回主页) ==================
+let isTransitioningToHome = false;
+
+window.addEventListener('wheel', (e) => {
+    if (isTransitioningToHome) return;
+
+    // 用户用力向上滚动（此时由于提示条在顶部，向上滑动意为将当前页面“推走”或拉出主页）
+    if (e.deltaY < -40) {
+        isTransitioningToHome = true;
+        const container = document.getElementById('mainContainer');
+        container.classList.add('exiting');
+        
+        if (document.fullscreenElement) {
+            document.exitFullscreen();
+        }
+        
+        setTimeout(() => {
+            window.location.href = 'Home.html';
+        }, 500);
+    }
+}, { passive: true });
+
+</script>
+</body>
+</html>

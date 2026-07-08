@@ -1,0 +1,1613 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>账户 | Tasks</title>
+<link rel="icon" href="Account.ico" type="image/x-icon">
+<script src="https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js"></script>
+<base href="./">
+<style>
+/* ================== 全局与色彩体系 ================== */
+::selection { background-color: #d4ebff; color: #0f172a; }
+::-moz-selection { background-color: #9DD2FF; color: #0f172a; }
+
+:root {
+    --text:#0f172a; --sub:#64748b;
+    --monet-blue: #9DD2FF;
+    --monet-text: #2F354F;
+    --monet-danger: #e3605d;
+    
+    --glass: rgba(255, 255, 255, 0.35);
+    --glass-border: rgba(255, 255, 255, 0.6);
+
+    --shadow-xl: 0 40px 80px rgba(15,23,42,.12);
+    --shadow-lg: 0 24px 64px rgba(15,23,42,.06);
+    --shadow-md: 0 16px 40px rgba(15,23,42,.05);
+    --shadow-sm: 0 8px 20px rgba(15,23,42,.04);
+
+    --spacing-main: 32px;   /* Panel 级内边距 */
+    --spacing-card: 24px;   /* Card 级内边距 */
+    --spacing-inside: 16px; /* 元素级内边距 */
+    
+    /* 4 级同心圆角体系 (Concentric Radius System) */
+    --radius-panel: 32px;   /* L1: 主面板、侧边栏、全局弹窗 (原 main) */
+    --radius-card: 24px;    /* L2: 任务卡片、图表容器、侧边小卡 */
+    --radius-element: 16px; /* L3: 按钮、输入框、视图切换器 (独立出来) */
+    --radius-sub: 14px;
+    --radius-sm: 10px;      /* L4: 内部小标签、日历箭头、下拉项 */
+
+    --ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+* {
+    margin: 0; padding: 0; box-sizing: border-box;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", sans-serif;
+    -webkit-tap-highlight-color: transparent; outline: none !important;
+}
+
+html { scroll-behavior: smooth; }
+
+::-webkit-scrollbar { width: 0; height: 0; background: transparent; }
+
+body {
+    min-height: 100vh;
+    margin: 0;
+    padding: 32px; 
+    color: var(--text);
+    color-scheme: light;
+    /* 1. 将底色剥离到 body，作为最安全的托底，防止动画穿帮 */
+    background-color: #f6f8fa; 
+    position: relative;
+    box-sizing: border-box;
+    overflow-x: hidden;
+    scrollbar-width: none; -ms-overflow-style: none; 
+}
+
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+/* 2. 赋予流光容器生命 - 恢复原版清冷灰蓝底色 */
+.alpha-ambient-bg {
+    position: fixed;
+    inset: 0;
+    z-index: -3;
+    overflow: hidden;
+    background-color: #f2f5f9; /* 恢复你原版极其微弱的冷灰蓝底色 */
+    pointer-events: none;
+}
+
+/* 真正的一抹微光 (极度克制的丁达尔斜射光) */
+.sunbeam {
+    position: absolute;
+    top: -10%;
+    right: -5%;
+    width: 35vw; /* 大幅缩小范围，真的是“一抹” */
+    height: 80vh;
+    /* 极度降低透明度，瞬间融入原本的冷色环境中 */
+    background: linear-gradient(155deg, rgba(255, 245, 225, 0.12) 0%, rgba(255, 235, 200, 0.03) 30%, transparent 55%);
+    transform-origin: top right;
+    filter: blur(60px);
+    will-change: transform, opacity;
+    animation: sunbeam-pulse 12s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ================== 环境光优化版 ================== */
+.sunbeam {
+    position: absolute; top: -10%; right: -5%; width: 35vw; height: 80vh;
+    /* 移除 filter: blur，直接在渐变中实现柔和过渡 */
+    background: radial-gradient(ellipse at top right, rgba(255, 245, 225, 0.12) 0%, rgba(255, 235, 200, 0.05) 40%, transparent 65%);
+    transform-origin: top right; will-change: transform, opacity;
+    animation: sunbeam-pulse 12s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
+}
+.orb { 
+    position: absolute; border-radius: 50%; 
+    /* 彻底移除 filter: blur(110px); */
+    will-change: transform; opacity: 0.85; 
+}
+/* 渐变的结尾必须是完全透明，自然形成毛边光晕 */
+.orb-1 { width: 60vw; height: 60vw; background: radial-gradient(circle, rgba(178, 219, 255, 0.3) 0%, transparent 60%); top: -15%; right: -15%; animation: orb-drift-1 18s infinite alternate cubic-bezier(0.4, 0, 0.2, 1); }
+.orb-2 { width: 70vw; height: 70vw; background: radial-gradient(circle, rgba(212, 206, 255, 0.4) 0%, transparent 60%); bottom: -20%; left: -20%; animation: orb-drift-2 22s infinite alternate-reverse cubic-bezier(0.4, 0, 0.2, 1); }
+.orb-3 { width: 50vw; height: 50vw; background: radial-gradient(circle, rgba(255, 204, 194, 0.3) 0%, transparent 60%); top: 20%; left: 30%; animation: orb-drift-3 20s infinite alternate cubic-bezier(0.4, 0, 0.2, 1); }
+
+/* 错落有致的非线性运动轨迹 (加入了 translate3d 强制触发 GPU 渲染防静止) */
+@keyframes orb-drift-1 {
+    0% { transform: translate3d(0, 0, 0) scale(1); }
+    100% { transform: translate3d(-15vw, 12vh, 0) scale(1.15); }
+}
+@keyframes orb-drift-2 {
+    0% { transform: translate3d(0, 0, 0) scale(1); }
+    100% { transform: translate3d(12vw, -12vh, 0) scale(0.95); }
+}
+@keyframes orb-drift-3 {
+    0% { transform: translate3d(0, 0, 0) scale(1); }
+    100% { transform: translate3d(-10vw, -15vh, 0) scale(1.2); }
+}
+@keyframes sunbeam-pulse {
+    0% { transform: rotate(0deg) scale(1) translate3d(0, 0, 0); opacity: 0.5; }
+    100% { transform: rotate(-3deg) scale(1.02) translate3d(-1vw, 1vh, 0); opacity: 1; }
+}
+
+/* Glass Reflection - 液态高光微折射层 (保持静止) */
+body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1; 
+    pointer-events: none;
+    background:
+        linear-gradient(
+            135deg,
+            rgba(255, 255, 255, 0.05) 0%,
+            rgba(255, 255, 255, 0.01) 25%,
+            transparent 50%,
+            transparent 75%,
+            rgba(255, 255, 255, 0.03) 100%
+        );
+}
+/* ================== 侧边栏与主面板 (宽度自适应修复) ================== */
+.app { 
+    display: grid; 
+    /* 修复 3: 宽度放宽到 1600px 匹配 TaskFlow, 且拉宽了左侧的基准占比 */
+    grid-template-columns: 320px minmax(0, 1fr); 
+    gap: var(--spacing-main); 
+    max-width: 1600px; 
+    margin: 0 auto; 
+    align-items: stretch; /* 允许高度拉伸 */
+}
+
+.sidebar, .panel {
+    background: var(--glass); 
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(48px) saturate(200%); 
+    -webkit-backdrop-filter: blur(48px) saturate(200%);
+    box-shadow: var(--shadow-lg), inset 0 1.5px 2px rgba(255,255,255,0.9), inset 1.5px 0 2px rgba(255,255,255,0.3);
+    border-radius: var(--radius-panel);
+    padding: var(--spacing-main);
+    position: relative;
+    z-index: 10;
+}
+
+/* 修复 4: 左侧个人信息栏撑满整屏高度 */
+.sidebar { 
+    position: sticky; top: var(--spacing-main); 
+    height: calc(100vh - (var(--spacing-main) * 2));
+    display: flex; flex-direction: column; 
+    text-align: center;
+}
+
+.main { display: flex; flex-direction: column; gap: var(--spacing-main); min-width: 0; }
+
+/* 修复 6: 删除返回文字, 仅保留极简箭头 */
+.logo-area { 
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 44px; height: 44px; border-radius: 16px;
+    cursor: pointer; transition: all 0.3s var(--ease);
+    background: rgba(255, 255, 255, 0.4); border: 1px solid rgba(255, 255, 255, 0.6);
+    color: var(--sub); margin-bottom: auto; /* 靠上 */
+    align-self: flex-start;
+}
+.logo-area:hover { background: rgba(255, 255, 255, 0.8); transform: translateX(-4px); color: var(--monet-text);}
+
+.section-title { font-size: 26px; font-weight: 800; margin-bottom: var(--spacing-card); display: flex; align-items: center; gap: 12px;}
+
+/* ================== 头像与身份卡 ================== */
+.avatar-wrap {
+    width: 160px; height: 160px; margin: 0 auto 24px; position: relative;
+    border-radius: 50%; padding: 6px;
+    background: linear-gradient(135deg, rgba(255,255,255,0.8), rgba(255,255,255,0.2));
+    box-shadow: 0 24px 48px rgba(15,23,42,0.1), inset 0 2px 4px rgba(255,255,255,1);
+    cursor: pointer; transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.avatar-wrap:hover { transform: scale(1.05); }
+.avatar-wrap img {
+    width: 100%; height: 100%; border-radius: 50%; object-fit: cover;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.05);
+}
+.avatar-wrap .placeholder {
+    width: 100%; height: 100%; border-radius: 50%; background: #f1f5f9;
+    display: flex; align-items: center; justify-content: center; font-size: 48px; color: #cbd5e1;
+}
+
+/* 缩小相机图标, 更精致 */
+.avatar-badge {
+    position: absolute; bottom: 8px; right: 12px; width: 28px; height: 28px;
+    background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(8px);
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 12px rgba(15,23,42,0.1); font-size: 14px; border: 1px solid rgba(255,255,255,1);
+}
+
+.user-name-display { font-size: 28px; font-weight: 800; color: #0f172a; margin-bottom: 8px; display: flex; align-items: center; justify-content: center; gap: 8px;}
+.user-id-display { font-size: 14px; color: #64748b; font-weight: 600; font-family: monospace;}
+
+/* ================== 表单与输入 ================== */
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-card); }
+.full-width { grid-column: 1 / -1; } 
+.field { display: flex; flex-direction: column; gap: 10px; }
+label { font-size: 14px; font-weight: 700; color: #334155; }
+
+input[type="text"], input[type="number"] {
+    width: 100%; padding: 0 20px; border-radius: var(--radius-element); height:50px;
+    border: 1px solid rgba(255, 255, 255, 0.62); background: rgba(255, 255, 255, 0.5);
+    color: #0f172a; font-size: 15px; font-weight: 600; line-height: 1.6;
+    box-shadow: inset 0 2px 5px rgba(15, 23, 42, 0.05), inset 0 -1px 1.5px rgba(255, 255, 255, 0.65); transition: background 0.3s var(--ease), border-color 0.3s var(--ease), box-shadow 0.3s var(--ease);
+    resize: none;
+}
+input::placeholder, textarea::placeholder { color: #748091; font-weight: 500; }
+input:hover, textarea:hover { background: rgba(255, 255, 255, 0.9); }
+input:focus, textarea:focus {
+    background: #ffffff; border-color: var(--monet-blue) !important;
+    box-shadow: 0 0 0 4px rgba(157, 210, 255, 0.25), 0 12px 24px rgba(15, 23, 42, 0.08) !important;
+}
+textarea {
+    width: 100%; 
+    padding: 14px 20px; 
+    border-radius: var(--radius-element);
+    height: 52px;
+    border: 1px solid rgba(255, 255, 255, 0.62); 
+    background: rgba(255, 255, 255, 0.5);
+    color: #0f172a; font-size: 15px; font-weight: 600; line-height: 1.6;
+    box-shadow: inset 0 2px 5px rgba(15, 23, 42, 0.05), inset 0 -1px 1.5px rgba(255, 255, 255, 0.65);
+    resize: none;
+    overflow-y: auto;
+    transition: height 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.3s var(--ease), border-color 0.3s var(--ease), box-shadow 0.3s var(--ease);
+}
+
+/* ===================================================
+   性别选择标签 (Liquid Glass 同步重构版)
+=================================================== */
+.gender-box { display: flex; flex-wrap: wrap; gap: 12px; }
+.gender-item { position: relative; cursor: pointer; }
+.gender-item input { display: none; }
+
+/* 基础状态: 彻底对齐 Subject 的低饱和度隐退质感 */
+.gender-item span {
+    display: flex;
+    align-items: center; justify-content: center;
+    padding: 10px 16px; 
+    min-width: 64px; 
+    border-radius: var(--radius-sub, 12px);
+    
+    /* 降低基础白度, 增强隐退感 */
+    background-color: rgba(255, 255, 255, 0.25); 
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    
+    /* 强化毛玻璃模糊度, 对齐 subject-item */
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    
+    /* 增强内阴影高光, 弥补背景变暗后的质感流失 */
+    box-shadow: 
+        0 4px 10px rgba(15, 23, 42, 0.02), 
+        inset 0 1px 2px rgba(255, 255, 255, 0.7),
+        inset 0 -1px 2px rgba(255, 255, 255, 0.1);
+        
+    /* 性能优化: 明确指定过渡属性 */
+    transition: transform 0.3s var(--ease, cubic-bezier(0.16, 1, 0.3, 1)), 
+                background-color 0.3s var(--ease, cubic-bezier(0.16, 1, 0.3, 1)), 
+                box-shadow 0.3s var(--ease, cubic-bezier(0.16, 1, 0.3, 1)), 
+                border-color 0.3s var(--ease, cubic-bezier(0.16, 1, 0.3, 1));
+                
+    font-size: 14px; font-weight: 700; color: #475569;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif !important;
+    letter-spacing: 0.04em !important;
+    line-height: 1.4 !important;
+    user-select: none;
+}
+
+/* 悬浮与按压阻尼联动 (对齐 Subject) */
+.gender-item:hover span {
+    background-color: rgba(255, 255, 255, 0.45);
+    transform: translateY(-2px);
+    box-shadow: 
+        0 8px 16px rgba(15, 23, 42, 0.05), 
+        inset 0 2px 4px rgba(255, 255, 255, 0.9);
+    border-color: rgba(255, 255, 255, 0.7);
+    color: #0f172a;
+}
+.gender-item:active span {
+    transform: translateY(1px) scale(0.94);
+    background-color: rgba(255, 255, 255, 0.45);
+    box-shadow: 
+        0 2px 4px rgba(15, 23, 42, 0.04), 
+        inset 0 2px 6px rgba(0, 0, 0, 0.02);
+    transition-duration: 0.1s; 
+}
+
+/* ===================================================
+   选中态 (Checked): 极简清透, 色彩转至边框与内环境光
+=================================================== */
+
+/* 男: 莫奈蓝 */
+.gender-item input[value="male"]:checked + span { 
+    background-color: rgba(157, 210, 255, 0.25) !important; /* 降低背景浓度 */
+    color: #0f172a !important; 
+    border-color: rgba(157, 210, 255, 0.7) !important;      /* 边框注入色彩折射 */
+    box-shadow: 
+        0 8px 20px rgba(140, 185, 225, 0.15),               /* 减弱外部光晕 */
+        inset 0 2px 4px rgba(255, 255, 255, 0.95),          /* 维持顶部强高光 */
+        inset 0 -2px 6px rgba(140, 185, 225, 0.2) !important;
+    transform: translateY(-2px) scale(1.02);
+}
+
+/* 女: 莫奈红 */
+.gender-item input[value="female"]:checked + span { 
+    background-color: rgba(243, 184, 221, 0.25) !important;
+    color: #0f172a !important; 
+    border-color: rgba(243, 184, 221, 0.7) !important; 
+    box-shadow: 
+        0 8px 20px rgba(255, 142, 180, 0.15), 
+        inset 0 2px 4px rgba(255, 255, 255, 0.95), 
+        inset 0 -2px 6px rgba(255, 114, 161, 0.2) !important;
+    transform: translateY(-2px) scale(1.02);
+}
+
+/* 其他: 莫奈紫 */
+.gender-item input[value*="custom"]:checked + span { 
+    background-color: rgba(190, 170, 240, 0.25) !important;
+    color: #0f172a !important; 
+    border-color: rgba(190, 170, 240, 0.7) !important;
+    box-shadow: 
+        0 8px 20px rgba(190, 170, 240, 0.15), 
+        inset 0 2px 4px rgba(255, 255, 255, 0.95), 
+        inset 0 -2px 6px rgba(190, 170, 240, 0.2) !important;
+    transform: translateY(-2px) scale(1.02);
+}
+
+/* ===================================================
+   已保存的静态 Tag 标签
+=================================================== */
+.gender-tag {
+    display: inline-flex; 
+    align-items: center; justify-content: center;
+    padding: 6px 14px; 
+    border-radius: 999px !important;  
+    font-size: 13px; 
+    font-weight: 800; 
+    color: #1e293b;
+    
+    /* 文本底部白阴影: 模拟在玻璃内部的物理雕刻/凸版印刷感 */
+    text-shadow: 0 1px 1px rgba(255, 255, 255, 0.95);
+    
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    white-space: nowrap;
+    
+    /* 边框泛白: 弃用主题色描边, 改用高透明度的纯白边框, 强化边缘物理高光 */
+    border: 1px solid rgba(255, 255, 255, 0.75) !important; 
+}
+
+/* 男生 Tag (莫奈蓝) */
+.gender-tag.male {
+    /* 色彩淡化且右侧最淡: 从左上角的 0.35 浓度, 过渡到右下角极淡的纯白环境光 (0.05) */
+    background: linear-gradient(135deg, rgba(157, 210, 255, 0.35), rgba(255, 255, 255, 0.05)) !important; 
+    
+    box-shadow: 
+        /* 阴影淡化: 大幅削弱外侧弥散光晕 */
+        0 4px 10px rgba(157, 210, 255, 0.33),                 
+        inset 0 1.5px 2px rgba(255, 255, 255, 0.9),           
+        inset 0 -1px 2px rgba(157, 210, 255, 0.15) !important; 
+}
+
+/* 女生 Tag (莫奈红) */
+.gender-tag.female {
+    background: linear-gradient(135deg, rgba(243, 184, 221, 0.35), rgba(255, 255, 255, 0.05)) !important; 
+    box-shadow: 
+        0 4px 10px rgba(243, 184, 221, 0.33),
+        inset 0 1.5px 2px rgba(255, 255, 255, 0.9),
+        inset 0 -1px 2px rgba(243, 184, 221, 0.15) !important;
+}
+
+/* 其他 Tag (莫奈紫) */
+.gender-tag.custom {
+    background: linear-gradient(135deg, rgba(190, 170, 240, 0.35), rgba(255, 255, 255, 0.05)) !important;
+    box-shadow: 
+        0 4px 10px rgba(190, 170, 240, 0.33),
+        inset 0 1.5px 2px rgba(255, 255, 255, 0.9),
+        inset 0 -1px 2px rgba(190, 170, 240, 0.15) !important;
+}
+/* ================== 按钮与工具栏 ================== */
+.toolbar { 
+    display: flex; 
+    flex-wrap: wrap; 
+    gap: 16px; 
+    align-items: center; 
+    margin-top: var(--spacing-main); /* 👈 核心修复：引入 32px 的主间距隔离表单与按钮 */
+    position: relative; 
+    z-index: 1;
+}
+.toolbar button { height: 52px; }
+
+/* 按钮 */
+button, upload-label {
+    position: relative; overflow: hidden; display: inline-flex; height: 52px; border: none;
+    align-items: center; justify-content: center; padding: 0 24px;
+    border-radius: var(--radius-element); cursor: pointer; font-size: 16px !important; font-weight: 700 !important; 
+    /* 极致顺滑的过渡：使用弹性阻尼曲线，保留 transform 硬件加速 */
+    transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), background 0.3s ease, box-shadow 0.3s ease; 
+    outline: none; letter-spacing: 0.5px;
+    will-change: transform, box-shadow; 
+}
+
+/* 废弃原先粗暴的 ::before 伪元素高光，改用更优雅的多重 background */
+button::before { display: none; }
+button:active { transform: scale(0.96) !important; }
+
+/* ------------------------------------------------
+   1. Primary (莫奈蓝) - 同色边缘折射版
+------------------------------------------------ */
+.primary { 
+    background: 
+        radial-gradient(circle at 85% 15%, rgba(255, 250, 240, 0.35) 0%, transparent 60%),
+        linear-gradient(135deg, rgba(145, 205, 255, 0.85) 0%, rgba(115, 185, 255, 0.45) 100%);
+    color: #0f172a; 
+    box-shadow: 
+        0 6px 16px rgba(120, 175, 225, 0.2), 
+        inset 0 1.5px 2px rgba(255, 255, 255, 0.95), 
+        inset -1px -1px 2px rgba(255, 255, 255, 0.3), 
+        /* 💡 将白边改为高透冰蓝色：完美融入基底，边缘像纯净的蓝水晶 */
+        0 0 0 1px rgba(217, 237, 254, 0.85); 
+    backdrop-filter: blur(16px) saturate(180%); 
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+}
+
+.primary:hover { 
+    background: 
+        radial-gradient(circle at 85% 15%, rgba(255, 250, 240, 0.55) 0%, transparent 65%),
+        linear-gradient(135deg, rgba(175, 220, 255, 0.95) 0%, rgba(145, 205, 255, 0.55) 100%);
+    transform: translateY(-2px); 
+    box-shadow: 
+        0 12px 24px rgba(120, 175, 225, 0.3), 
+        inset 0 2px 3px rgba(255, 255, 255, 1), 
+        inset -1px -1px 2px rgba(255, 255, 255, 0.5),
+        /* 💡 修复：将刺眼的蓝色霓虹边，改为带有一点点冷蓝调的“高透霜白色” */
+        0 0 0 1.5px rgba(240, 248, 255, 0.9); 
+}
+
+.primary:active {
+    background: 
+        radial-gradient(circle at 85% 15%, rgba(255, 250, 240, 0.2) 0%, transparent 40%),
+        linear-gradient(135deg, rgba(135, 195, 255, 0.75) 0%, rgba(105, 175, 255, 0.35) 100%);
+    box-shadow: 
+        0 2px 6px rgba(120, 175, 225, 0.1), 
+        inset 0 3px 6px rgba(15, 23, 42, 0.08), 
+        inset 0 1px 1px rgba(255, 255, 255, 0.5),
+        /* 💡 按下时蓝边暗淡，贴合物理阴影 */
+        0 0 0 1px rgba(145, 205, 255, 0.6);
+}
+
+/* ------------------------------------------------
+   2. Secondary (清透玻璃) - 微调适配
+------------------------------------------------ */
+.secondary { 
+    background: 
+        radial-gradient(circle at 85% 15%, rgba(255, 252, 245, 0.5) 0%, transparent 50%),
+        linear-gradient(135deg, rgba(255, 255, 255, 0.5) 0%, rgba(240, 248, 255, 0.15) 100%); 
+    color: var(--monet-text);
+    box-shadow: 
+        0 6px 16px rgba(15, 23, 42, 0.04), 
+        inset 0 1.5px 2px rgba(255, 255, 255, 0.95), 
+        inset -1px -1px 2px rgba(255, 255, 255, 0.3), 
+        /* 💡 将死白改为带有淡淡冷灰/冷蓝的珍珠白，消除锐利感 */
+        0 0 0 1px rgba(241, 245, 249, 0.85);
+    backdrop-filter: blur(16px) saturate(180%); 
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+}
+
+.secondary:hover { 
+    background: 
+        radial-gradient(circle at 85% 15%, rgba(255, 252, 245, 0.7) 0%, transparent 60%),
+        linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(245, 250, 255, 0.35) 100%); 
+    transform: translateY(-2px);
+    box-shadow: 
+        0 10px 24px rgba(15, 23, 42, 0.08), 
+        inset 0 2px 3px rgba(255, 255, 255, 1), 
+        inset -1px -1px 2px rgba(255, 255, 255, 0.5), 
+        0 0 0 1.5px rgba(255, 255, 255, 0.95); 
+}
+
+.secondary:active {
+    background: 
+        radial-gradient(circle at 85% 15%, rgba(255, 252, 245, 0.3) 0%, transparent 40%),
+        linear-gradient(135deg, rgba(245, 250, 255, 0.4) 0%, rgba(230, 240, 255, 0.1) 100%);
+    box-shadow: 
+        0 2px 6px rgba(15, 23, 42, 0.03), 
+        inset 0 3px 6px rgba(15, 23, 42, 0.04), 
+        inset 0 1px 1px rgba(255, 255, 255, 0.6),
+        0 0 0 1px rgba(226, 232, 240, 0.7);
+}
+
+/* ------------------------------------------------
+   3. Danger (警示红) - 同色边缘折射版
+------------------------------------------------ */
+.danger { 
+    background: 
+        radial-gradient(circle at 85% 15%, rgba(255, 235, 230, 0.2) 0%, transparent 50%),
+        linear-gradient(135deg, rgba(250, 66, 62, 0.75) 0%, rgba(220, 38, 38, 0.55) 100%); 
+    color: #ffffff; 
+    box-shadow: 
+        0 6px 16px rgba(239, 68, 68, 0.2), 
+        inset 0 1.5px 2px rgba(255, 255, 255, 0.5), 
+        inset -1px -1px 2px rgba(0, 0, 0, 0.08),
+        /* 💡 将白边改为高透珊瑚红：红玻璃的边缘就应该是透亮的红色 */
+        0 0 0 1px rgba(255, 199, 199, 0.75); 
+    backdrop-filter: blur(16px) saturate(180%); 
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+}
+
+.danger:hover { 
+    background: 
+        radial-gradient(circle at 85% 15%, rgba(255, 235, 230, 0.45) 0%, transparent 65%),
+        linear-gradient(135deg, rgba(248, 113, 113, 0.95) 0%, rgba(239, 68, 68, 0.7) 100%); 
+    transform: translateY(-2px); 
+    box-shadow: 
+        0 10px 24px rgba(239, 68, 68, 0.3), 
+        inset 0 2px 3px rgba(255, 255, 255, 0.75), 
+        inset -1px -1px 2px rgba(0, 0, 0, 0.12),
+        /* 💡 修复：将刺眼的亮红边，改为带有一丝微粉的珍珠白 */
+        0 0 0 1.5px rgba(255, 240, 240, 0.9); 
+}
+
+.danger:active {
+    background: 
+        linear-gradient(135deg, rgba(220, 38, 38, 0.75) 0%, rgba(185, 28, 28, 0.45) 100%);
+    box-shadow: 
+        0 2px 6px rgba(239, 68, 68, 0.1), 
+        inset 0 3px 6px rgba(0, 0, 0, 0.15), 
+        inset 0 1px 1px rgba(255, 255, 255, 0.3),
+        /* 💡 按下时压暗边缘红色 */
+        0 0 0 1px rgba(220, 38, 38, 0.5);
+}
+
+/* ================== 同步模块 ================== */
+.sync-code-box {
+    width: 100%; height: 120px; padding: 16px; 
+    border-radius: var(--radius-element); /* 👈 修正为 L3 圆角 */
+    border: 1px solid rgba(255, 255, 255, 0.62); background: rgba(255, 255, 255, 0.5);
+    color: #0f172a;
+    font-family: "SF Mono", SFMono-Regular, Consolas, monospace; font-size: 13px; line-height: 1.5; 
+    resize: none; margin-bottom: 16px; 
+    word-break: break-all;
+    overflow-y: auto; 
+    outline: none;
+    box-shadow: inset 0 2px 5px rgba(15, 23, 42, 0.05), inset 0 -1px 1.5px rgba(255, 255, 255, 0.65); 
+    transition: background 0.3s var(--ease), border-color 0.3s var(--ease), box-shadow 0.3s var(--ease);
+}
+.sync-code-box:focus { 
+    background: #ffffff; 
+    /* 焦点同步: 无缝继承全站通用的高抗压聚焦呼吸光晕 */
+    border-color: var(--monet-blue) !important;
+    box-shadow: 0 0 0 4px rgba(157, 210, 255, 0.25), 0 12px 24px rgba(15, 23, 42, 0.08) !important; 
+}
+
+.sync-status { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; color: #64748b; margin-top: 12px; opacity: 0; transition: opacity 0.3s;}
+.sync-status.show { opacity: 1; }
+
+/* ===========================
+   液态玻璃弹窗与动画引擎
+=========================== */
+.sphere-modal {
+    position: fixed; inset: 0; z-index: 10000; display: flex; align-items: center; justify-content: center;
+    background: rgba(15, 23, 42, 0.25);
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    opacity: 1; visibility: visible; 
+    
+    /* 修复掉帧 1: 显式接管 backdrop-filter 过渡, 防止 GPU 盲目重绘 */
+    transition: opacity 0.3s var(--ease), 
+                backdrop-filter 0.3s var(--ease),
+                -webkit-backdrop-filter 0.3s var(--ease),
+                visibility 0s 0s;
+                
+    /* 修复掉帧 2: 提前宣告模糊度的变化, 并强制开启底层硬件加速 */
+    will-change: opacity, backdrop-filter;
+    transform: translateZ(0);
+}
+
+.sphere-modal.hidden {
+    display: flex !important; 
+    opacity: 0; 
+    visibility: hidden; 
+    pointer-events: none;
+    
+    /* 修复掉帧 3: 退出时将模糊度归零, 彻底释放底层渲染压力 */
+    backdrop-filter: blur(0px); -webkit-backdrop-filter: blur(0px);
+    
+    transition: opacity 0.3s var(--ease), 
+                backdrop-filter 0.3s var(--ease),
+                -webkit-backdrop-filter 0.3s var(--ease),
+                visibility 0s 0.3s;
+}
+
+.sphere-modal .modal-content {
+    background: rgba(255, 255, 255, 0.82); 
+    backdrop-filter: blur(48px) saturate(200%); -webkit-backdrop-filter: blur(48px) saturate(200%);
+    border: 1px solid rgba(255, 255, 255, 1); 
+    
+    border-radius: var(--radius-panel); /* 保持卡片级圆角比例 */
+    
+    /* 修复 1: 升级为全局最高级留白 (32px), 让内容彻底呼吸 */
+    padding: var(--spacing-main);
+    
+    /* 修复 2: 略微拓宽整体容器宽度, 补偿文字可用空间 */
+    width: 360px; 
+    
+    box-shadow: 0 24px 64px rgba(15,23,42,0.15), inset 0 2px 6px rgba(255, 255, 255, 0.6);
+    
+    will-change: transform, opacity;
+    transform: translateY(0) scale(1) translateZ(0); 
+    opacity: 1;
+    
+    transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1),
+                opacity 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.sphere-modal.hidden .modal-content {
+    transform: translateY(24px) scale(0.92) translateZ(0); 
+    opacity: 0;
+    transition: transform 0.3s var(--ease),
+                opacity 0.3s var(--ease);
+}
+
+/* 彩带画布 */
+#confettiCanvas { position: fixed; inset: 0; pointer-events: none; z-index: 9999;}
+
+/* ================== 响应式布局引擎 ================== */
+@media (max-width: 960px) {
+    .app { 
+        grid-template-columns: 1fr; /* 切换为单列排版 */
+    }
+    .sidebar { 
+        height: auto; 
+        position: relative; 
+        top: 0; 
+    }
+    .form-grid { 
+        grid-template-columns: 1fr; /* 表单双列坍缩为单列 */
+    }
+    .sphere-modal .modal-content {
+        width: 90%; 
+        padding: 24px;
+    }
+}
+
+/* ================== 全局 Toast 通知引擎 ================== */
+.toast-notification {
+    position: fixed; top: 24px; left: 50%; transform: translateX(-50%) translateY(-20px) scale(0.95);
+    z-index: 10001; padding: 14px 28px; border-radius: var(--radius-element);
+    background: rgba(255, 255, 255, 0.75); border: 1px solid rgba(255, 255, 255, 0.9);
+    box-shadow: 0 16px 40px rgba(15,23,42,0.1), inset 0 2px 4px rgba(255,255,255,0.8);
+    backdrop-filter: blur(32px) saturate(200%); -webkit-backdrop-filter: blur(32px) saturate(200%);
+    font-size: 15px; font-weight: 700; color: var(--text);
+    opacity: 0; pointer-events: none;
+    transition: all 0.45s var(--ease);
+}
+.toast-notification.show { 
+    opacity: 1; 
+    transform: translateX(-50%) translateY(0) scale(1); 
+}
+
+/* ================== 全局页面切换动效 ================== */
+@keyframes alphaPageIn {
+    0% { opacity: 0; transform: translateX(60px); }
+    100% { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes alphaPageOut {
+    0% { opacity: 1; transform: translateX(0); }
+    100% { opacity: 0; transform: translateX(-60px); }
+}
+
+/* 1. 进场直接绑定给 .app 容器，无需 JS 介入 */
+.app {
+    /* backwards 属性是神来之笔：它强制让浏览器在第 0 帧就维持 0% 的状态（透明且偏右），彻底消灭闪烁 */
+    animation: alphaPageIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+/* 2. 退场专用类 */
+.page-transition-leave {
+    animation: alphaPageOut 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards !important;
+    pointer-events: none;
+    /* 强制降低退出时的层级，确保退场滑动时绝不会从 alphaDropdownMenu 上方压过去 */
+    position: relative;
+    z-index: 1; 
+}
+
+/* ================== 全局 Alpha Tooltip (极致液态毛玻璃增强版) ================== */
+#alphaTooltip {
+    position: fixed;
+    top: 0;
+    left: 0;
+    padding: 6px 12px;
+    
+    /* 1. 材质重塑：大幅降低白色浓度 (从 0.65 降至 0.35)，让底层画面透过来 */
+    background: rgba(255, 255, 255, 0.65);
+    
+    /* 2. 景深增强：提升模糊半径至 24px，并拉高 200% 的色彩饱和度，形成“丁达尔折射” */
+    backdrop-filter: blur(24px) saturate(200%);
+    -webkit-backdrop-filter: blur(24px) saturate(200%);
+    
+    /* 3. 物理切边：四周使用半透明边框，但顶部保留高亮，模拟顶光打在玻璃边缘 */
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-top-color: rgba(255, 255, 255, 0.85); 
+    
+    /* 4. 体积光影：外侧加深悬浮投影，内部注入两层发光感（边缘锐利折射 + 内部柔和泛光） */
+    box-shadow: 
+        0 8px 24px rgba(15, 23, 42, 0.12),         /* 更具浮空感的外阴影 */
+        inset 0 1px 1px rgba(255, 255, 255, 0.9),  /* 顶部边缘的极限高光 */
+        inset 0 0 12px rgba(255, 255, 255, 0.4);   /* 玻璃内部的均匀泛光厚度 */
+        
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+    color: var(--text, #0f172a);
+    font-weight: 500;
+    pointer-events: none;
+    z-index: 10000;
+    opacity: 0;
+    transform: translateY(6px) scale(0.94);
+    transition: opacity 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), 
+                transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    will-change: transform, opacity, left, top;
+    white-space: nowrap;
+}
+
+#alphaTooltip.visible {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
+</style>
+</head>
+<body>
+<div class="alpha-ambient-bg">
+    <div class="sunbeam"></div>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+</div>
+
+<canvas id="confettiCanvas"></canvas>
+
+<div id="globalToast" class="toast-notification"></div>
+
+<div class="app">
+    <aside class="sidebar">
+        <div class="logo-area" onclick="window.location.href='Home.html'" title="返回主页">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+        </div>
+
+        <div style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
+            <div class="avatar-wrap" onclick="document.getElementById('avatarUpload').click()">
+                <img id="displayAvatar" src="" style="display: none;">
+                <div id="displayAvatarPlaceholder" class="placeholder">👤</div>
+                <div class="avatar-badge">📸</div>
+                <input type="file" id="avatarUpload" accept="image/png, image/jpeg, image/gif" hidden>
+            </div>
+
+            <div class="user-name-display">
+                <span id="displayName">Tasks User</span>
+            </div>
+            <!-- 独立的一行, 用来放置性别标签 -->
+            <div style="display: flex; justify-content: center; margin-bottom: 8px;">
+                <span id="displayGender" class="gender-tag" style="display: none;"></span>
+            </div>
+            <div class="user-id-display">ID: <span id="displayId">Tasks_001</span></div>
+        </div>
+        
+        <div style="color: var(--sub); font-size: 14px; line-height: 1.6; padding: 0 16px; margin-top: auto;" id="displayBio">非同凡想 自强不息</div>
+    </aside>
+
+    <main class="main">
+        <section class="panel">
+            <div class="section-title">我的账号</div>
+            
+            <div class="form-grid">
+                <div class="field">
+                    <label>昵称</label>
+                    <input type="text" id="inputName" placeholder="输入你的专属昵称">
+                </div>
+                <div class="field">
+                    <label>User ID</label>
+                    <input type="text" id="inputId" placeholder="Tasks_001">
+                </div>
+                <div class="field full-width">
+                    <label>个人简介</label>
+                    <textarea id="inputBio" placeholder="写下一句激励自己的话..."></textarea>
+                </div>
+                <div class="field">
+                    <label>生日</label>
+                    <input type="text" id="inputBirthday" placeholder="YYYY-MM-DD">
+                </div>
+                <div class="field full-width">
+                    <label>性别</label>
+                    <div class="gender-box">
+                        <label class="gender-item"><input type="radio" name="gender" value="male"><span>♂️ 男</span></label>
+                        <label class="gender-item"><input type="radio" name="gender" value="female"><span>♀️ 女</span></label>
+                        <label class="gender-item"><input type="radio" name="gender" value="custom"><span>其他</span></label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="toolbar">
+                <button class="primary" onclick="saveProfileData()">保存档案</button>
+                <button class="secondary" onclick="clearProfileData()">重置信息</button>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="section-title">数据跨端同步与备份</div>
+            <div style="font-size: 14px; color: #64748b; line-height: 1.1; margin-bottom: 16px;">
+                利用底层算法将账号与任务数据打包为同步码, 或直接通过 <b>.txt</b> 文件进行完整的跨端迁移与本地备份
+            </div>
+
+                <textarea id="syncCodeArea" class="sync-code-box" placeholder="点击下方「生成加密同步码」打包数据, 或在此粘贴同步码进行覆写导入..."></textarea>
+                
+                <input type="file" id="txtFileInput" accept=".txt" style="display: none;" onchange="importFromTxt(event)">
+
+                <div class="toolbar" style="margin-top: 0; margin-bottom: 6px;">
+                    <button class="primary" onclick="generateSyncCode()">生成同步码</button>
+                    <button class="secondary" onclick="showImportOptions()">📥 覆写数据</button>
+                    <button class="secondary" onclick="showExportOptions()">📦 导出</button>
+                </div>
+</div>
+
+<div id="customDialog" class="sphere-modal hidden">
+    <div class="modal-content" style="width: 360px; text-align: center;">
+        <div id="dialogIcon" style="font-size: 48px; margin-bottom: 16px; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.1));">⚠️</div>
+        <h3 id="dialogTitle" style="margin-bottom: 12px; color: #0f172a; font-size: 20px;">提示</h3>
+        <div id="dialogMessage" style="color: #64748b; font-size: 15px; line-height: 1.6; margin-bottom: 24px;"></div>
+        
+        <div style="display: flex; gap: 12px; justify-content: center;">
+            <button class="secondary" id="dialogCancelBtn" style="flex: 1;" onclick="document.getElementById('customDialog').classList.add('hidden')">取消</button>
+            <button class="primary" id="dialogConfirmBtn" style="flex: 1;" onclick="if(window.dialogConfirmCallback) window.dialogConfirmCallback()">确定</button>
+        </div>
+
+        <button class="secondary" id="dialogBottomCancelBtn" style="width: 100%; margin-top: 12px; display: none;" onclick="document.getElementById('customDialog').classList.add('hidden')">取消</button>
+    </div>
+</div>
+<script>
+/* ================== 全局弹窗引擎 (状态隔离修复版) ================== */
+window.dialogConfirmCallback = null;
+
+function customAlert(msg, title = "提示", icon = "💡") {
+    document.getElementById('dialogIcon').textContent = icon;
+    document.getElementById('dialogTitle').textContent = title;
+    document.getElementById('dialogMessage').innerHTML = msg;
+    
+    const cancelBtn = document.getElementById('dialogCancelBtn');
+    cancelBtn.style.display = 'none';
+    // 🛡️ 修复防线 1: 强制重置取消事件, 防止被其他模式污染
+    cancelBtn.onclick = () => document.getElementById('customDialog').classList.add('hidden');
+    
+    document.getElementById('dialogBottomCancelBtn').style.display = 'none'; 
+    
+    const confirmBtn = document.getElementById('dialogConfirmBtn');
+    confirmBtn.textContent = "我知道了"; confirmBtn.className = "primary";
+    window.dialogConfirmCallback = () => document.getElementById('customDialog').classList.add('hidden');
+    document.getElementById('customDialog').classList.remove('hidden');
+}
+
+/* ================== 自定义双选弹窗引擎 ================== */
+function customChoice(msg, title, btn1Text, btn1Cb, btn2Text, btn2Cb, icon="⚙️") {
+    document.getElementById('dialogIcon').textContent = icon;
+    document.getElementById('dialogTitle').textContent = title;
+    document.getElementById('dialogMessage').innerHTML = msg;
+    
+    const cancelBtn = document.getElementById('dialogCancelBtn');
+    cancelBtn.style.display = 'block';
+    cancelBtn.textContent = btn1Text;
+    // ♻️ 修改点: 移除这里的 cancelBtn.onclick = null, 让状态交由下一次唤醒时覆盖管理
+    cancelBtn.onclick = () => { 
+        document.getElementById('customDialog').classList.add('hidden'); 
+        btn1Cb(); 
+    };
+    
+    const confirmBtn = document.getElementById('dialogConfirmBtn');
+    confirmBtn.textContent = btn2Text;
+    confirmBtn.className = "primary";
+    window.dialogConfirmCallback = () => {
+        document.getElementById('customDialog').classList.add('hidden'); 
+        btn2Cb();
+    };
+    
+    // 显示单独一排的取消按钮
+    document.getElementById('dialogBottomCancelBtn').style.display = 'block'; 
+
+    document.getElementById('customDialog').classList.remove('hidden');
+}
+
+function customConfirm(msg, onConfirm, title = "请确认", isDanger = false, icon = "⚠️") {
+    document.getElementById('dialogIcon').textContent = icon;
+    document.getElementById('dialogTitle').textContent = title;
+    document.getElementById('dialogMessage').innerHTML = msg;
+    
+    const cancelBtn = document.getElementById('dialogCancelBtn');
+    cancelBtn.style.display = 'block';
+    cancelBtn.textContent = "取消";
+    // 🛡️ 修复防线 2: 每次唤醒时, 切断残留事件, 重新赋予关闭 Modal 的默认职能
+    cancelBtn.onclick = () => document.getElementById('customDialog').classList.add('hidden');
+    
+    document.getElementById('dialogBottomCancelBtn').style.display = 'none'; 
+    
+    const confirmBtn = document.getElementById('dialogConfirmBtn');
+    confirmBtn.textContent = "确定"; confirmBtn.className = isDanger ? "danger" : "primary";
+    window.dialogConfirmCallback = () => { 
+        document.getElementById('customDialog').classList.add('hidden'); 
+        onConfirm(); 
+    };
+    document.getElementById('customDialog').classList.remove('hidden');
+}
+
+/* ================== 整合后的导入/导出分流器 ================== */
+function showImportOptions() {
+    customChoice(
+        "请选择您要使用的数据覆写方式<br><b>注意: 此操作将不可逆地抹除当前设备数据</b>", 
+        "导入方式", 
+        "粘贴同步码", () => importSyncCode(), 
+        "从 .txt 导入", () => document.getElementById('txtFileInput').click(),
+        "📥"
+    );
+}
+
+function showExportOptions() {
+    customChoice(
+        "提示: 如果尚未生成同步码, 将自动为您生成", 
+        "导出方式", 
+        "复制同步码", () => copySyncCode(), 
+        "导出为 .txt", () => exportToTxt(),
+        "📦"
+    );
+}
+
+/* ================== 数据存储与加载 ================== */
+const ACCOUNT_KEY = "alpha_account_data";
+let accountData = {
+    avatar: "", name: "", id: "", bio: "", birthday: "", gender: ""
+};
+
+const els = {
+    inName: document.getElementById('inputName'),
+    inId: document.getElementById('inputId'),
+    inBio: document.getElementById('inputBio'),
+    inBirthday: document.getElementById('inputBirthday'),
+    inGenders: document.getElementsByName('gender'),
+    dispName: document.getElementById('displayName'),
+    dispId: document.getElementById('displayId'),
+    dispBio: document.getElementById('displayBio'),
+    dispAvatar: document.getElementById('displayAvatar'),
+    dispPlaceholder: document.getElementById('displayAvatarPlaceholder'),
+    dispGender: document.getElementById('displayGender')
+};
+
+/* ================== 丝滑焦点流转引擎 ================== */
+const profileInputs = [els.inName, els.inId, els.inBio, els.inBirthday];
+
+profileInputs.forEach((input, index) => {
+    input.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            if (this === els.inBio) {
+                // 🛑 修复 3: 个人简介特殊处理, Ctrl+Enter 跳转, 单纯 Enter 换行
+                if (e.ctrlKey || e.metaKey) {
+                    e.preventDefault();
+                    profileInputs[index + 1]?.focus();
+                }
+            } else {
+                // 其他单行输入框: 纯 Enter 无缝跳转
+                e.preventDefault();
+                if (index < profileInputs.length - 1) {
+                    profileInputs[index + 1].focus();
+                } else {
+                    this.blur(); // 最后一项, 取消聚焦
+                }
+            }
+        }
+    });
+});
+
+// 自动调节文本框高度引擎 (极度丝滑影子克隆版)
+function adjustTextareaHeight(el) {
+    let clone = document.getElementById('bio-hidden-clone');
+    if (!clone) {
+        clone = document.createElement('textarea');
+        clone.id = 'bio-hidden-clone';
+        document.body.appendChild(clone);
+    }
+    
+    // 镜像原文本框的核心样式, 确保测量 100% 精准
+    clone.style.cssText = window.getComputedStyle(el).cssText;
+    clone.style.position = 'absolute';
+    
+    // 修复核心: 将克隆体彻底移出物理视口, 防止撑开页面高度
+    clone.style.top = '-9999px';
+    clone.style.left = '-9999px';
+    
+    clone.style.visibility = 'hidden';
+    clone.style.height = '52px'; // 重置为单行基准高度
+    clone.style.transition = 'none'; // 克隆体无需动画
+    clone.value = el.value;
+    
+    // 在不可见的克隆体上获取真实物理高度
+    let targetHeight = clone.scrollHeight;
+    
+    // 极值限制
+    if (targetHeight < 52) targetHeight = 52;
+    if (targetHeight > 160) {
+        targetHeight = 160;
+        el.style.overflowY = 'auto';
+    } else {
+        el.style.overflowY = 'hidden';
+    }
+    
+    // 此时主文本框只需单纯地改变高度, CSS的阻尼 transition 会完美接管动画
+    el.style.height = targetHeight + 'px';
+}
+
+// 绑定实时输入事件
+els.inBio.addEventListener('input', function() {
+    adjustTextareaHeight(this);
+});
+
+els.inBirthday.addEventListener('blur', function() {
+    let text = this.value.trim();
+    if (!text) return;
+    
+    let raw = text.replace(/\D/g, "");
+    let y, m, d;
+    let isValid = false;
+    
+    if (!text.includes('-') && raw.length >= 6 && raw.length <= 8) {
+        y = parseInt(raw.slice(0, 4), 10);
+        if (raw.length === 8) {
+            m = parseInt(raw.slice(4, 6), 10); 
+            d = parseInt(raw.slice(6, 8), 10);
+        } else if (raw.length === 6) {
+            m = parseInt(raw.slice(4, 5), 10); 
+            d = parseInt(raw.slice(5, 6), 10);
+        } else if (raw.length === 7) {
+            let m2 = parseInt(raw.slice(4, 6), 10);
+            if (m2 >= 10 && m2 <= 12) {
+                m = m2; d = parseInt(raw.slice(6, 7), 10);
+            } else {
+                m = parseInt(raw.slice(4, 5), 10); d = parseInt(raw.slice(5, 7), 10);
+            }
+        }
+    } else if (text.includes('-') || text.includes('/')) {
+        let parts = text.split(/[-/]/);
+        if (parts.length === 3) {
+            y = parseInt(parts[0], 10); 
+            m = parseInt(parts[1], 10); 
+            d = parseInt(parts[2], 10);
+        }
+    }
+    
+    // 校验日期是否合法
+    if (y >= 1900 && y <= 2100 && m >= 1 && m <= 12 && d >= 1 && d <= 31) {
+        this.value = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        accountData.birthday = this.value;
+        checkBirthdayConfetti();
+        isValid = true;
+    }
+    
+    // 修复 1: 如果日期极度离谱, 兜底强行修正为今天
+    if (!isValid) {
+        const today = new Date();
+        const ty = today.getFullYear();
+        const tm = String(today.getMonth() + 1).padStart(2, '0');
+        const td = String(today.getDate()).padStart(2, '0');
+        this.value = `${ty}-${tm}-${td}`;
+        accountData.birthday = this.value;
+        checkBirthdayConfetti();
+        showSyncStatus("⚠️ 识别到无效日期, 已自动修正为今日", "var(--monet-danger)");
+    }
+});
+
+function loadProfileData() {
+    try {
+        const stored = localStorage.getItem(ACCOUNT_KEY);
+        if (stored) accountData = { ...accountData, ...JSON.parse(stored) };
+    } catch(e) {}
+    
+    els.inName.value = accountData.name;
+    els.inId.value = accountData.id;
+    els.inBio.value = accountData.bio;
+    els.inBirthday.value = accountData.birthday;
+    Array.from(els.inGenders).forEach(radio => {
+        if (radio.value === accountData.gender) radio.checked = true;
+    });
+
+    updateProfileDisplay();
+    checkBirthdayConfetti();
+
+    setTimeout(() => adjustTextareaHeight(els.inBio), 0);
+}
+
+function updateProfileDisplay() {
+    els.dispName.textContent = accountData.name || "Tasks User";
+    els.dispId.textContent = accountData.id || "Tasks_001";
+    els.dispBio.textContent = accountData.bio || "非同凡想 自强不息";
+    
+    const genderMap = { 'male': '男', 'female': '女', 'custom': '其他' };
+    
+    if (accountData.gender) {
+        els.dispGender.textContent = genderMap[accountData.gender];
+        els.dispGender.style.display = 'inline-flex';
+        
+        els.dispGender.classList.remove('male', 'female', 'custom');
+        els.dispGender.classList.add(accountData.gender);
+        
+    } else {
+        els.dispGender.style.display = 'none';
+    }
+
+    if (accountData.avatar) {
+        els.dispAvatar.src = accountData.avatar;
+        els.dispAvatar.style.display = 'block';
+        els.dispPlaceholder.style.display = 'none';
+    } else {
+        els.dispAvatar.style.display = 'none';
+        els.dispPlaceholder.style.display = 'flex';
+    }
+}
+
+function saveProfileData() {
+    accountData.name = els.inName.value.trim();
+    accountData.id = els.inId.value.trim();
+    accountData.bio = els.inBio.value.trim();
+    accountData.birthday = els.inBirthday.value;
+    
+    const checkedGender = Array.from(els.inGenders).find(r => r.checked);
+    accountData.gender = checkedGender ? checkedGender.value : "";
+
+    localStorage.setItem(ACCOUNT_KEY, JSON.stringify(accountData));
+    updateProfileDisplay();
+    checkBirthdayConfetti();
+    
+    showSyncStatus("💾 档案保存成功!", "var(--monet-text)");
+}
+
+function clearProfileData() {
+    customConfirm("确定要清除所有个人配置信息吗?", () => {
+        accountData = { avatar: "", name: "", id: "", bio: "", birthday: "", gender: "" };
+        localStorage.removeItem(ACCOUNT_KEY);
+        loadProfileData();
+        showSyncStatus("🗑️ 档案已重置", "var(--sub)");
+    }, "重置档案", true);
+}
+
+document.getElementById('avatarUpload').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(event) {
+        const img = new Image();
+        img.onload = function() {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const maxSize = 400; 
+            let width = img.width; let height = img.height;
+            
+            if (width > height && width > maxSize) { height *= maxSize / width; width = maxSize; }
+            else if (height > maxSize) { width *= maxSize / height; height = maxSize; }
+            
+            canvas.width = width; canvas.height = height;
+            ctx.drawImage(img, 0, 0, width, height);
+            
+            accountData.avatar = canvas.toDataURL('image/jpeg', 0.85);
+            saveProfileData();
+        };
+        img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+});
+
+let confettiInterval = null;
+let confettiTimeout = null;
+
+function checkBirthdayConfetti() {
+    if (!accountData.birthday) return;
+    const today = new Date();
+    const currentMMDD = String(today.getMonth() + 1).padStart(2, '0') + "-" + String(today.getDate()).padStart(2, '0');
+    const bdayMMDD = accountData.birthday.substring(5); 
+    
+    if (currentMMDD === bdayMMDD) {
+        if (!confettiInterval) launchConfetti();
+    } else {
+        confettiInterval = false; 
+        if (confettiTimeout) clearTimeout(confettiTimeout);
+        const canvas = document.getElementById('confettiCanvas');
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+}
+
+function launchConfetti() {
+    const canvas = document.getElementById('confettiCanvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+    
+    const particles = [];
+    const colors = ['#9DD2FF', '#f17875', '#10b981', '#f59e0b', '#8b5cf6'];
+    
+    for (let i = 0; i < 150; i++) {
+        particles.push({
+            x: Math.random() * canvas.width, y: Math.random() * canvas.height - canvas.height,
+            w: Math.random() * 10 + 5, h: Math.random() * 10 + 5,
+            c: colors[Math.floor(Math.random() * colors.length)],
+            vy: Math.random() * 3 + 2, vx: Math.random() * 2 - 1,
+            rot: Math.random() * 360, rotSpeed: Math.random() * 10 - 5
+        });
+    }
+
+    let stopSpawning = false; // 发射开关
+
+    function render() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        let activeParticles = 0;
+        
+        particles.forEach(p => {
+            p.y += p.vy; p.x += p.vx; p.rot += p.rotSpeed;
+            if (p.y > canvas.height) { 
+                if (!stopSpawning) {
+                    p.y = -20; p.x = Math.random() * canvas.width; // 不断在顶部重生
+                } else {
+                    p.y = canvas.height + 100; // 开关关闭时, 将其永久丢弃到屏幕外
+                }
+            }
+            if (p.y <= canvas.height) activeParticles++;
+            
+            ctx.save();
+            ctx.translate(p.x, p.y); ctx.rotate(p.rot * Math.PI / 180);
+            ctx.fillStyle = p.c; ctx.fillRect(-p.w/2, -p.h/2, p.w, p.h);
+            ctx.restore();
+        });
+        
+        if (confettiInterval && activeParticles > 0) {
+            requestAnimationFrame(render);
+        } else if (activeParticles === 0) {
+            confettiInterval = false; // 粒子全部掉落干净后, 彻底销毁渲染循环
+        }
+    }
+    
+    confettiInterval = true;
+    render();
+    
+    window.addEventListener('resize', () => {
+        canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+    });
+
+    // 核心修复: 5秒后自动关闭发射器, 让残留彩带优美飘落
+    if (confettiTimeout) clearTimeout(confettiTimeout);
+    confettiTimeout = setTimeout(() => {
+        stopSpawning = true;
+    }, 5000);
+}
+
+/* ================== 全生态同步引擎 (深度安全算法修复版) ================== */
+let toastTimeout;
+function showSyncStatus(msg, color = "var(--text)") {
+    const toast = document.getElementById('globalToast');
+    toast.innerHTML = msg;
+    toast.style.color = color;
+    toast.classList.add('show');
+    
+    if (toastTimeout) clearTimeout(toastTimeout);
+    toastTimeout = setTimeout(() => toast.classList.remove('show'), 3000);
+}
+
+/* ================== 高性能 二进制 <-> Base64 转换器 ================== */
+function uint8ToBase64(u8Arr) {
+    let CHUNK_SIZE = 0x8000; // 避免超长字符串导致内存溢出
+    let index = 0;
+    let length = u8Arr.length;
+    let result = '';
+    while (index < length) {
+        let slice = u8Arr.subarray(index, Math.min(index + CHUNK_SIZE, length));
+        result += String.fromCharCode.apply(null, slice);
+        index += CHUNK_SIZE;
+    }
+    return btoa(result);
+}
+
+function base64ToUint8(base64) {
+    let binary_string = atob(base64);
+    let len = binary_string.length;
+    let bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) {
+        bytes[i] = binary_string.charCodeAt(i);
+    }
+    return bytes;
+}
+
+/* ================== 文件级跨端与备份引擎 ================== */
+
+// 导出为 .txt 文件
+function exportToTxt() {
+    try {
+        const payload = {
+            account: localStorage.getItem(ACCOUNT_KEY) || "{}",
+            taskflow: localStorage.getItem("taskflow_data") || "{}",
+            taskhub: localStorage.getItem("taskhub_data") || "[]",
+            tasktimer: localStorage.getItem("tasktimer_data") || "[]"
+        };
+        
+        // 将数据格式化为带有缩进的优美 JSON 结构, 方便用户用记事本查看
+        const jsonString = JSON.stringify(payload, null, 2);
+        const blob = new Blob([jsonString], { type: "text/plain;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        
+        // 动态创建 <a> 标签触发系统下载机制
+        const a = document.createElement('a');
+        const dateStr = new Date().toISOString().slice(0,10).replace(/-/g, ""); // 获取当前日期如 20260703
+        a.href = url;
+        a.download = `Tasks_Data_${dateStr}.txt`;
+        
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url); // 释放内存防止泄露
+        
+        showSyncStatus("📦 数据已成功打包并触发浏览器下载!", "var(--monet-text)");
+    } catch(e) {
+        console.error(e);
+        customAlert("数据生成流失败, 请检查本地数据状态", "导出失败", "❌");
+    }
+}
+
+// 从 .txt 文件读取并导入
+function importFromTxt(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const content = e.target.result;
+        
+        // 严格遵守设计语言: 调用自定义的毛玻璃警报弹窗
+        customConfirm("注意: 从文件恢复后, 当前设备数据将被不可逆地抹除并覆盖, 确定继续吗?", () => {
+            try {
+                const payload = JSON.parse(content);
+                
+                // 类型校验: 防止用户乱改 TXT 格式导致对象注入, 确保落库的是 String 格式
+                if (payload.account) localStorage.setItem(ACCOUNT_KEY, typeof payload.account === 'object' ? JSON.stringify(payload.account) : payload.account);
+                if (payload.taskflow) localStorage.setItem("taskflow_data", typeof payload.taskflow === 'object' ? JSON.stringify(payload.taskflow) : payload.taskflow);
+                if (payload.taskhub) localStorage.setItem("taskhub_data", typeof payload.taskhub === 'object' ? JSON.stringify(payload.taskhub) : payload.taskhub);
+                if (payload.tasktimer) localStorage.setItem("tasktimer_data", typeof payload.tasktimer === 'object' ? JSON.stringify(payload.tasktimer) : payload.tasktimer);
+                
+                customAlert("设备数据已从备份文件复原, 即将刷新页面以载入最新数据", "导入成功", "🎉");
+                setTimeout(() => window.location.reload(), 2000);
+            } catch(err) {
+                console.error(err);
+                customAlert("无法解析文件, 它可能已损坏", "数据异常", "❌");
+            } finally {
+                // 重置 input 的 value, 确保用户下次还能选同一个文件触发 onChange
+                event.target.value = '';
+            }
+        }, "重塑世界线", true);
+    };
+    
+    // 以纯文本模式读取文件
+    reader.readAsText(file);
+}
+
+/* ================== 全生态同步引擎 (fflate Level 9 极限压缩版) ================== */
+function generateSyncCode() {
+    try {
+        const payload = {
+            account: localStorage.getItem(ACCOUNT_KEY) || "{}",
+            taskflow: localStorage.getItem("taskflow_data") || "{}",
+            taskhub: localStorage.getItem("taskhub_data") || "[]",
+            tasktimer: localStorage.getItem("tasktimer_data") || "[]"
+        };
+        
+        // 去除字符串中无意义的空格和换行
+        const jsonString = JSON.stringify(payload).replace(/\s+(?=(?:(?:[^"]*"){2})*[^"]*"[^"]*$)/g, '');
+
+        // 核心优化 2: 使用 fflate 进行 Level 9 最高级别 zlib 压缩
+        const buf = fflate.strToU8(jsonString);
+        const compressed = fflate.zlibSync(buf, { level: 9 }); 
+        const encoded = uint8ToBase64(compressed);
+        
+        document.getElementById('syncCodeArea').value = encoded;
+        showSyncStatus("📦 同步码已生成!", "var(--monet-text)");
+    } catch (e) {
+        console.error(e);
+        customAlert("数据处理失败, 请确认本地数据结构是否完整", "生成失败", "❌");
+    }
+}
+
+function copySyncCode() {
+    const area = document.getElementById('syncCodeArea');
+    if (!area.value) { customAlert("请先生成或粘贴同步码", "操作无效", "⚠️"); return; }
+    area.select();
+    generateSyncCode();
+    document.execCommand('copy');
+    showSyncStatus("📋 同步码已复制到剪贴板!", "var(--monet-text)");
+}
+
+function importSyncCode() {
+    const area = document.getElementById('syncCodeArea');
+    const code = area.value.trim().replace(/\s+/g, '');
+    if (!code) { customAlert("请在此处粘贴来自其他设备的同步码", "无数据", "⚠️"); return; }
+
+    customConfirm("警告: 导入操作将不可逆地覆盖当前设备的所有数据, 确定继续吗?", () => {
+        let jsonString = null;
+        
+        // 三重防线: 优雅降级解析引擎
+        try {
+            // 尝试 1: 使用最新的 fflate 引擎解压
+            const compressedBytes = base64ToUint8(code);
+            const decompressedBytes = fflate.unzlibSync(compressedBytes);
+            jsonString = fflate.strFromU8(decompressedBytes);
+        } catch(e1) {
+            try {
+                // 尝试 2: 向下兼容, 尝试使用上一版的 LZString 引擎解压
+                if (typeof LZString !== 'undefined') {
+                    jsonString = LZString.decompressFromBase64(code);
+                    if (!jsonString) throw new Error("LZ-String parse failed");
+                } else {
+                    throw new Error("LZ-String library not loaded");
+                }
+            } catch(e2) {
+                try {
+                    // 尝试 3: 终极兜底, 尝试解析最原始的 Base64 明文
+                    jsonString = decodeURIComponent(escape(atob(code)));
+                } catch (e3) {
+                    jsonString = null; // 彻底宣告失败
+                }
+            }
+        }
+
+        if (!jsonString) {
+            customAlert("无法解析该同步码, 格式可能已损坏", "导入失败", "❌");
+            return;
+        }
+
+        try {
+            const payload = JSON.parse(jsonString);
+            if (payload.account) localStorage.setItem(ACCOUNT_KEY, payload.account);
+            if (payload.taskflow) localStorage.setItem("taskflow_data", payload.taskflow);
+            if (payload.taskhub) localStorage.setItem("taskhub_data", payload.taskhub);
+            if (payload.tasktimer) localStorage.setItem("tasktimer_data", payload.tasktimer);
+            
+            customAlert("设备数据已完美同步!页面即将刷新", "同步成功", "🎉");
+            setTimeout(() => window.location.reload(), 2000);
+        } catch(e) {
+            customAlert("数据内容损坏, 解析 JSON 失败", "导入失败", "❌");
+        }
+    }, "高危操作确认", true);
+}
+
+window.addEventListener('storage', (e) => {
+    if (e.key === ACCOUNT_KEY) {
+        try {
+            const newData = JSON.parse(e.newValue);
+            if (!newData) return;
+            
+            // 将底层数据更新, 但不覆盖输入框内容
+            accountData.avatar = newData.avatar;
+            
+            // 仅对“侧边栏显示的头像”进行精准 DOM 更新
+            if (newData.avatar) {
+                els.dispAvatar.src = newData.avatar;
+                els.dispAvatar.style.display = 'block';
+                els.dispPlaceholder.style.display = 'none';
+            }
+        } catch(err) { console.error("头像跨端同步解析失败", err); }
+    }
+});
+
+loadProfileData();
+
+// ================= 全局页面切换动效拦截引擎 V2 =================
+window.addEventListener('DOMContentLoaded', () => {
+    const appContainer = document.querySelector('.app');
+    
+    // 核心修复 2：进场动画播放完毕后，立刻卸载动画属性
+    if (appContainer) {
+        appContainer.addEventListener('animationend', (e) => {
+            if (e.animationName === 'alphaPageIn') {
+                // 瞬间摧毁残留的 animation 属性
+                // 这将解除强制生成的“层叠上下文”，让 .app 内部和外部的 fixed 定位、z-index 以及 Blur 遮罩完美恢复原状！
+                appContainer.style.animation = 'none';
+            }
+        });
+    }
+
+    // 拦截全局下拉菜单中带有 href 且指向内部页面的 <a> 标签
+    document.querySelectorAll('a[href^="./"]').forEach(link => {
+        link.addEventListener('click', (e) => {
+            const targetUrl = link.getAttribute('href');
+            
+            const currentPath = window.location.pathname.split('/').pop() || 'index.html';
+            const targetPath = targetUrl.replace('./', '');
+            if (currentPath === targetPath) return; 
+
+            e.preventDefault();
+            
+            if (appContainer) {
+                // 挂载退场动画
+                appContainer.classList.add('page-transition-leave');
+                
+                // 等待 400ms 后物理跳转
+                setTimeout(() => {
+                    window.location.href = targetUrl;
+                }, 400);
+            } else {
+                window.location.href = targetUrl;
+            }
+        });
+    });
+});
+
+// ================= 全局毛玻璃 Tooltip 劫持引擎 =================
+window.addEventListener('DOMContentLoaded', () => {
+    // 1. 创建全局唯一的 Tooltip 玻璃面板
+    const tooltipNode = document.createElement('div');
+    tooltipNode.id = 'alphaTooltip';
+    document.body.appendChild(tooltipNode);
+
+    // 2. 利用事件委托，监听全局的鼠标悬停（支持 JS 动态生成的元素）
+    document.addEventListener('mouseover', (e) => {
+        // 寻找当前鼠标下带有 title 或 data-tooltip 的最近元素
+        const target = e.target.closest('[title], [data-tooltip]');
+        if (!target) return;
+
+        // 核心：瞬间没收原生 title，防止浏览器自带的生硬黑框弹出来
+        if (target.hasAttribute('title')) {
+            target.setAttribute('data-tooltip', target.getAttribute('title'));
+            target.removeAttribute('title'); 
+        }
+
+        const tipText = target.getAttribute('data-tooltip');
+        if (tipText) {
+            tooltipNode.textContent = tipText;
+            tooltipNode.classList.add('visible');
+            updateTooltipPosition(e); // 立刻计算一次位置，防止动画乱飞
+        }
+    });
+
+    // 3. 鼠标移动时，玻璃板柔性跟随
+    document.addEventListener('mousemove', (e) => {
+        if (tooltipNode.classList.contains('visible')) {
+            updateTooltipPosition(e);
+        }
+    });
+
+    // 4. 离开时褪去
+    document.addEventListener('mouseout', (e) => {
+        const target = e.target.closest('[data-tooltip]');
+        if (target) {
+            tooltipNode.classList.remove('visible');
+        }
+    });
+
+    // 5. 点击时主动隐藏（防遮挡视线优化）
+    document.addEventListener('mousedown', () => {
+        tooltipNode.classList.remove('visible');
+    });
+
+    // 💡 定位计算函数（附带屏幕边缘防溢出系统）
+    function updateTooltipPosition(e) {
+        const offsetX = 14; // 距离鼠标的横向距离
+        const offsetY = 18; // 距离鼠标的纵向距离
+        
+        let x = e.clientX + offsetX;
+        let y = e.clientY + offsetY;
+
+        // 右侧边界碰撞检测：如果超出版面，就翻转到鼠标左侧
+        if (x + tooltipNode.offsetWidth > window.innerWidth) {
+            x = e.clientX - tooltipNode.offsetWidth - 8;
+        }
+        
+        // 底部边界碰撞检测：如果超出底部，就翻转到鼠标上方
+        if (y + tooltipNode.offsetHeight > window.innerHeight) {
+            y = e.clientY - tooltipNode.offsetHeight - 8;
+        }
+
+        tooltipNode.style.left = `${x}px`;
+        tooltipNode.style.top = `${y}px`;
+    }
+});
+</script>
+</body>
+</html>

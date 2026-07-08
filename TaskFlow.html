@@ -3,299 +3,1570 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>⏳ Tasks v0.1-alpha</title>
-
+<title>TaskFlow</title>
+<link rel="icon" href="TaskFlow.ico" type="image/x-icon">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<base href="./">
 <style>
-/* 核心 macOS ＆ 现代 UI 设计系统定义 */
+/* ================== 全局与色彩体系 ================== */
+::selection { background-color: #d4ebff; color: #0f172a; }
+::-moz-selection { background-color: #9DD2FF; color: #0f172a; }
+
 :root {
-    --bg-main: #f5f5f7;
-    --apple-blue: #007aff;
-    --apple-blue-hover: #0063cc;
-    --apple-gray: #86868b;
-    --text-primary: #1d1d1f;
-    --text-secondary: #6e6e73;
-    --border-color: rgba(0, 0, 0, 0.1);
-    --card-bg: rgba(255, 255, 255, 0.7);
-    --radius-sm: 8px;
-    --radius-md: 12px;
-    --radius-lg: 20px;
-    --ease-macos: cubic-bezier(0.16, 1, 0.3, 1);
-    --shadow-popover: 0 10px 30px rgba(0, 0, 0, 0.08), 0 1px 8px rgba(0, 0, 0, 0.04);
+    --text: #0f172a; 
+    --sub: #64748b;
+    --monet-blue: #9DD2FF;
+    --monet-text: #2F354F;
+    --monet-sub: #78829E;
+    --monet-danger: #e3605d;
+    --monet-success: #10b981;
+    
+    --glass: rgba(255, 255, 255, 0.35);
+    --glass-border: rgba(255, 255, 255, 0.6);
+    --glass-card: rgba(255, 255, 255, 0.68);
+
+    --shadow-xl: 0 40px 80px rgba(15,23,42,.12);
+    --shadow-lg: 0 24px 64px rgba(15,23,42,.06);
+    --shadow-md: 0 16px 40px rgba(15,23,42,.05);
+    --shadow-sm: 0 8px 20px rgba(15,23,42,.04);
+
+    --spacing-main: 32px;   /* Panel 级内边距 */
+    --spacing-card: 24px;   /* Card 级内边距 */
+    --spacing-inside: 16px; /* 元素级内边距 */
+    
+    /* 4 级同心圆角体系 (Concentric Radius System) */
+    --radius-panel: 32px;   /* L1: 主面板、侧边栏、全局弹窗 (原 main) */
+    --radius-card: 24px;    /* L2: 任务卡片、图表容器、侧边小卡 */
+    --radius-element: 16px; /* L3: 按钮、输入框、视图切换器 (独立出来) */
+    --radius-sub: 14px;
+    --radius-sm: 10px;      /* L4: 内部小标签、日历箭头、下拉项 */
+
+    --ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", "PingFang SC", sans-serif;
-    -webkit-font-smoothing: antialiased;
+    margin: 0; padding: 0; box-sizing: border-box;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", sans-serif;
+    -webkit-tap-highlight-color: transparent; outline: none !important;
 }
+
+html { scroll-behavior: smooth; }
+
+::-webkit-scrollbar { width: 0; height: 0; background: transparent; }
 
 body {
     min-height: 100vh;
-    color: var(--text-primary);
-    background-color: var(--bg-main);
-    background-image: 
-        radial-gradient(circle at 0% 0%, rgba(0, 122, 255, 0.05) 0%, transparent 40%),
-        radial-gradient(circle at 100% 100%, rgba(139, 92, 246, 0.04) 0%, transparent 40%);
-    padding: 32px 24px;
+    margin: 0;
+    padding: 32px; 
+    color: var(--text);
+    color-scheme: light;
+    /* 1. 将底色剥离到 body，作为最安全的托底，防止动画穿帮 */
+    background-color: #f6f8fa; 
+    position: relative;
+    box-sizing: border-box;
+    overflow-x: hidden;
+    scrollbar-width: none; -ms-overflow-style: none;
 }
 
-.app {
-    display: grid;
-    grid-template-columns: 280px 1fr;
-    gap: 32px;
-    max-width: 1440px;
-    margin: 0 auto;
+*, *::before, *::after {
+    box-sizing: border-box;
 }
 
-/* 侧边栏卡片风 */
-.sidebar {
-    position: sticky;
-    top: 32px;
-    height: calc(100vh - 64px);
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
+/* 2. 赋予流光容器生命 - 恢复原版清冷灰蓝底色 */
+.alpha-ambient-bg {
+    position: fixed;
+    inset: 0;
+    z-index: -3;
+    overflow: hidden;
+    background-color: #f2f5f9; /* 恢复你原版极其微弱的冷灰蓝底色 */
+    pointer-events: none;
+}
+/* ================== 环境光优化版 ================== */
+.sunbeam {
+    position: absolute; top: -10%; right: -5%; width: 35vw; height: 80vh;
+    /* 移除 filter: blur，直接在渐变中实现柔和过渡 */
+    background: radial-gradient(ellipse at top right, rgba(255, 245, 225, 0.12) 0%, rgba(255, 235, 200, 0.05) 40%, transparent 65%);
+    transform-origin: top right; will-change: transform, opacity;
+    animation: sunbeam-pulse 12s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
+}
+.orb { 
+    position: absolute; border-radius: 50%; 
+    /* 彻底移除 filter: blur(110px); */
+    will-change: transform; opacity: 0.85; 
+}
+/* 渐变的结尾必须是完全透明，自然形成毛边光晕 */
+.orb-1 { width: 60vw; height: 60vw; background: radial-gradient(circle, rgba(178, 219, 255, 0.3) 0%, transparent 60%); top: -15%; right: -15%; animation: orb-drift-1 18s infinite alternate cubic-bezier(0.4, 0, 0.2, 1); }
+.orb-2 { width: 70vw; height: 70vw; background: radial-gradient(circle, rgba(212, 206, 255, 0.4) 0%, transparent 60%); bottom: -20%; left: -20%; animation: orb-drift-2 22s infinite alternate-reverse cubic-bezier(0.4, 0, 0.2, 1); }
+.orb-3 { width: 50vw; height: 50vw; background: radial-gradient(circle, rgba(255, 204, 194, 0.3) 0%, transparent 60%); top: 20%; left: 30%; animation: orb-drift-3 20s infinite alternate cubic-bezier(0.4, 0, 0.2, 1); }
+
+/* 错落有致的非线性运动轨迹 (加入了 translate3d 强制触发 GPU 渲染防静止) */
+@keyframes orb-drift-1 {
+    0% { transform: translate3d(0, 0, 0) scale(1); }
+    100% { transform: translate3d(-15vw, 12vh, 0) scale(1.15); }
+}
+@keyframes orb-drift-2 {
+    0% { transform: translate3d(0, 0, 0) scale(1); }
+    100% { transform: translate3d(12vw, -12vh, 0) scale(0.95); }
+}
+@keyframes orb-drift-3 {
+    0% { transform: translate3d(0, 0, 0) scale(1); }
+    100% { transform: translate3d(-10vw, -15vh, 0) scale(1.2); }
+}
+@keyframes sunbeam-pulse {
+    0% { transform: rotate(0deg) scale(1) translate3d(0, 0, 0); opacity: 0.5; }
+    100% { transform: rotate(-3deg) scale(1.02) translate3d(-1vw, 1vh, 0); opacity: 1; }
 }
 
-.logo-area {
-    padding: 8px 4px;
+/* Glass Reflection - 液态高光微折射层 (保持静止) */
+body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1; 
+    pointer-events: none;
+    background:
+        linear-gradient(
+            135deg,
+            rgba(255, 255, 255, 0.05) 0%,
+            rgba(255, 255, 255, 0.01) 25%,
+            transparent 50%,
+            transparent 75%,
+            rgba(255, 255, 255, 0.03) 100%
+        );
 }
-.logo { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; color: var(--text-primary); }
-.subtitle { color: var(--apple-gray); font-size: 12px; margin-top: 4px; font-weight: 500; }
+
+/* ================== 侧边栏与主面板 ================== */
+.app { 
+    display: grid; 
+    grid-template-columns: var(--left-width, 320px) 32px minmax(0, 1fr); 
+    gap: 0; 
+    max-width: 1600px; 
+    margin: 0 auto; 
+    align-items: flex-start; 
+    position: relative;
+}
+
+/* 1. 提取共用的 Liquid Glass 视觉材质 */
+.sidebar, .panel {
+    background: var(--glass); 
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(48px) saturate(200%); 
+    -webkit-backdrop-filter: blur(48px) saturate(200%);
+    box-shadow: var(--shadow-lg), inset 0 2px 6px rgba(255, 255, 255, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.9), inset 1.5px 0 2px rgba(255, 255, 255, 0.3);
+    border-radius: var(--radius-panel); 
+    padding: var(--spacing-main);
+    z-index: 10;
+}
+
+/* 2. 侧边栏专属: 粘性固定布局, 撑满屏幕高度 */
+.sidebar { 
+    grid-column: 1; 
+    position: sticky; top: var(--spacing-main); 
+    height: calc(100vh - (var(--spacing-main) * 2)); 
+    display: flex; flex-direction: column;
+    overflow: visible !important; 
+}
+
+/* 3. 主面板专属: 相对定位, 高度由内部内容自动撑开 */
+.panel {
+    position: relative;
+    height: auto; 
+    display: flex; flex-direction: column;
+    overflow: visible !important; 
+}
+
+.logo { font-size: 32px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 8px; position: relative; z-index: 1;}
+.subtitle { color: var(--sub); line-height: 1.6; margin-bottom: var(--spacing-main); font-size: 14px; position: relative; z-index: 1;}
 
 .side-card {
-    background: var(--card-bg);
-    border: 1px solid rgba(0, 0, 0, 0.06);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border-radius: var(--radius-md);
-    padding: 16px 20px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+    position: relative; overflow: hidden; padding: var(--spacing-card); 
+    border-radius: var(--radius-card); margin-bottom: 20px; z-index: 1;
+    background: rgba(255, 255, 255, 0.42); border: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow: var(--shadow-md), inset 0 1.5px 3px rgba(255, 255, 255, 0.7), inset 0 1px 1px rgba(255, 255, 255, 0.9);
 }
-.side-label { color: var(--text-secondary); font-size: 12px; font-weight: 500; margin-bottom: 6px; }
-.side-number { font-size: 24px; font-weight: 700; letter-spacing: -0.5px; }
+.side-label { color: var(--sub); font-size: 14px; margin-bottom: 8px; font-weight: 600;}
+.side-number { font-size: 28px; font-weight: 800; }
 
-/* 主面板结构 */
-.main { display: flex; flex-direction: column; gap: 32px; }
-.panel { 
-    background: #ffffff;
-    border: 1px solid rgba(0, 0, 0, 0.05);
-    border-radius: var(--radius-lg); 
-    padding: 32px;
-    box-shadow: 0 4px 24px rgba(0,0,0,0.02);
+.main { 
+    grid-column: 3; /* 锁定在第三列 */
+    display: flex; 
+    flex-direction: column; 
+    gap: var(--spacing-main); 
+    min-width: 0; /* 防止内容撑破右侧网格 */
 }
-.section-title { font-size: 22px; font-weight: 700; margin-bottom: 24px; letter-spacing: -0.3px; }
+.section-title { font-size: 26px; font-weight: 800; margin-bottom: var(--spacing-card); position: relative; z-index: 1;}
 
-/* 精准重构：学科选择区域 macOS Grid 样式 */
-.subject-box { 
-    display: grid; 
-    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); 
-    gap: 8px;
-    background: rgba(0, 0, 0, 0.03);
-    padding: 8px;
-    border-radius: var(--radius-md);
-    border: 1px solid rgba(0, 0, 0, 0.02);
-}
+/* ================== 表单输入与图标联动 ================== */
+.add-task-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-card); position: relative; z-index: 1; }
+.full-width { grid-column: 1 / -1; } 
+.field { display: flex; flex-direction: column; gap: 10px; }
+label { font-size: 14px; font-weight: 700; color: #334155; }
+
+.subject-box { display: flex; flex-wrap: wrap; gap: 12px; }
 .subject-item { position: relative; cursor: pointer; }
 .subject-item input { display: none; }
+/* ===========================
+   Subject Tags
+=========================== */
 .subject-item span {
     display: flex; align-items: center; justify-content: center;
-    height: 34px; border-radius: var(--radius-sm);
-    background: #ffffff;
-    border: 1px solid rgba(0, 0, 0, 0.06);
-    box-shadow: 0 1px 2px rgba(0,0,0,0.02);
-    transition: all 0.2s var(--ease-macos); font-size: 13px; font-weight: 500; color: var(--text-primary);
+    padding: 10px 18px; 
+    border-radius: var(--radius-sub);
+    
+    /* 降低基础白度, 让未选中态更加隐退 */
+    background-color: rgba(255, 255, 255, 0.25); 
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    
+    /* 强化内阴影高光, 弥补背景变暗后的质感流失 */
+    box-shadow: 
+        0 4px 10px rgba(15, 23, 42, 0.02), 
+        inset 0 1px 2px rgba(255, 255, 255, 0.7),
+        inset 0 -1px 2px rgba(255, 255, 255, 0.1);
+    
+    /* 性能优化: 彻底弃用 transition: all */
+    transition: transform 0.3s var(--ease), background-color 0.3s var(--ease), box-shadow 0.3s var(--ease), border-color 0.3s var(--ease); 
+    
+    font-size: 14px; font-weight: 700; color: #475569; /* 未选中时字体稍微变灰 */
+    cursor: pointer; user-select: none;
 }
-.subject-item span::before {
-    content: ""; width: 6px; height: 6px; border-radius: 50%; margin-right: 6px;
-    background: currentColor; opacity: 0.5; transition: transform 0.2s;
-}
-.subject-item:hover span { background: #f5f5f7; }
-.subject-item input:checked + span {
-    background: var(--apple-blue);
-    color: white;
-    border-color: var(--apple-blue);
-    font-weight: 600;
-    box-shadow: 0 2px 8px rgba(0, 122, 255, 0.25);
-}
-.subject-item input:checked + span::before { transform: scale(1.2); opacity: 1; background: #fff; }
 
-/* 输入表单域 */
-.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; }
-.field { display: flex; flex-direction: column; gap: 8px; }
-label { font-size: 13px; font-weight: 600; color: var(--text-primary); }
-
-/* 原生输入框净化 */
-input, select {
-    width: 100%; height: 38px; padding: 0 12px; border-radius: var(--radius-sm);
-    border: 1px solid rgba(0, 0, 0, 0.15);
-    background: #ffffff;
-    color: var(--text-primary); font-size: 14px;
-    box-shadow: inset 0 1px 2px rgba(0,0,0,0.04);
-    transition: all 0.15s var(--ease-macos);
+/* 悬浮态 (Hover): 明显上浮, 微微放大, 光感增强 */
+.subject-item:hover span {
+    background-color: rgba(255, 255, 255, 0.45);
+    transform: translateY(-2px);
+    box-shadow: 
+        0 8px 16px rgba(15, 23, 42, 0.05), 
+        inset 0 2px 4px rgba(255, 255, 255, 0.9);
+    border-color: rgba(255, 255, 255, 0.7);
+    color: #0f172a;
 }
-input:focus {
-    border-color: var(--apple-blue);
-    box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.25), inset 0 1px 2px rgba(0,0,0,0.04);
-    outline: none;
-}
-input::placeholder { color: var(--apple-gray); font-size: 13px; }
 
-/* 完美解决：全新定制的 macOS 展开式下拉候选菜单 */
-.macos-dropdown {
-    position: relative;
+/* 按压态 (Active): 清脆的深陷回弹感, 瞬间响应 */
+.subject-item:active span {
+    transform: translateY(1px) scale(0.94);
+    background-color: rgba(255, 255, 255, 0.45);
+    box-shadow: 
+        0 2px 4px rgba(15, 23, 42, 0.04), 
+        inset 0 2px 6px rgba(0, 0, 0, 0.02);
+    transition-duration: 0.1s; 
+}
+
+/* 选中态 (Checked): 核心修复点! 弃用渐变, 改用高亮单色配合环境光晕 */
+.subject-item input:checked + span { 
+    /* 背景极大地透明化, 仅保留淡淡的蓝意 */
+    background-color: rgba(157, 210, 255, 0.25) !important; 
+    color: #0f172a !important; 
+    
+    /* 边框注入 Monet Blue, 模拟玻璃边缘的色彩折射 */
+    border-color: rgba(157, 210, 255, 0.7) !important; 
+    
+    box-shadow: 
+        0 8px 20px rgba(140, 185, 225, 0.15), /* 减弱外部光晕, 不抢主按钮戏份 */
+        inset 0 2px 4px rgba(255, 255, 255, 0.95), /* 维持顶部强高光 */
+        inset 0 -2px 6px rgba(140, 185, 225, 0.2) !important; /* 底部内凹透出蓝色 */
+        
+    transform: translateY(-2px) scale(1.02);
+}
+
+/* 输入框 */
+input[type="text"], input[type="number"] {
+    width: 100%; padding: 0 20px; border-radius: var(--radius-element); height:50px;
+    border: 1px solid rgba(255, 255, 255, 0.62); background: rgba(255, 255, 255, 0.5);
+    color: #0f172a; font-size: 15px; font-weight: 600; line-height: 1.6;
+    box-shadow: inset 0 2px 5px rgba(15, 23, 42, 0.05), inset 0 -1px 1.5px rgba(255, 255, 255, 0.65); transition: background 0.3s var(--ease), border-color 0.3s var(--ease), box-shadow 0.3s var(--ease);
+    resize: none;
+    transition: background 0.3s var(--ease), border-color 0.3s var(--ease), box-shadow 0.3s var(--ease), transform 0.3s var(--ease);
+    transform: translateY(0);
+}
+input::placeholder, textarea::placeholder { color: #748091; font-weight: 500; }
+input:hover, textarea:hover { background: rgba(255, 255, 255, 0.9); }
+input:focus, textarea:focus {
+    background: #ffffff; border-color: var(--monet-blue) !important;
+    box-shadow: 0 0 0 4px rgba(157, 210, 255, 0.25), 0 12px 24px rgba(15, 23, 42, 0.08) !important;
+}
+textarea {
+    width: 100%; 
+    padding: 14px 20px; 
+    border-radius: var(--radius-element);
+    height: 126px;       /* 完美匹配: 4行文字 + 边距 + 边框 = 126px, 消灭首行跳动 */
+    border: 1px solid rgba(255, 255, 255, 0.62); 
+    background: rgba(255, 255, 255, 0.5);
+    color: #0f172a; font-size: 15px; font-weight: 600; line-height: 1.6;
+    box-shadow: inset 0 2px 5px rgba(15, 23, 42, 0.05), inset 0 -1px 1.5px rgba(255, 255, 255, 0.65);
+    resize: none;
+    overflow-y: auto;
+    transition: background 0.3s var(--ease), border-color 0.3s var(--ease), box-shadow 0.3s var(--ease), transform 0.3s var(--ease), height 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transform: translateY(0);
+    will-change: height;
+}
+
+.input-wrap { position: relative; display: block; width: 100%; }
+.input-wrap input { padding-right: 48px !important; height: 50px !important; line-height: 50px !important; }
+.picker-icon {
+    position: absolute !important; right: 8px !important; top: 50% !important; transform: translateY(-50%) !important;
+    width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
+    border-radius: var(--radius-sm); cursor: pointer; z-index: 10; font-size: 18px; opacity: 0.85;
+    /* 修复: 精准过渡并增加硬件加速前置声明 */
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.25s ease, opacity 0.25s ease;
+    will-change: transform;
+}
+.picker-icon:hover { 
+    /* 移植: 悬浮放大并叠加淡灰色, 注意叠加 translateY 保持垂直居中 */
+    transform: translateY(-50%) scale(1.1) !important; 
+    background: rgba(15, 23, 42, 0.05); 
+    opacity: 1; 
+}
+.picker-icon:active { 
+    /* 移植: 点击按压回缩 */
+    transform: translateY(-50%) scale(0.95) !important; 
+    background: rgba(15, 23, 42, 0.08); 
+}
+
+/* ================== 按钮与工具栏 ================== */
+.toolbar { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; margin-bottom: var(--spacing-card); position: relative; z-index: 1;}
+.toolbar button { height: 52px; }
+
+/* 按钮 */
+button, upload-label {
+    position: relative; overflow: hidden; display: inline-flex; height: 52px; border: none;
+    align-items: center; justify-content: center; padding: 0 24px;
+    border-radius: var(--radius-element); cursor: pointer; font-size: 16px !important; font-weight: 700 !important; 
+    /* 极致顺滑的过渡：使用弹性阻尼曲线，保留 transform 硬件加速 */
+    transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), background 0.3s ease, box-shadow 0.3s ease; 
+    outline: none; letter-spacing: 0.5px;
+    will-change: transform, box-shadow; 
+}
+
+/* 废弃原先粗暴的 ::before 伪元素高光，改用更优雅的多重 background */
+button::before { display: none; }
+button:active { transform: scale(0.96) !important; }
+
+/* ------------------------------------------------
+   1. Primary (莫奈蓝) - 同色边缘折射版
+------------------------------------------------ */
+.primary { 
+    background: 
+        radial-gradient(circle at 85% 15%, rgba(255, 250, 240, 0.35) 0%, transparent 60%),
+        linear-gradient(135deg, rgba(145, 205, 255, 0.85) 0%, rgba(115, 185, 255, 0.45) 100%);
+    color: #0f172a; 
+    box-shadow: 
+        0 6px 16px rgba(120, 175, 225, 0.2), 
+        inset 0 1.5px 2px rgba(255, 255, 255, 0.95), 
+        inset -1px -1px 2px rgba(255, 255, 255, 0.3), 
+        /* 💡 将白边改为高透冰蓝色：完美融入基底，边缘像纯净的蓝水晶 */
+        0 0 0 1px rgba(217, 237, 254, 0.85); 
+    backdrop-filter: blur(16px) saturate(180%); 
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+}
+
+.primary:hover { 
+    background: 
+        radial-gradient(circle at 85% 15%, rgba(255, 250, 240, 0.55) 0%, transparent 65%),
+        linear-gradient(135deg, rgba(175, 220, 255, 0.95) 0%, rgba(145, 205, 255, 0.55) 100%);
+    transform: translateY(-2px); 
+    box-shadow: 
+        0 12px 24px rgba(120, 175, 225, 0.3), 
+        inset 0 2px 3px rgba(255, 255, 255, 1), 
+        inset -1px -1px 2px rgba(255, 255, 255, 0.5),
+        /* 💡 修复：将刺眼的蓝色霓虹边，改为带有一点点冷蓝调的“高透霜白色” */
+        0 0 0 1.5px rgba(240, 248, 255, 0.9); 
+}
+
+.primary:active {
+    background: 
+        radial-gradient(circle at 85% 15%, rgba(255, 250, 240, 0.2) 0%, transparent 40%),
+        linear-gradient(135deg, rgba(135, 195, 255, 0.75) 0%, rgba(105, 175, 255, 0.35) 100%);
+    box-shadow: 
+        0 2px 6px rgba(120, 175, 225, 0.1), 
+        inset 0 3px 6px rgba(15, 23, 42, 0.08), 
+        inset 0 1px 1px rgba(255, 255, 255, 0.5),
+        /* 💡 按下时蓝边暗淡，贴合物理阴影 */
+        0 0 0 1px rgba(145, 205, 255, 0.6);
+}
+
+/* ------------------------------------------------
+   2. Secondary (清透玻璃) - 微调适配
+------------------------------------------------ */
+.secondary { 
+    background: 
+        radial-gradient(circle at 85% 15%, rgba(255, 252, 245, 0.5) 0%, transparent 50%),
+        linear-gradient(135deg, rgba(255, 255, 255, 0.5) 0%, rgba(240, 248, 255, 0.15) 100%); 
+    color: var(--monet-text);
+    box-shadow: 
+        0 6px 16px rgba(15, 23, 42, 0.04), 
+        inset 0 1.5px 2px rgba(255, 255, 255, 0.95), 
+        inset -1px -1px 2px rgba(255, 255, 255, 0.3), 
+        /* 💡 将死白改为带有淡淡冷灰/冷蓝的珍珠白，消除锐利感 */
+        0 0 0 1px rgba(241, 245, 249, 0.85);
+    backdrop-filter: blur(16px) saturate(180%); 
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+}
+
+.secondary:hover { 
+    background: 
+        radial-gradient(circle at 85% 15%, rgba(255, 252, 245, 0.7) 0%, transparent 60%),
+        linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(245, 250, 255, 0.35) 100%); 
+    transform: translateY(-2px);
+    box-shadow: 
+        0 10px 24px rgba(15, 23, 42, 0.08), 
+        inset 0 2px 3px rgba(255, 255, 255, 1), 
+        inset -1px -1px 2px rgba(255, 255, 255, 0.5), 
+        0 0 0 1.5px rgba(255, 255, 255, 0.95); 
+}
+
+.secondary:active {
+    background: 
+        radial-gradient(circle at 85% 15%, rgba(255, 252, 245, 0.3) 0%, transparent 40%),
+        linear-gradient(135deg, rgba(245, 250, 255, 0.4) 0%, rgba(230, 240, 255, 0.1) 100%);
+    box-shadow: 
+        0 2px 6px rgba(15, 23, 42, 0.03), 
+        inset 0 3px 6px rgba(15, 23, 42, 0.04), 
+        inset 0 1px 1px rgba(255, 255, 255, 0.6),
+        0 0 0 1px rgba(226, 232, 240, 0.7);
+}
+
+/* ------------------------------------------------
+   3. Danger (警示红) - 同色边缘折射版
+------------------------------------------------ */
+.danger { 
+    background: 
+        radial-gradient(circle at 85% 15%, rgba(255, 235, 230, 0.2) 0%, transparent 50%),
+        linear-gradient(135deg, rgba(250, 66, 62, 0.75) 0%, rgba(220, 38, 38, 0.55) 100%); 
+    color: #ffffff; 
+    box-shadow: 
+        0 6px 16px rgba(239, 68, 68, 0.2), 
+        inset 0 1.5px 2px rgba(255, 255, 255, 0.5), 
+        inset -1px -1px 2px rgba(0, 0, 0, 0.08),
+        /* 💡 将白边改为高透珊瑚红：红玻璃的边缘就应该是透亮的红色 */
+        0 0 0 1px rgba(255, 199, 199, 0.75); 
+    backdrop-filter: blur(16px) saturate(180%); 
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+}
+
+.danger:hover { 
+    background: 
+        radial-gradient(circle at 85% 15%, rgba(255, 235, 230, 0.45) 0%, transparent 65%),
+        linear-gradient(135deg, rgba(248, 113, 113, 0.95) 0%, rgba(239, 68, 68, 0.7) 100%); 
+    transform: translateY(-2px); 
+    box-shadow: 
+        0 10px 24px rgba(239, 68, 68, 0.3), 
+        inset 0 2px 3px rgba(255, 255, 255, 0.75), 
+        inset -1px -1px 2px rgba(0, 0, 0, 0.12),
+        /* 💡 修复：将刺眼的亮红边，改为带有一丝微粉的珍珠白 */
+        0 0 0 1.5px rgba(255, 240, 240, 0.9); 
+}
+
+.danger:active {
+    background: 
+        linear-gradient(135deg, rgba(220, 38, 38, 0.75) 0%, rgba(185, 28, 28, 0.45) 100%);
+    box-shadow: 
+        0 2px 6px rgba(239, 68, 68, 0.1), 
+        inset 0 3px 6px rgba(0, 0, 0, 0.15), 
+        inset 0 1px 1px rgba(255, 255, 255, 0.3),
+        /* 💡 按下时压暗边缘红色 */
+        0 0 0 1px rgba(220, 38, 38, 0.5);
+}
+
+.view-toggle {
+    position: relative; display: inline-flex; height: 55px;
+    background: rgba(255, 255, 255, 0.55); border: 1px solid rgba(255, 255, 255, 0.75);
+    border-radius: var(--radius-element); /* 修正外框 */
+    padding: 6px; align-items: center; box-shadow: inset 0 2px 6px rgba(15, 23, 42, 0.06), inset 0 -1px 1px rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(16px) saturate(180%); -webkit-backdrop-filter: blur(16px) saturate(180%);
+}
+.view-toggle input { display: none; }
+.view-toggle label {
+    position: relative; z-index: 2; padding: 0 24px; font-size: 15px; font-weight: 700; color: #64748b;
+    cursor: pointer; transition: color 0.3s var(--ease); display: flex; align-items: center; height: 100%;
+}
+.view-toggle input:checked + label { color: #0f172a; }
+/* ==========================================
+   1. 滑块基础样式（严格遵循 Project ALPHA 规范）
+   ========================================== */
+.toggle-slider {
+    position: absolute;
+    top: 6px;
+    bottom: 6px;
+    left: 6px;
+    width: calc((100% - 12px) / 3);
+    
+    /* 液态毛玻璃特有半透明高光组合 */
+    background: rgba(255, 255, 255, .46);
+    backdrop-filter: blur(13px) saturate(165%);
+    -webkit-backdrop-filter: blur(13px) saturate(165%);
+    border-radius: calc(var(--radius-element) - 6px);
+    
+    /* 精致内阴影与宏观柔和外阴影 */
+    box-shadow:
+        0 4px 12px rgba(15, 23, 42, .08),
+        inset 0 2px 4px rgba(255, 255, 255, .96),
+        inset 0 -1px 2px rgba(255, 255, 255, .38);
+        
+    /* 基础位移执行标准的 iOS 弹性阻尼曲线 */
+    transition: transform .36s cubic-bezier(.25, .95, .35, 1);
+    will-change: transform, scale, border-radius, filter, box-shadow;
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* ==========================================
+   2. 方向感应动画激活器
+   ========================================== */
+.toggle-slider.is-sliding-right {
+    animation: liquidGlassSlideRight .42s forwards;
+}
+
+.toggle-slider.is-sliding-left {
+    animation: liquidGlassSlideLeft .42s forwards;
+}
+
+/* ==========================================
+   3. 动画帧精细化调校（核心去抖与补偿）
+   ========================================== */
+
+/* 👉 右滑动画：适度衰减过激的横向拉伸 */
+@keyframes liquidGlassSlideRight {
+    0% {
+        scale: 1 1;
+        border-radius: calc(var(--radius-element) - 6px);
+        filter: brightness(1) saturate(1);
+    }
+    
+    /* 阶段 1：极度克制的微弱拉伸, 摒弃夸张形变 */
+    25% {
+        scale: 1.03 0.98; 
+        border-radius: 20px;
+        filter: brightness(1.02) saturate(1.02);
+        box-shadow: 
+            0 6px 14px rgba(15, 23, 42, .09), 
+            inset 0 2px 4px rgba(255, 255, 255, .97);
+    }
+    
+    /* 阶段 2：单向收敛, 彻底剔除原本 scale < 1 的反向缓冲 */
+    65% {
+        scale: 1.008 0.992; 
+        border-radius: 19px;
+    }
+    
+    /* 阶段 3：静止贴合, 无缝融入边界 */
+    100% {
+        scale: 1 1;
+        border-radius: calc(var(--radius-element) - 6px);
+        filter: brightness(1) saturate(1);
+    }
+}
+
+/* 👈 左滑动画：显著增强形变阻尼感 */
+@keyframes liquidGlassSlideLeft {
+    0% {
+        scale: 1 1;
+        border-radius: calc(var(--radius-element) - 6px);
+        filter: brightness(1) saturate(1);
+    }
+    18% {
+        scale: 1.14 0.92; /* 水平拉伸由 1.11 提升至 1.14 (增强) */
+        border-radius: 23px;
+        filter: brightness(1.06) saturate(1.10);
+        box-shadow: 0 12px 26px rgba(15,23,42,.14), inset 0 3.5px 5.5px rgba(255,255,255,.98);
+    }
+    46% {
+        scale: 1.07 0.96; /* 强化滑行阶段的视觉残留 */
+        border-radius: 21px;
+    }
+    72% {
+        scale: 0.990 1.010; /* 略微明显的果冻回弹 */
+        border-radius: 17.5px;
+    }
+    100% {
+        scale: 1 1;
+        border-radius: calc(var(--radius-element) - 6px);
+        filter: brightness(1) saturate(1);
+    }
+}
+
+/* ==========================================
+   4. 保持位移路径指令（修正并合并重复指令）
+   ========================================== */
+#viewDay:checked ~ .toggle-slider { transform: translateX(0); }
+#viewWeek:checked ~ .toggle-slider { transform: translateX(100%); }
+#viewMonth:checked ~ .toggle-slider { transform: translateX(200%); }
+/* ================== 统计与卡片对齐 ================== */
+.stats { 
+    display: grid; 
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); 
+    gap: var(--spacing-card); 
+    margin-bottom: var(--spacing-card); 
+    position: relative; 
+    z-index: 1;
+}
+
+/* 淡雅微光玻璃 (Tinted Light Glass) */
+.stats .card { 
+    padding: var(--spacing-card); 
+    border-radius: var(--radius-card); 
+    
+    /* 核心调优: 主色调回归高透纯白 (65%), 仅在对角线末端注入极弱的莫奈蓝 (8%) 模拟微光色偏 */
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.65) 0%, rgba(157, 210, 255, 0.08) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.85); 
+    
+    /* 维持玻璃厚度 */
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    
+    /* 阴影调优: 去除蓝色辐射, 回归干净的冷灰 (0f172a), 保持界面清爽 */
+    box-shadow: 
+        0 8px 24px rgba(15, 23, 42, 0.04), 
+        inset 0 2px 4px rgba(255, 255, 255, 0.95),
+        inset 0 -1px 2px rgba(255, 255, 255, 0.3);
+        
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.stats .card:hover { 
+    transform: translateY(-3px) translateZ(0); 
+    /* 悬停时增强的是纯白高光反射, 而不是色彩 */
+    box-shadow: 
+        0 16px 40px rgba(15, 23, 42, 0.08), 
+        inset 0 2px 4px rgba(255, 255, 255, 1),
+        inset 0 -1px 2px rgba(255, 255, 255, 0.4); 
+}
+
+.card-title { color: var(--sub); font-size: 14px; margin-bottom: 8px; font-weight: 600;}
+.card-value { font-size: 30px; font-weight: 800; color: #0f172a; }
+
+/* ===========================
+   任务卡片
+=========================== */
+.task-card {
+    position: relative; 
+    padding: var(--spacing-card); 
+    border-radius: var(--radius-card); 
+    margin-bottom: var(--spacing-card); 
+    z-index: 1;
+    
+    /* 保持绝美的高光渐变与毛玻璃 */
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.75) 0%, rgba(255, 255, 255, 0.4) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    
+    box-shadow: 
+        0 8px 24px rgba(15, 23, 42, 0.04), 
+        inset 0 2px 4px rgba(255, 255, 255, 1),
+        inset 0 -1px 2px rgba(255, 255, 255, 0.3);
+        
+    /* 移除全局 3D 渲染, 释放海量显存；同时剥离 background 动画, 防止重绘雪崩 */
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    
+    /* 屏幕外自动剔除 (Off-screen Culling)
+       离开视野的卡片, 浏览器会直接跳过它的计算与渲染! 对长列表是降维打击*/
+    content-visibility: auto;
+    contain-intrinsic-size: 120px;
+    contain: layout style;
+}
+
+#taskList .task-card:last-child {
+    margin-bottom: 6px;
+}
+
+.task-card:hover { 
+    transform: translateY(-3px); 
+    /* 按需索取资源: 仅在鼠标悬停的一瞬间才向 GPU 申请硬件加速 */
+    will-change: transform, box-shadow;
+    box-shadow: 
+        0 16px 40px rgba(15, 23, 42, 0.08), 
+        inset 0 2px 4px rgba(255, 255, 255, 1),
+        inset 0 -1px 2px rgba(255, 255, 255, 0.4); 
+}
+
+/* ===========================
+   微拟态玻璃标签 (Micro-Glass Tag)
+=========================== */
+.glass-tag {
+    padding: 6px 14px; 
+    font-size: 13px; 
+    font-weight: 800; 
+    border-radius: 999px; 
+    display: inline-flex; 
+    align-items: center; 
+    justify-content: center;
+    color: #1e293b;
+    
+    border: 1px solid rgba(255, 255, 255, 0.85);
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+    white-space: nowrap; 
+}
+
+.round-checkbox {
+    appearance: none !important; -webkit-appearance: none !important;
+    width: 24px !important; height: 24px !important; flex: 0 0 24px !important;
+    border-radius: 50% !important; background: #ffffff !important; border: 2px solid #cbd5e1 !important;
+    cursor: pointer !important; margin: 0 !important; padding: 0 !important; position: relative;
+    transition: all 0.2s var(--ease);
+}
+.round-checkbox:checked { 
+    background: #64748b !important; 
+    border-color: #64748b !important; 
+    /* “啵”一声的视觉 Q 弹动画 */
+    animation: checkboxPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+.round-checkbox:checked::after {
+    content: "✓" !important; color: white !important; font-size: 14px !important; font-weight: 800 !important;
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+}
+
+@keyframes checkboxPop {
+    0% { transform: scale(0.8); }
+    50% { transform: scale(1.15); }
+    100% { transform: scale(1); }
+}
+
+.btn-compact {
+    width: 78px !important; height: 44px !important; min-height: 44px !important;
+    padding: 0 !important; 
+    border-radius: var(--radius-element) !important; /* 修正: 依据 44px 高度进行收缩, 维持矩形感 */
+    font-size: 15px !important; font-weight: 800 !important; 
+    box-shadow: 0 4px 12px rgba(47, 53, 79, 0.06) !important; margin: 0 !important;
+}
+
+/* ================== 年月快速选择弹窗 ================== */
+.monet-year-btn, .monet-month-btn { cursor: pointer; padding: 2px 6px; border-radius: var(--radius-element); transition: background 0.2s; pointer-events: auto !important; }
+.monet-year-btn:hover, .monet-month-btn:hover { background: rgba(15,23,42,0.06); }
+
+.monet-selector {
+    position: absolute; top: 52px; left: 16px; right: 16px; width: auto;
+    /* 核心: 必须降低背景不透明度 (0.35), 才能让底下的 Blur 折射出来 */
+    background: rgba(245, 248, 255, 0.35); 
+    backdrop-filter: blur(28px) saturate(200%); -webkit-backdrop-filter: blur(28px) saturate(200%);
+    border: 1px solid rgba(255, 255, 255, 0.8); border-radius: var(--radius-card); padding: 12px;
+    box-shadow: 0 16px 40px rgba(15,23,42,0.15), inset 0 1px 0 rgba(255,255,255,1);
+    z-index: 100; display: grid; gap: 8px;
+    opacity: 0; transform: translateY(-10px) scale(0.95);
+    transition: opacity 0.3s var(--ease), transform 0.3s var(--ease); pointer-events: none;
+    will-change: transform, opacity;
+}
+.monet-selector.open { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
+
+.monet-selector-item {
+    padding: 8px 12px; font-size: 14px; font-weight: 700; color: #334155;
+    text-align: center; cursor: pointer; border-radius: var(--radius-sm); transition: background 0.2s var(--ease), color 0.2s var(--ease), box-shadow 0.2s var(--ease);
+}
+.monet-selector-item:hover { background: rgba(15,23,42,0.06); }
+.monet-selector-item.active { background: linear-gradient(135deg, #9DD2FF, #BBE0FF); color: #0f172a; box-shadow: 0 4px 12px rgba(157, 210, 255, 0.3); }
+
+/* ================== 图表区与 Empty State ================== */
+.chart-wrap {
+    height: 320px; /* 压低绝对高度, 让比例更精致饱满 */
+    padding: 32px !important; /* 保持 Card 级留白规范 */
+    border-radius: var(--radius-card); 
+    position: relative; 
+    z-index: 1;
+    display: flex; 
+    flex-direction: column;
+    
+    /* Liquid Glass (液态毛玻璃) 核心材质 */
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0.2) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    
+    /* 高光内阴影与柔和外部投影 */
+    box-shadow: 
+        0 8px 24px rgba(15, 23, 42, 0.04), 
+        inset 0 2px 4px rgba(255, 255, 255, 1),
+        inset 0 -1px 2px rgba(255, 255, 255, 0.3);
+        
+    /* 丝滑动效引擎 (匹配 iOS 风格弹性阻尼) */
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* 添加优雅的悬浮交互 */
+.chart-wrap:hover {
+    transform: translateY(-3px);
+    box-shadow: 
+        0 16px 40px rgba(15, 23, 42, 0.08), 
+        inset 0 2px 4px rgba(255, 255, 255, 1),
+        inset 0 -1px 2px rgba(255, 255, 255, 0.4);
+}
+
+.empty-state {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; padding: 60px 0; width: 100%; height: 100%;
+    position: relative; z-index: 1;
+}
+.empty-state .icon { font-size: 58px; margin-bottom: 14px; }
+.empty-state .title { font-size: 20px; font-weight: 800; color: #0f172a; margin-bottom: 8px; }
+.empty-state .desc { font-size: 15px; color: #64748b; font-weight: 500;}
+
+.hidden { display: none !important; }
+
+/* ================== Flatpickr 日历动画 ================== */
+/* 斜杠复用 */
+.faded-slash {
+    color: #cbd5e1;
+    font-weight: 400;
+    margin: 0 2px; /* 修改点: 从 4px 缩小到 2px */
     display: inline-block;
-    min-width: 130px;
+    user-select: none;
+    pointer-events: none;
 }
-.macos-dropdown-trigger {
-    height: 36px;
-    background: linear-gradient(180deg, #ffffff, #f5f5f7);
-    border: 1px solid rgba(0,0,0,0.15);
-    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
-    border-radius: var(--radius-sm);
-    padding: 0 12px;
-    display: flex; align-items: center; justify-content: space-between;
-    cursor: pointer; font-size: 14px; font-weight: 500; color: var(--text-primary);
+
+.flatpickr-calendar:not(.open):not(.inline) {
+    top: -9999px !important;
+    left: -9999px !important;
+}
+.flatpickr-calendar {
+    /* [视觉规范] */
+    width: 365px !important; border-radius: var(--radius-card) !important; padding: 24px !important;
+    box-sizing: border-box !important; margin-top: 10px !important;
+    background: rgba(255, 255, 255, 0.55) !important;
+    backdrop-filter: blur(48px) saturate(200%) !important;
+    -webkit-backdrop-filter: blur(48px) saturate(200%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.7) !important;
+    box-shadow: 0 24px 64px rgba(47,53,79,.12), inset 0 1px 0 rgba(255,255,255,0.8) !important;
+
+    overflow: visible !important;
+    display: block !important; 
+    animation: none !important;
+
+    /* 初始隐藏状态 */
+    opacity: 0 !important;
+    visibility: hidden !important; 
+    transform: translateY(12px) scale(0.95) !important;
+    pointer-events: none !important;
+    z-index: 9999 !important;
+
+    /* 核心魔法: 增加 top/left 的 0.3s 延迟, 让它在原地淡出后再瞬间飞走 */
+    transition: opacity 0.3s cubic-bezier(0.22, 1, 0.36, 1), 
+                transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+                visibility 0s 0.3s,
+                top 0s 0.3s, left 0s 0.3s !important; 
+}
+
+.flatpickr-calendar.open, .flatpickr-calendar.inline {
+    opacity: 1 !important;
+    visibility: visible !important; 
+    transform: translateY(0) scale(1) !important;
+    pointer-events: auto !important;
+
+    transition: opacity 0.3s cubic-bezier(0.22, 1, 0.36, 1), 
+                transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+                visibility 0s 0s,
+                top 0s 0s, left 0s 0s !important; 
+}
+/* 注意: 使用了 :not(.selected) 保护机制, 即使是非本月日期, 如果它恰好是你当前选中的任务日, 也依然高亮!  */
+.flatpickr-day.prevMonthDay:not(.selected), 
+.flatpickr-day.nextMonthDay:not(.selected) {
+    color: #94a3b8 !important; /* 冷感灰度色 */
+    background: transparent !important;
+    box-shadow: none !important;
+    font-weight: 400 !important;
+    opacity: 0.35 !important; /* 降低不透明度, 完美退居二线 */
+}
+/* 维持悬停时的微弱反馈, 但不破坏它作为非本月日期的次要层级 */
+.flatpickr-day.prevMonthDay:not(.selected):hover, 
+.flatpickr-day.nextMonthDay:not(.selected):hover {
+    opacity: 0.6 !important;
+    background: rgba(15, 23, 42, 0.04) !important;
+}
+
+.flatpickr-months {
+    display: flex !important; align-items: center; justify-content: space-between; 
+    margin-bottom: 16px !important; position: relative; width: 100%; height: 32px !important;
+}
+.flatpickr-month { flex: 1; display: flex !important; align-items: center; justify-content: flex-start; height: 100% !important; }
+
+/* 核心修复1: 干掉遮罩的点击拦截 (pointer-events: none) , 让 " > " 按钮重获自由! */
+.flatpickr-current-month { opacity: 0 !important; position: absolute !important; width: 100% !important; height: 100% !important; z-index: 1; pointer-events: none !important;}
+
+/* 将日历左右箭头修改为莫奈蓝, 消灭原生红色 */
+.flatpickr-monthNav-buttons { display: flex !important; gap: 8px !important; align-items: center !important; height: 100% !important; position: relative; z-index: 20;}
+
+/* 核心修复2: 加入 left: auto 强制解除原生靠左的诅咒, 彻底消灭重叠!并拔高图层确保100%可点 */
+.flatpickr-prev-month, .flatpickr-next-month {
+    position: absolute !important; top: 0 !important; transform: none !important;
+    display: flex !important; align-items: center; justify-content: center;
+    width: 32px !important; height: 32px !important; border-radius: var(--radius-sm) !important; background: #f1f5f9 !important; padding: 0 !important; margin: 0 !important;
+    z-index: 99 !important; pointer-events: auto !important; cursor: pointer !important;
+    transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+.flatpickr-prev-month:active, .flatpickr-next-month:active {
+    /* 点击按压时的物理回弹反馈 */
+    transform: scale(0.82) !important;
+    background: #cbd5e1 !important;
+}
+.flatpickr-prev-month { right: 40px !important; left: auto !important; }
+.flatpickr-next-month { right: 0 !important; left: auto !important; }
+.flatpickr-prev-month:hover, .flatpickr-next-month:hover { background: #e2e8f0 !important; }
+.flatpickr-prev-month svg, .flatpickr-next-month svg { 
+    fill: none !important; 
+    stroke: var(--monet-sub) !important; 
+    width: 18px !important;
+    height: 18px !important;
+}
+.flatpickr-prev-month:hover svg, .flatpickr-next-month:hover svg { 
+    stroke: var(--monet-text) !important; 
+}
+
+.flatpickr-weekdays { display: flex !important; align-items: center !important; justify-content: space-between !important; height: 32px !important; margin-bottom: 12px !important; width: 100% !important; }
+span.flatpickr-weekday { color: #64748b !important; font-weight: 700 !important; font-size: 14px !important; flex: 1 !important; text-align: center !important; line-height: 32px !important; margin: 0 !important; }
+
+.flatpickr-innerContainer, .flatpickr-days, .dayContainer { overflow: visible !important; }
+.flatpickr-day { color: #334155 !important; font-weight: 700; border-radius: 50% !important; height: 40px !important; line-height: 40px !important; display: flex !important; justify-content: center !important; align-items: center !important; margin: 2px !important; }
+.flatpickr-day.selected { background: linear-gradient(135deg, #9DD2FF, #BBE0FF) !important; color: #0f172a !important; font-weight: 800 !important; box-shadow: 0 6px 16px rgba(157, 210, 255, 0.4) !important; border: none !important; }
+.flatpickr-day:focus,
+.flatpickr-day.focused {
+    background: transparent !important;
+    border-color: transparent !important;
+    outline: none !important;
+    box-shadow: none !important;
+}
+/* 恢复正常的悬停反馈 */
+.flatpickr-day:hover:not(.selected) {
+    background: rgba(15, 23, 42, 0.06) !important;
+    border-color: transparent !important;
+}
+
+/* 彻底斩草除根: 干掉所有系统自带的倒三角和调节按钮! */
+.flatpickr-monthDropdown-months { appearance: none !important; -webkit-appearance: none !important; background: transparent !important; outline: none !important; border: none !important; }
+.numInputWrapper span.arrowUp, .numInputWrapper span.arrowDown { display: none !important; }
+::-webkit-calendar-picker-indicator { display: none !important; }
+
+@keyframes calendarFlipLeft {
+    0% { opacity: 0; transform: translateX(-16px) scale(0.98); }
+    100% { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+@keyframes calendarFlipRight {
+    0% { opacity: 0; transform: translateX(16px) scale(0.98); }
+    100% { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+.calendar-flipping-left .dayContainer {
+    animation: calendarFlipLeft 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards !important;
+}
+
+.calendar-flipping-right .dayContainer {
+    animation: calendarFlipRight 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards !important;
+}
+
+/* ================== Flatpickr 时钟原生 macOS 化 ================== */
+.flatpickr-calendar.noCalendar {
+    position: absolute !important;
+    width: auto !important;
+    padding: 0 !important;
+    /* 修复渲染卡顿: 将时间框的背景和毛玻璃属性全部上提到父级容器 */
+    background: rgba(255, 255, 255, 0.65) !important;
+    backdrop-filter: blur(24px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+    box-shadow: 0 12px 32px rgba(47, 53, 79, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+    border: 1px solid rgba(255, 255, 255, 0.8) !important;
+    border-radius: var(--radius-element) !important;
+    overflow: visible !important;
+}
+
+.flatpickr-time {
+    height: 100px !important;
+    max-width: 160px !important;
+    border-radius: var(--radius-element) !important;
+    margin: 0 !important; /* 彻底对齐边缘 */
+    
+    /* 清除原本在此层的材质属性, 交由父级承载 */
+    background: transparent !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: none !important;
+    border: none !important;
+    
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px;
+    padding: 0 14px !important;
+}
+.flatpickr-time .numInputWrapper {
+    background: #f1f5f9 !important;
+    border-radius: var(--radius-sm) !important;
+    height: 30px !important; /* 随整体一起长高 */
+    width: 50px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border: 2px solid transparent !important;
+    transition: all 0.2s;
+    outline: none !important;
+}
+.flatpickr-time .numInputWrapper:focus-within {
+    border-color: #98cfff94 !important;
+    background: #ffffff !important;
+    box-shadow: 0 4px 12px rgba(157, 210, 255, 0.3) !important;
+}
+.flatpickr-time input {
+    font-size: 22px !important;
+    font-weight: 800 !important;
+    background: transparent !important;
+    color: #0f172a !important;
+    height: 100% !important;
+    line-height: 48px !important;
+    text-align: center !important;
+    padding: 0 !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+}
+.flatpickr-time input.flatpickr-hour { color: #80c4ff !important; }
+.flatpickr-time .flatpickr-time-separator {
+    color: #64748b !important;
+    font-weight: 700 !important;
+    font-size: 22px !important;
+    align-self: center;
+}
+
+.flatpickr-time .flatpickr-time-separator { color: #64748b !important; font-weight: 700 !important; font-size: 20px !important; align-self: center; margin: 0 !important; display: flex; align-items: center; justify-content: center; height: 100%;}
+
+/* 抹杀日历和时间弹窗外壳上自带的“气泡小尖角 (倒三角) ” */
+.flatpickr-calendar::before,
+.flatpickr-calendar::after {
+    display: none !important;
+    content: none !important;
+    border: none !important;
+}
+
+.flatpickr-current-month svg,
+.flatpickr-monthDropdown-months,
+.flatpickr-monthDropdown-month,
+select.flatpickr-monthDropdown-months,
+.numInputWrapper span {
+    display: none !important;
+    appearance: none !important;
+    -webkit-appearance: none !important;
+}
+
+/*优化时间框内部的分段输入小盒子, 彻底干掉诡异的对焦黑框*/
+
+/* ===========================
+   液态玻璃悬浮球 & 弹窗
+=========================== */
+.glass-sphere {
+    position: fixed; right: 40px; bottom: 40px; width: 64px; height: 64px;
+    border-radius: 50%; cursor: grab; z-index: 9999;
+    display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, rgba(255,255,255,0.9), rgba(255,255,255,0.2));
+    backdrop-filter: blur(24px) saturate(200%); -webkit-backdrop-filter: blur(24px) saturate(200%);
+    border: 1px solid rgba(255,255,255,0.9);
+    box-shadow: 0 16px 32px rgba(15,23,42,0.1), inset 0 4px 12px rgba(255,255,255,1), inset 0 -4px 12px rgba(0,0,0,0.05);
+    transition: transform 0.2s cubic-bezier(0.4, 2.08, 0.55, 0.44);
+    user-select: none; touch-action: none;
+}
+.glass-sphere:active { cursor: grabbing; transform: scale(0.9); transition: transform 0.1s; }
+.sphere-icon { font-size: 28px; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.1)); pointer-events: none;}
+
+/* ===========================
+   液态玻璃弹窗与动画引擎
+=========================== */
+.sphere-modal {
+    position: fixed; inset: 0; z-index: 10000; display: flex; align-items: center; justify-content: center;
+    background: rgba(15, 23, 42, 0.25);
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    opacity: 1; visibility: visible; 
+    
+    /* 修复掉帧 1: 显式接管 backdrop-filter 过渡, 防止 GPU 盲目重绘 */
+    transition: opacity 0.3s var(--ease), 
+                backdrop-filter 0.3s var(--ease),
+                -webkit-backdrop-filter 0.3s var(--ease),
+                visibility 0s 0s;
+                
+    /* 修复掉帧 2: 提前宣告模糊度的变化, 并强制开启底层硬件加速 */
+    will-change: opacity, backdrop-filter;
+    transform: translateZ(0);
+}
+
+.sphere-modal.hidden {
+    display: flex !important; 
+    opacity: 0; 
+    visibility: hidden; 
+    pointer-events: none;
+    
+    /* 修复掉帧 3: 退出时将模糊度归零, 彻底释放底层渲染压力 */
+    backdrop-filter: blur(0px); -webkit-backdrop-filter: blur(0px);
+    
+    transition: opacity 0.3s var(--ease), 
+                backdrop-filter 0.3s var(--ease),
+                -webkit-backdrop-filter 0.3s var(--ease),
+                visibility 0s 0.3s;
+}
+
+.sphere-modal .modal-content {
+    background: rgba(255, 255, 255, 0.82); 
+    backdrop-filter: blur(48px) saturate(200%); -webkit-backdrop-filter: blur(48px) saturate(200%);
+    border: 1px solid rgba(255, 255, 255, 1); 
+    
+    border-radius: var(--radius-panel); /* 保持卡片级圆角比例 */
+    
+    /* 修复 1: 升级为全局最高级留白 (32px), 让内容彻底呼吸 */
+    padding: var(--spacing-main);
+    
+    /* 修复 2: 略微拓宽整体容器宽度, 补偿文字可用空间 */
+    width: 360px; 
+    
+    box-shadow: 0 24px 64px rgba(15,23,42,0.15), inset 0 2px 6px rgba(255, 255, 255, 0.6);
+    
+    will-change: transform, opacity;
+    transform: translateY(0) scale(1) translateZ(0); 
+    opacity: 1;
+    
+    transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1),
+                opacity 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.sphere-modal.hidden .modal-content {
+    transform: translateY(24px) scale(0.92) translateZ(0); 
+    opacity: 0;
+    transition: transform 0.3s var(--ease),
+                opacity 0.3s var(--ease);
+}
+
+/* 2. 增加列表视图切换时的上浮渐显动画 */
+@keyframes listFadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.animate-list {
+    animation: listFadeInUp 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes alphaTimelineIn {
+    0% { opacity: 0; transform: translateY(24px) scale(0.96); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.timeline-card {
+    transform: translateZ(0); 
+    transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s var(--ease), background 0.3s var(--ease) !important;
+}
+
+/* 赋予正在执行入场动画的卡片专属状态 */
+.timeline-card.animating-in {
+    /* 只在执行入场动画时, 向浏览器申请最高优先级的 GPU 渲染层 */
+    will-change: transform, opacity;
+    animation: alphaTimelineIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+}
+
+.main, .dashboard-right {
+    grid-column: 3 !important;
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+}
+
+/* 保持给零散的 section.panel 预留间距, 防止误伤其他页面的排版 */
+.app > section.panel, .container > section.panel {
+    grid-column: 3 !important;
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    margin-bottom: 24px !important; 
+}
+
+.glass-resizer-bar {
+    grid-column: 2 !important;
+    width: 100%;
+    cursor: col-resize;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: sticky;
+    top: var(--spacing-main);
+    height: calc(100vh - (var(--spacing-main) * 2));
+    margin: 0;
+}
+
+.glass-resizer-bar::after {
+    content: ""; width: 4px; height: 32px; border-radius: 99px;
+    background: rgba(15, 23, 42, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.6);
+    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    position: absolute;
+}
+.glass-resizer-bar:hover::after, .glass-resizer-bar.dragging::after {
+    height: 72px; width: 8px; border-radius: 99px;
+    background: rgba(255, 255, 255, 0.28);
+    border-color: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(20px) saturate(190%) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(190%) !important;
+    box-shadow: 0 0 20px rgba(164, 170, 178, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+/* 拖拽时的防卡顿与防选中引擎 */
+.resizing-active * { user-select: none !important; }
+.resizing-active .panel,
+.resizing-active .sidebar { /* 核心修复: 把左侧边栏也加入降级名单 */
+    backdrop-filter: blur(8px) saturate(100%) !important;
+    -webkit-backdrop-filter: blur(8px) saturate(100%) !important;
+    pointer-events: none !important;
+}
+
+/* 窄屏自适应 */
+@media (max-width: 1050px) {
+    .app { grid-template-columns: 1fr !important; gap: var(--spacing-main) !important; }
+    .sidebar { position: relative !important; top: 0 !important; height: auto !important; grid-column: 1 !important; }
+    .main { grid-column: 1 !important; }
+    .glass-resizer-bar { display: none !important; }
+}
+
+/* ===========================
+   全局景深导航引擎 & 菜单样式
+=========================== */
+.logo-area { width: 100%; text-align: left; margin-bottom: 20px; position: relative; z-index: 1000 !important; }
+.logo-trigger {
+    display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; margin-left: -12px; margin-bottom: 4px;
+    border-radius: var(--radius-element); cursor: pointer; 
+    transition: background 0.3s cubic-bezier(0.22, 1, 0.36, 1); 
     user-select: none;
 }
-.macos-dropdown-trigger:active { background: #e5e5ea; }
-.macos-dropdown-trigger .chevron {
-    width: 0; height: 0; 
-    border-left: 4px solid transparent; border-right: 4px solid transparent;
-    border-top: 4px solid var(--text-secondary); margin-left: 8px;
+.logo-trigger:hover, .logo-trigger.active { background: rgba(15, 23, 42, 0.08); } 
+.logo-text { font-size: 32px; font-weight: 800; letter-spacing: -0.5px; color: var(--text); line-height: 1;}
+
+.logo-arrow { color: var(--sub); opacity: 0.6; transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.3s; display: block; margin-top: 4px; }
+.logo-trigger.active .logo-arrow { opacity: 1; color: var(--sub); transform: rotate(180deg); }
+
+/* 原汁原味的 TaskFlow 选项卡样式 */
+.alpha-dropdown {
+    position: absolute; top: 56px; left: -4px; min-width: 220px;
+    background: rgba(255, 255, 255, 0.25); 
+    backdrop-filter: blur(64px) saturate(250%); -webkit-backdrop-filter: blur(64px) saturate(250%);
+    border: 1px solid rgba(255, 255, 255, 0.85);
+    border-radius: var(--radius-element); padding: 8px;
+    box-shadow: 0 32px 64px rgba(15, 23, 42, 0.15), inset 0 1px 0 rgba(255,255,255,0.9);
+    transform-origin: top left;
+    transition: opacity 0.3s cubic-bezier(0.22, 1, 0.36, 1), transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1), visibility 0s 0s;
+    z-index: 9999;
+    will-change: transform, opacity;
 }
-.macos-dropdown-menu {
-    position: absolute; top: calc(100% + 4px); left: 0; min-width: 100%;
-    background: rgba(255, 255, 255, 0.86);
-    backdrop-filter: blur(25px) saturate(190%); -webkit-backdrop-filter: blur(25px) saturate(190%);
-    border: 0.5px solid rgba(0, 0, 0, 0.15); border-radius: 10px; padding: 4px;
-    box-shadow: var(--shadow-popover); z-index: 1000; display: none;
-}
-.macos-dropdown-menu.show { display: block; }
-.macos-dropdown-item {
-    padding: 6px 10px 6px 24px; font-size: 13px; color: var(--text-primary);
-    border-radius: 6px; cursor: pointer; user-select: none; position: relative;
-    transition: background 0.08s, color 0.08s;
-}
-.macos-dropdown-item:hover { background: var(--apple-blue); color: white; }
-.macos-dropdown-item.active::before {
-    content: "✓"; position: absolute; left: 8px; top: 5px; font-weight: bold; font-size: 12px;
+.alpha-dropdown.hidden {
+    display: block !important;
+    opacity: 0; 
+    transform: scale(0.85) translateY(-16px); 
+    visibility: hidden; pointer-events: none;
+    transition: opacity 0.25s cubic-bezier(0.22, 1, 0.36, 1), transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), visibility 0s 0.25s;
 }
 
-/* 按钮设计 */
-button {
-    height: 36px; padding: 0 16px; border-radius: var(--radius-sm);
-    font-size: 14px; font-weight: 500; cursor: pointer; border: 1px solid transparent;
-    transition: all 0.15s var(--ease-macos); display: inline-flex; align-items: center; justify-content: center;
+.dropdown-item {
+    display: flex; align-items: center; gap: 14px; padding: 12px 14px;
+    border-radius: var(--radius-sm); color: #1e293b; 
+    font-size: 16px; font-weight: 700; 
+    text-decoration: none; cursor: pointer; 
+    width: 100%; box-sizing: border-box; 
+    transition: background 0.2s cubic-bezier(0.22, 1, 0.36, 1), padding 0.3s cubic-bezier(0.22, 1, 0.36, 1);
 }
-button:active { transform: scale(0.98); }
-.primary { background: var(--apple-blue); color: white; }
-.primary:hover { background: var(--apple-blue-hover); }
-.secondary { background: #ffffff; border-color: rgba(0,0,0,0.15); color: var(--text-primary); box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
-.secondary:hover { background: #f5f5f7; }
-.danger { background: #ff3b30; color: white; }
-.danger:hover { background: #d7261b; }
-
-.toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 24px; }
-
-/* 统计卡片与汇总 */
-.summary {
-    padding: 12px 16px; border-radius: var(--radius-sm); margin-bottom: 24px;
-    background: rgba(0, 122, 255, 0.06); color: var(--apple-blue); font-size: 14px; font-weight: 600;
+.dropdown-item:hover { 
+    background: rgba(15, 23, 42, 0.08); 
+    padding-left: 20px; 
+    padding-right: 8px; 
 }
-.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
-.card { padding: 16px 20px; border-radius: var(--radius-md); background: #ffffff; border: 1px solid rgba(0,0,0,0.05); }
-.card-title { color: var(--apple-gray); font-size: 12px; font-weight: 500; margin-bottom: 4px; }
-.card-value { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
+.dropdown-item.active { color: #64748b; cursor: default; }
+.dropdown-item.active:hover { background: transparent; padding-left: 14px; padding-right: 12px; }
 
-/* 任务流卡片式列表 */
-.task-card {
-    background: #ffffff; border: 1px solid rgba(0, 0, 0, 0.05);
-    padding: 20px; border-radius: var(--radius-md); margin-bottom: 12px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.01);
-    transition: box-shadow 0.2s var(--ease-macos), transform 0.2s var(--ease-macos);
+.dp-icon { font-size: 20px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1)); } 
+.dropdown-divider { height: 1px; background: rgba(15,23,42,0.08); margin: 8px 12px; }
+.dp-badge { margin-left: auto; font-size: 12px; background: rgba(15,23,42,0.06); padding: 4px 8px; border-radius: var(--radius-sm); color: #64748b; font-weight: 800;}
+
+/* ===========================
+   全局景深模糊机制 (0% 突兀感 & 硬件加速防卡顿版)
+=========================== */
+
+/* 1. 基础动画过渡 (保持不变) */
+.sidebar, #setupPanel {
+    transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease !important;
 }
-.task-card:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.04); }
-.task-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
-.task-name { font-size: 16px; font-weight: 600; color: var(--text-primary); }
-.tag { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 6px; margin-top: 8px; font-size: 11px; font-weight: 600; margin-right: 6px; }
-.task-info { margin-top: 12px; font-size: 13px; line-height: 1.6; color: var(--text-secondary); }
 
-/* 图表面板净化 */
-.chart-container {
-    display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px;
+.sidebar > *:not(.logo-area), 
+.main, 
+.logo-area .subtitle,
+.glass-resizer-bar,
+.setup-layout > *:not(#setupPanel),
+#timerPanel {
+    transition: opacity 0.3s ease, filter 0.3s ease, -webkit-filter 0.3s ease; 
 }
-.chart-wrap {
-    height: 320px; padding: 24px; border-radius: var(--radius-lg);
-    background: #ffffff; border: 1px solid rgba(0,0,0,0.05);
-    display: flex; flex-direction: column;
+
+/* 2. 核心分离: 确保 open 和 closing 状态都拥有最高层级, 防止下沉 */
+body.alpha-menu-open .sidebar,
+body.alpha-menu-closing .sidebar,
+body.alpha-menu-open #setupPanel,
+body.alpha-menu-closing #setupPanel {
+    z-index: 999 !important; 
+    backdrop-filter: none !important; 
+    -webkit-backdrop-filter: none !important;
+    background: transparent !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
 }
-.chart-title { font-size: 14px; font-weight: 600; margin-bottom: 16px; color: var(--text-primary); text-align: center; letter-spacing: -0.1px; }
-.chart-wrap canvas { flex: 1; width: 100% !important; height: 100% !important; }
 
-.empty { text-align: center; color: var(--apple-gray); padding: 48px 0; font-size: 14px; }
-.hidden { display: none !important; }
-.note { margin-top: 16px; color: var(--apple-gray); font-size: 12px; line-height: 1.5; }
-
-@media(max-width: 960px) { .app { grid-template-columns: 1fr; } .sidebar { height: auto; position: relative; top: 0; } }
-
-/* Flatpickr 完美仿苹果原生 Popover 样式净化 */
-.flatpickr-calendar {
-    background: rgba(255, 255, 255, 0.85) !important;
-    backdrop-filter: blur(25px) saturate(190%) !important; -webkit-backdrop-filter: blur(25px) saturate(190%) !important;
-    border: 0.5px solid rgba(0, 0, 0, 0.15) !important; border-radius: 14px !important;
-    box-shadow: var(--shadow-popover) !important; overflow: hidden;
+/* 3. 性能跃升: 视觉模糊【仅】绑定 open 状态 */
+body.alpha-menu-open .sidebar > *:not(.logo-area),
+body.alpha-menu-open #setupPanel > *:not(.logo-area) {
+    opacity: 0.3 !important; 
+    /* 💡 从 20px 降至 12px: 视觉依旧有深邃毛玻璃感, 但极大地解放了渲染管线 */
+    filter: blur(12px) saturate(120%) !important;
+    -webkit-filter: blur(12px) saturate(120%) !important;
+    pointer-events: none;
+    
+    /* 💡 TaskTimer 救星: 强制将这些会被模糊的节点提拔至独立 GPU 复合层 */
+    will-change: filter, opacity; 
+    transform: translateZ(0);
 }
-.flatpickr-months .flatpickr-month { color: var(--text-primary) !important; }
-.flatpickr-current-month .flatpickr-monthDropdown-months { font-weight: 600 !important; color: var(--text-primary) !important; }
-.flatpickr-weekday { color: var(--apple-gray) !important; font-weight: 600 !important; }
-.flatpickr-day { color: var(--text-primary) !important; border-radius: 50% !important; }
-.flatpickr-day.today { border-color: var(--apple-blue) !important; color: var(--apple-blue) !important; }
-.flatpickr-day.selected, .flatpickr-day.selected:hover { background: var(--apple-blue) !important; border-color: var(--apple-blue) !important; color: #ffffff !important; }
-.flatpickr-time { border-top: 1px solid rgba(0,0,0,0.06) !important; background: transparent !important; }
-.flatpickr-time input { color: var(--text-primary) !important; font-weight: 600 !important; }
+
+/* 4. 右侧面板透明度与防重绘雪崩 */
+body.alpha-menu-open .main,
+body.alpha-menu-open .glass-resizer-bar,
+body.alpha-menu-open .setup-layout > *:not(#setupPanel),
+body.alpha-menu-open #timerPanel,
+body.alpha-menu-open .timer-circle-wrap {
+    opacity: 0.15;
+    pointer-events: none;
+    
+    /* 💡 TaskTimer 救星: 防止高频刷新的数字导致右侧透明度矩阵重新计算 */
+    will-change: opacity;
+    transform: translateZ(0);
+}
+
+/* 彻底隐藏副标题 */
+body.alpha-menu-open .logo-area .subtitle {
+    opacity: 0 !important; 
+    pointer-events: none;
+}
+
+/* 拔除背景材质 (保持不变) */
+body.alpha-menu-open .panel,
+body.alpha-menu-open .task-card,
+body.alpha-menu-open .side-card,
+body.alpha-menu-open .chart-wrap,
+body.alpha-menu-open .view-toggle,
+body.alpha-menu-open .timer-circle-wrap {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+/* 5. 全局通透遮罩优化 */
+.nav-click-catcher { 
+    position: fixed; inset: 0; z-index: 998; 
+    background: rgba(15, 23, 42, 0.05) !important;
+    /* 💡 同步降低半径, 拯救高频刷新页面的性能 */
+    backdrop-filter: blur(12px) saturate(120%);
+    -webkit-backdrop-filter: blur(12px) saturate(120%);
+    opacity: 0; visibility: hidden;
+    
+    /* 💡 提前预热, 让浏览器知道它即将改变透明度和材质 */
+    will-change: opacity, backdrop-filter; 
+    transform: translateZ(0); 
+    transition: opacity 0.3s cubic-bezier(0.22, 1, 0.36, 1), visibility 0s 0.3s;
+}
+body.alpha-menu-open .nav-click-catcher { 
+    opacity: 1; visibility: visible;
+    transition: opacity 0.3s cubic-bezier(0.22, 1, 0.36, 1), visibility 0s 0s;
+}
+
+/* 6. 确保标题区域无敌层 (保持不变) */
+.logo-area { position: relative; z-index: 1000 !important; }
+
+/* ================== 管理模式动画引擎 ================== */
+.manage-actions-wrap {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    opacity: 0;
+    width: 0;            /* 弃用 max-width, 改用 width 动画更加精准 */
+    margin-left: 0;      /* 初始状态无左边距, 完全贴合管理按钮 */
+    
+    /* 核心修复：移除 hidden, 让按钮的毛玻璃阴影毫无保留地折射出来!  */
+    overflow: visible;   
+    
+    white-space: nowrap; /* 防止容器宽度缩小时文字和按钮被挤压换行 */
+    pointer-events: none;
+    transform: translateX(-16px) scale(0.95);
+    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    will-change: transform, opacity, width, margin-left;
+}
+
+/* 绝对禁止内部按钮在动画期间变形缩水 */
+.manage-actions-wrap button {
+    flex-shrink: 0;      
+}
+
+body.manage-mode-active .manage-actions-wrap {
+    opacity: 1;
+    width: 230px;        /* 为全选(80px)+删除(112px)+间隙(16px)预留出完美的精准空间 */
+    margin-left: 16px;   /* 展开时才推开间距, 完美解决距离过远问题 */
+    transform: translateX(0) scale(1);
+    pointer-events: auto;
+}
+
+.task-checkbox-wrap {
+    width: 0;
+    flex: 0 0 0px;
+    opacity: 0;
+    transform: scale(0.5) translateX(-10px);
+    margin-right: 0;
+    pointer-events: none;
+    transition: width 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), 
+                flex 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
+                opacity 0.3s var(--ease), 
+                transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), 
+                margin 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    will-change: width, opacity, transform;
+}
+
+body.manage-mode-active .task-checkbox-wrap {
+    width: 26px;
+    flex: 0 0 26px;
+    opacity: 1;
+    transform: scale(1) translateX(0);
+    margin-right: 16px;
+    pointer-events: auto;
+}
+
+body.manage-mode-active .task-checkbox-wrap .round-checkbox {
+    pointer-events: auto; /* 恢复可点击状态 */
+}
+
+/* ================== 全局页面切换动效 (Page Transitions) ================== */
+/* 进场：从右侧 60px 处滑入并淡入（位移不宜过大，避免出现横向滚动条，60px 最符合 macOS 微动效质感） */
+@keyframes alphaPageIn {
+    0% { opacity: 0; transform: translateX(60px); }
+    100% { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes alphaPageOut {
+    0% { opacity: 1; transform: translateX(0); }
+    100% { opacity: 0; transform: translateX(-60px); }
+}
+
+/* 1. 进场直接绑定给 .app 容器，无需 JS 介入 */
+.app {
+    /* backwards 属性是神来之笔：它强制让浏览器在第 0 帧就维持 0% 的状态（透明且偏右），彻底消灭闪烁 */
+    animation: alphaPageIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+/* 2. 退场专用类 */
+.page-transition-leave {
+    animation: alphaPageOut 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards !important;
+    pointer-events: none;
+    /* 强制降低退出时的层级，确保退场滑动时绝不会从 alphaDropdownMenu 上方压过去 */
+    position: relative;
+    z-index: 1; 
+}
+
+/* ================== 全局 Alpha Tooltip (极致液态毛玻璃增强版) ================== */
+#alphaTooltip {
+    position: fixed;
+    top: 0;
+    left: 0;
+    padding: 6px 12px;
+    
+    /* 1. 材质重塑：大幅降低白色浓度 (从 0.65 降至 0.35)，让底层画面透过来 */
+    background: rgba(255, 255, 255, 0.65);
+    
+    /* 2. 景深增强：提升模糊半径至 24px，并拉高 200% 的色彩饱和度，形成“丁达尔折射” */
+    backdrop-filter: blur(24px) saturate(200%);
+    -webkit-backdrop-filter: blur(24px) saturate(200%);
+    
+    /* 3. 物理切边：四周使用半透明边框，但顶部保留高亮，模拟顶光打在玻璃边缘 */
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-top-color: rgba(255, 255, 255, 0.85); 
+    
+    /* 4. 体积光影：外侧加深悬浮投影，内部注入两层发光感（边缘锐利折射 + 内部柔和泛光） */
+    box-shadow: 
+        0 8px 24px rgba(15, 23, 42, 0.12),         /* 更具浮空感的外阴影 */
+        inset 0 1px 1px rgba(255, 255, 255, 0.9),  /* 顶部边缘的极限高光 */
+        inset 0 0 12px rgba(255, 255, 255, 0.4);   /* 玻璃内部的均匀泛光厚度 */
+        
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+    color: var(--text, #0f172a);
+    font-weight: 500;
+    pointer-events: none;
+    z-index: 10000;
+    opacity: 0;
+    transform: translateY(6px) scale(0.94);
+    transition: opacity 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), 
+                transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    will-change: transform, opacity, left, top;
+    white-space: nowrap;
+}
+
+#alphaTooltip.visible {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
 </style>
 </head>
 
 <body>
-
+<div class="alpha-ambient-bg">
+    <div class="sunbeam"></div>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+</div>
+<div class="noise-overlay"></div>
 <div class="app">
     <aside class="sidebar">
         <div class="logo-area">
-            <div class="logo">⏳ TaskFlow</div>
-            <div class="subtitle"> 轻量化时间管理</div>
-        </div>
-        <div class="side-card">
-            <div class="side-label">当前日期</div>
-            <div class="side-number" id="todayText">-</div>
-        </div>
-        <div class="side-card">
-            <div class="side-label">任务总数</div>
-            <div class="side-number" id="taskCount">0</div>
-        </div>
-        <div class="side-card">
-            <div class="side-label">总耗时</div>
-            <div class="side-number" id="totalTime">0 min</div>
-        </div>
+                    <div class="logo-trigger" id="logoTrigger" onclick="toggleAlphaMenu(event)">
+                        <div class="logo-text">🗃️ TaskFlow</div>
+                        <svg class="logo-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                    </div>
+                    <div id="alphaDropdownMenu" class="alpha-dropdown hidden">
+                        <a href="./Home.html" class="dropdown-item">
+                            <span class="dp-icon">🏠</span> 主页
+                            </a>
+                        <div class="dropdown-divider"></div>
+                        <a href="./TaskHub.html" class="dropdown-item">
+                            <span class="dp-icon">🌏</span> TaskHub
+                        </a>
+                        <a href="./TaskTimer.html" class="dropdown-item">
+                            <span class="dp-icon">⏳</span> TaskTimer
+                        </a>
+                        <div class="dropdown-divider"></div>
+                        <div class="dropdown-item active">
+                            <span class="dp-icon">🗃️</span> TaskFlow <span class="dp-badge">当前</span>
+                        </div>
+                    </div>
+                    <div class="subtitle">{ } Project ALPHA™ | 数据复盘</div>
+                </div>
+
+        <div class="side-card"><div class="side-label">今日日期</div><div class="side-number" id="todayText">-</div></div>
+        <div class="side-card"><div class="side-label">今日任务数</div><div class="side-number" id="taskCount">0</div></div>
+        <div class="side-card"><div class="side-label">今日耗时</div><div class="side-number" id="totalTime">0 min</div></div>
     </aside>
+
+    <div class="glass-resizer-bar" id="glassResizer"></div>
 
     <main class="main">
         <section class="panel">
-            <div class="section-title">添加任务记录</div>
-            <div class="grid">
-                <div class="field" style="grid-column: span 1;">
+            <div class="section-title">记录任务</div>
+            
+            <div class="add-task-grid">
+                <div class="field">
                     <label>日期</label>
-                    <input type="date" id="dateInput">
-                </div>
-                <div class="field" style="grid-column: span 1;">
-                    <label>任务名称</label>
-                    <input type="text" id="taskName" placeholder="如：数学练习册">
+                    <div class="input-wrap" id="dateWrap">
+                        <input type="text" id="dateInput" data-input placeholder="YYYY-MM-DD">
+                        <span class="picker-icon" data-toggle>📅</span>
+                    </div>
                 </div>
                 
-                <div class="field" style="grid-column: span 2;">
-                    <label>学科类别（可多选）</label>
+                <div class="field"><label>任务名称</label><input type="text" id="taskName" placeholder="例如: 数学练习册"></div>
+                
+                <div class="field full-width">
+                    <label>学科</label>
                     <div class="subject-box" id="subjectBox">
                         <label class="subject-item"><input type="checkbox" value="语文"><span>语文</span></label>
                         <label class="subject-item"><input type="checkbox" value="数学"><span>数学</span></label>
@@ -303,129 +1574,166 @@ button:active { transform: scale(0.98); }
                         <label class="subject-item"><input type="checkbox" value="物理"><span>物理</span></label>
                         <label class="subject-item"><input type="checkbox" value="化学"><span>化学</span></label>
                         <label class="subject-item"><input type="checkbox" value="历史"><span>历史</span></label>
-                        <label class="subject-item"><input type="checkbox" value="生物"><span>生物</span></label>
+                        <label class="subject-item"><input type="checkbox" value="跨学科案例分析"><span>跨学科</span></label>
                         <label class="subject-item"><input type="checkbox" value="道法" data-alias="道德与法治"><span>道法</span></label>
                         <label class="subject-item"><input type="checkbox" value="准备" data-alias="整理"><span>准备</span></label>
                     </div>
-                    <input type="text" id="customCategory" placeholder="自定义其他类别（用「+」隔开）" style="margin-top:8px; height:34px;">
+                    <input type="text" id="customCategory" placeholder="自定义其他学科 (用「+」隔开) " style="margin-top:12px;">
                 </div>
 
-                <div class="field">
-                    <label>时长（分钟）</label>
-                    <input type="number" id="duration" min="1" placeholder="自动计算或手动输入">
-                </div>
+                <div class="field"><label>完成时间 (分钟) </label><input type="number" id="duration" min="1" placeholder="选填 (或使用起止时间) "></div>
+                
                 <div class="field">
                     <label>开始时间</label>
-                    <input type="time" id="startTime">
+                    <div class="input-wrap" id="startTimeWrap">
+                        <input type="text" id="startTime" data-input placeholder="-- : --">
+                        <span class="picker-icon" data-toggle>🕒</span>
+                    </div>
                 </div>
                 <div class="field">
                     <label>结束时间</label>
-                    <input type="time" id="endTime">
+                    <div class="input-wrap" id="endTimeWrap">
+                        <input type="text" id="endTime" data-input placeholder="-- : --">
+                        <span class="picker-icon" data-toggle>🕒</span>
+                    </div>
                 </div>
-                <div class="field">
-                    <label>流水备注</label>
-                    <input type="text" id="remark" placeholder="选填选项">
+                
+                <div class="field full-width">
+                    <label>备注</label>
+                    <textarea id="taskRemark" class="textarea-resizable" rows="4" placeholder="补充任务细节或要求..."></textarea>
                 </div>
-            </div>
 
-            <div style="margin-top:24px; display:flex; gap:12px;">
-                <button class="primary" id="addBtn">添加记录</button>
+            <div class="full-width" style="margin-top: 12px; position: relative; z-index: 1; display: flex; gap: 16px;">
+                <button class="primary" id="addBtn">添加</button>
                 <button class="secondary hidden" id="cancelEditBtn" onclick="cancelEdit()">取消编辑</button>
             </div>
-            <div class="note">
-                💡 提示：输入任务名可匹配自动套用学科；支持回车自动聚焦下一框；起止时间错误系统会自动倒置修复。
             </div>
         </section>
 
         <section class="panel">
-            <div class="section-title">数据核算中心</div>
-            <div class="toolbar">
-                <button class="secondary" onclick="selectAllTasks()">全选</button>
-                <button class="danger" onclick="deleteSelectedTasks()">批量删除</button>
-                
-                <div class="macos-dropdown" id="viewTypeDropdown">
-                    <div class="macos-dropdown-trigger" id="viewTypeTrigger">
-                        <span id="viewTypeLabel">查看当天</span>
-                        <span class="chevron"></span>
+            <div class="section-title">数据记录</div>
+                <div class="toolbar">
+                    <div class="toolbar-left" style="display: flex; align-items: center; gap: 16px; margin-right: auto;">
+                        
+                        <div class="manage-group" style="display: flex; align-items: center;">
+                            <button class="primary" id="manageBtn" onclick="toggleManageMode()">管理</button>
+                            
+                            <div id="manageActions" class="manage-actions-wrap">
+                                <button class="secondary" id="selectAllBtn" onclick="selectAllTasks()">全选</button>
+                                <button class="danger" onclick="deleteSelectedTasks()">批量删除</button>
+                            </div>
+                        </div>
+                        
+                        <div class="view-toggle">
+                            <input type="radio" name="viewType" id="viewDay" value="day" checked>
+                            <label for="viewDay">当天</label>
+                            <input type="radio" name="viewType" id="viewWeek" value="week">
+                            <label for="viewWeek">本周</label>
+                            <input type="radio" name="viewType" id="viewMonth" value="month">
+                            <label for="viewMonth">本月</label>
+                            <div class="toggle-slider"></div>
+                        </div>
+                        
                     </div>
-                    <div class="macos-dropdown-menu" id="viewTypeMenu">
-                        <div class="macos-dropdown-item active" data-value="day">查看当天</div>
-                        <div class="macos-dropdown-item" data-value="week">查看本周</div>
-                        <div class="macos-dropdown-item" data-value="month">查看本月</div>
-                    </div>
+                    
+                    <button class="secondary" id="exportBtn">导出 TXT</button>
+                    <button class="secondary" id="importBtn">导入 TXT</button>
+                    <input type="file" id="importFile" hidden accept=".txt">
                 </div>
-                
-                <button class="secondary" id="exportBtn">导出明细 (TXT)</button>
-                <button class="secondary" id="importBtn">导入历史 (TXT)</button>
-                <input type="file" id="importFile" hidden accept=".txt">
-
-                <button class="danger" style="margin-left:auto;" id="deleteDayBtn">清空当日</button>
-            </div>
-
-            <div class="summary" id="summary">暂无历史数据</div>
 
             <div class="stats">
-                <div class="card">
-                    <div class="card-title">观察区间任务数</div>
-                    <div class="card-value" id="showCount">0</div>
-                </div>
-                <div class="card">
-                    <div class="card-title">区间归档总耗时</div>
-                    <div class="card-value" id="showDuration">0 min</div>
-                </div>
-                <div class="card">
-                    <div class="card-title">视窗对应轴日期</div>
-                    <div class="card-value" id="viewDate" style="font-size:18px; padding-top:4px;">-</div>
-                </div>
+                <div class="card"><div class="card-title">选定任务数量</div><div class="card-value" id="showCount">0</div></div>
+                <div class="card"><div class="card-title">选定任务耗时</div><div class="card-value" id="showDuration">0 min</div></div>
+                <div class="card"><div class="card-title">当前查看日期</div><div class="card-value" id="viewDate" style="font-size:30px;">-</div></div>
             </div>
 
             <div id="taskList"></div>
         </section>
 
-        <section class="panel">
-            <div class="chart-container">
+        <section class="panel" style="margin-top:2px;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: var(--spacing-card);">
                 <div class="chart-wrap">
-                    <h3 class="chart-title">📈 近7天完成任务时间趋势</h3>
-                    <canvas id="trendChart"></canvas>
+                    <h3 style="font-size: 15px; font-weight: 800; margin-bottom: 12px; color: #334155; text-align: center;">📈 近7天学习趋势</h3>
+                    <!-- 修复 3: 加入绝对弹性的包装层 -->
+                    <div style="position: relative; flex: 1; width: 100%; min-height: 0;">
+                        <canvas id="trendChart"></canvas>
+                    </div>
                 </div>
-
                 <div class="chart-wrap">
-                    <h3 class="chart-title">📊 各学科时间权重分布</h3>
-                    <canvas id="subjectChart"></canvas>
+                    <h3 style="font-size: 15px; font-weight: 800; margin-bottom: 12px; color: #334155; text-align: center;">📊 各学科时间占比</h3>
+                    <!-- 为 subjectChart 补上缺失的弹性包装层 -->
+                    <div style="position: relative; flex: 1; width: 100%; min-height: 0;">
+                        <canvas id="subjectChart"></canvas>
+                    </div>
                 </div>
             </div>
-
-            <div id="focusAnalysis" style="margin-top:24px; padding:16px; background:#f5f5f7; border-radius:12px; font-size:13px; line-height:1.8; color:var(--text-secondary);"></div>
+            
+            <div id="chartEmptyState" class="hidden" style="position: absolute; top:0; left:0; width:100%; height:100%; z-index: 2; border-radius: var(--radius-panel); background: rgba(255,255,255,0.65); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);">
+                <div class="empty-state">
+                    <div class="icon">📊</div>
+                    <div class="title">暂无图表数据</div>
+                    <div class="desc">添加当前视图任务后自动生成</div>
+                </div>
+            </div>
+            
+            <div id="focusAnalysis" style="margin-top:24px; font-size:16px; line-height:1.8; color:#334155; font-weight:600; position:relative; z-index:1;"></div>
         </section>
     </main>
 </div>
 
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
 const STORAGE_KEY = "taskflow_data";
 
+// ================= 自定义弹窗 =================
+window.dialogConfirmCallback = null;
+
+function customAlert(msg, title = "提示", icon = "💡") {
+    document.getElementById('dialogIcon').textContent = icon;
+    document.getElementById('dialogTitle').textContent = title;
+    document.getElementById('dialogMessage').innerHTML = msg;
+    document.getElementById('dialogCancelBtn').style.display = 'none';
+    const confirmBtn = document.getElementById('dialogConfirmBtn');
+    confirmBtn.textContent = "我知道了"; confirmBtn.className = "primary";
+    window.dialogConfirmCallback = () => document.getElementById('customDialog').classList.add('hidden');
+    document.getElementById('customDialog').classList.remove('hidden');
+}
+
+function customConfirm(msg, onConfirm, title = "请确认", isDanger = false, icon = "⚠️") {
+    document.getElementById('dialogIcon').textContent = icon;
+    document.getElementById('dialogTitle').textContent = title;
+    document.getElementById('dialogMessage').innerHTML = msg;
+    document.getElementById('dialogCancelBtn').style.display = 'block';
+    document.getElementById('dialogCancelBtn').textContent = "取消";
+    const confirmBtn = document.getElementById('dialogConfirmBtn');
+    confirmBtn.textContent = "确定"; confirmBtn.className = isDanger ? "danger" : "primary";
+    window.dialogConfirmCallback = () => { 
+        document.getElementById('customDialog').classList.add('hidden'); 
+        onConfirm(); 
+    };
+    document.getElementById('customDialog').classList.remove('hidden');
+}
+
 const subjectKeywordMap = {
-    语文: ["语文","作文","阅读","古诗","文言文"],
-    数学: ["数学","几何","函数","方程"],
-    英语: ["英语","单词","听力","阅读"],
-    物理: ["物理","电路","力学"],
-    化学: ["化学","方程式"],
-    历史: ["历史"],
-    生物: ["生物"],
-    道法: ["道法","道德与法治"],
-    准备: ["准备","整理","休息","洗澡","洗漱","厕所","如厕","上厕所","收拾","AI"]
+    语文: ["语文","作文","阅读","古诗","文言文","默写","字词"],
+    数学: ["数学","几何","函数","方程","代数","计算","算术","数练", "数学校本", "中学生世界"],
+    英语: ["英语","单词","听力","阅读","语法","完形","写作"],
+    物理: ["物理","电路","力学","电磁","光学","声学"],
+    化学: ["化学","方程式","实验","酸碱","摩尔"],
+    历史: ["历史","古代史","近代史","世界史"],
+    跨学科案例分析: ["跨学科","细胞","遗传","解剖"],
+    道法: ["道法","道德与法治","政治","法律"],
+    准备: ["准备","整理","整理书包","休息","洗澡","洗漱","厕所","如厕","上厕所","收拾","AI","发呆","放松"]
 };
 
-// 苹果原生规范调色板
 function getSubjectColor(subject) {
     const map = {
-        语文:"#ff3b30", 数学:"#007aff", 英语:"#34c759", 物理:"#af52de",
-        化学:"#55befc", 历史:"#ff9500", 生物:"#5856d6", 道法:"#ff2d55", 准备:"#ffcc00"
+        语文:"#efc7c7", 数学:"#9dd2ff", 英语:"#d2ede4", 物理:"#d3c5f6",
+        化学:"#9ccbd4", 历史:"#f9ccae", 跨学科案例分析:"#c5be97", 道法:"#ecc7d9", 准备:"#cbf4f3"
     };
-    return map[subject] || "#8e8e93";
+    return map[subject] || "#e2e3ea";
 }
 
 const dateInput = document.getElementById("dateInput");
@@ -434,36 +1742,12 @@ const customCategory = document.getElementById("customCategory");
 const duration = document.getElementById("duration");
 const startTime = document.getElementById("startTime");
 const endTime = document.getElementById("endTime");
-const remark = document.getElementById("remark");
+const remark = document.getElementById("taskRemark");
 const taskList = document.getElementById("taskList");
 const addBtn = document.getElementById("addBtn");
 const cancelEditBtn = document.getElementById("cancelEditBtn");
 
-let currentViewMode = "day"; // 替换原下拉绑定状态
 let editingTaskInfo = null;
-
-// 定制下拉框的交互状态链
-const viewTypeTrigger = document.getElementById("viewTypeTrigger");
-const viewTypeMenu = document.getElementById("viewTypeMenu");
-const viewTypeLabel = document.getElementById("viewTypeLabel");
-
-viewTypeTrigger.addEventListener("click", (e) => {
-    e.stopPropagation();
-    viewTypeMenu.classList.toggle("show");
-});
-
-document.querySelectorAll(".macos-dropdown-item").forEach(item => {
-    item.addEventListener("click", function() {
-        document.querySelectorAll(".macos-dropdown-item").forEach(i => i.classList.remove("active"));
-        this.classList.add("active");
-        currentViewMode = this.dataset.value;
-        viewTypeLabel.textContent = this.textContent;
-        viewTypeMenu.classList.remove("show");
-        render();
-    });
-});
-
-document.addEventListener("click", () => viewTypeMenu.classList.remove("show"));
 
 function getToday() {
     const d = new Date();
@@ -477,14 +1761,61 @@ function formatDate(dateStr) {
     return `${parts[0]}/${Number(parts[1])}/${Number(parts[2])}`;
 }
 
-function loadData() {
-    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}"); } 
-    catch { return {}; }
+function formatDateHTML(dateStr) {
+    if (!dateStr) return "-";
+    const parts = dateStr.split("-");
+    if (parts.length !== 3) return dateStr;
+    // 注入我们新写的 CSS 样式类
+    return `${parts[0]}<span class="faded-slash">/</span>${Number(parts[1])}<span class="faded-slash">/</span>${Number(parts[2])}`;
 }
 
-function saveData(data) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+function loadData() {
+    try { 
+        let data = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+        for (let date in data) {
+            if (!Array.isArray(data[date])) continue;
+            data[date].forEach((task, index) => {
+                if (!task.category) task.category = ["未分类"];
+                else if (!Array.isArray(task.category)) task.category = [task.category];
+                if (!task.date) task.date = date;
+                // 兼容旧数据: 如果没有创建时间戳, 则根据其在数组中的位置伪造一个时间戳, 确保旧数据顺序不乱
+                if (!task.createdAt) task.createdAt = Date.now() - (1000000 - index * 1000); 
+            });
+        }
+        return data;
+    } catch { return {}; }
 }
+
+// 全局管理模式状态
+let isManageMode = false;
+
+function toggleManageMode() {
+    isManageMode = !isManageMode;
+    const btn = document.getElementById('manageBtn');
+    const selectAllBtn = document.getElementById('selectAllBtn'); // 获取全选按钮
+    
+    if (isManageMode) {
+        document.body.classList.add('manage-mode-active');
+        btn.textContent = "完成";
+        btn.classList.remove('primary');
+        btn.classList.add('secondary');
+        
+        // 每次展开时, 确保文字复位
+        if (selectAllBtn) selectAllBtn.textContent = "全选"; 
+    } else {
+        document.body.classList.remove('manage-mode-active');
+        btn.textContent = "管理";
+        btn.classList.remove('secondary');
+        btn.classList.add('primary');
+        
+        // 取消管理时, 自动清空所有已勾选的复选框
+        document.querySelectorAll(".batch-check").forEach(cb => cb.checked = false);
+        // 收起时, 重置全选按钮文字
+        if (selectAllBtn) selectAllBtn.textContent = "全选"; 
+    }
+}
+
+function saveData(data) { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
 
 function calculateDuration(start, end) {
     if (!start || !end) return null;
@@ -492,14 +1823,10 @@ function calculateDuration(start, end) {
     let [eh,em] = end.split(":").map(Number);
     let startMin = sh*60+sm;
     let endMin = eh*60+em;
-
     if (endMin < startMin) {
         const diff = startMin - endMin;
-        if (diff <= 180) {
-            [startMin,endMin] = [endMin,startMin];
-        } else {
-            endMin += 1440;
-        }
+        if (diff <= 180) [startMin,endMin] = [endMin,startMin];
+        else endMin += 1440;
     }
     return endMin - startMin;
 }
@@ -508,7 +1835,6 @@ function autoCategory() {
     const text = taskName.value.trim();
     document.querySelectorAll(".subject-item input").forEach(cb => cb.checked = false);
     if (!text) return;
-
     Object.entries(subjectKeywordMap).forEach(([subject,keywords]) => {
         const matched = keywords.some(keyword => text.includes(keyword));
         if (!matched) return;
@@ -539,6 +1865,11 @@ function autoCalculateEndTime() {
         const eh = String(Math.floor(total/60)).padStart(2,"0");
         const em = String(total%60).padStart(2,"0");
         endTime.value = `${eh}:${em}`;
+        
+        const endTimeWrap = document.getElementById("endTimeWrap");
+        if (endTimeWrap && endTimeWrap._flatpickr) {
+            endTimeWrap._flatpickr.setDate(`${eh}:${em}`);
+        }
     }
 }
 
@@ -546,42 +1877,30 @@ function addTask() {
     const name = taskName.value.trim();
     const category = getSelectedCategories();
     const date = dateInput.value;
-
-    if (!name || category.length === 0) {
-        alert("请填写任务名称并至少选择一个学科类别！");
-        return;
-    }
-
+    if (!name || category.length === 0) { customAlert("请填写任务名称并至少选择一个学科", "信息不完整", "📝"); return; }
+    
     let taskDuration = parseInt(duration.value);
-    if (startTime.value && endTime.value) {
-        taskDuration = calculateDuration(startTime.value, endTime.value);
-    }
-
-    if (!taskDuration || taskDuration <= 0) {
-        alert("请确认时长输入正确。");
-        return;
-    }
+    if (startTime.value && endTime.value) taskDuration = calculateDuration(startTime.value, endTime.value);
+    if (!taskDuration || taskDuration <= 0) { customAlert("请填写正确时间", "时间错误", "⏳"); return; }
 
     const data = loadData();
+    let currentCreatedAt = Date.now();
+
     if (editingTaskInfo) {
+        currentCreatedAt = editingTaskInfo.createdAt; 
         data[editingTaskInfo.date] = data[editingTaskInfo.date].filter(t => t.id !== editingTaskInfo.id);
     }
-
     if (!data[date]) data[date] = [];
 
     data[date].push({
-        id: editingTaskInfo?.id || (window.crypto?.randomUUID?.() || Date.now()),
+        id: editingTaskInfo?.id || (window.crypto?.randomUUID?.() || String(Date.now())),
+        createdAt: currentCreatedAt,
         date, name, category, duration: taskDuration,
         start: startTime.value, end: endTime.value, remark: remark.value.trim()
     });
 
-    data[date].sort((a,b)=>{
-        if (!a.start && !b.start) return 0;
-        if (!a.start) return 1;
-        if (!b.start) return -1;
-        return a.start.localeCompare(b.start);
-    });
-
+    data[date].sort((a, b) => a.createdAt - b.createdAt);
+    
     saveData(data);
     clearInputs();
     render();
@@ -590,25 +1909,44 @@ function addTask() {
 function clearInputs() {
     taskName.value = ""; customCategory.value = ""; duration.value = "";
     startTime.value = ""; endTime.value = ""; remark.value = "";
+    document.getElementById('taskRemark').dispatchEvent(new Event('input', { bubbles: true }));
     document.querySelectorAll(".subject-item input").forEach(cb => cb.checked = false);
     editingTaskInfo = null;
-    addBtn.textContent = "添加记录";
+    addBtn.textContent = "添加";
     cancelEditBtn.classList.add("hidden");
+    
+    const startTimeWrap = document.getElementById("startTimeWrap");
+    const endTimeWrap = document.getElementById("endTimeWrap");
+    const dateWrap = document.getElementById("dateWrap"); // 🎯 捕获主日期控件
+    
+    if (startTimeWrap && startTimeWrap._flatpickr) startTimeWrap._flatpickr.clear();
+    if (endTimeWrap && endTimeWrap._flatpickr) endTimeWrap._flatpickr.clear();
+    
+    // 核心修复: 表单提交或取消编辑后, 强制将日历引擎和输入框恢复为“当前日期”
+    if (dateWrap && dateWrap._flatpickr) {
+        dateWrap._flatpickr.setDate(getToday(), false);
+    }
 }
 
 function editTask(date,id) {
     const data = loadData();
     const task = data[date].find(t => String(t.id) === String(id));
     if (!task) return;
+    
+    // 保存原始的 createdAt 属性, 以便更新后不改变排序位置
+    editingTaskInfo = { date, id, createdAt: task.createdAt || Date.now() };
+    
+    const dateWrap = document.getElementById("dateWrap");
+    const startTimeWrap = document.getElementById("startTimeWrap");
+    const endTimeWrap = document.getElementById("endTimeWrap");
 
-    editingTaskInfo = {date,id};
-    dateInput.value = task.date;
-    taskName.value = task.name;
-    duration.value = task.duration;
-    startTime.value = task.start || "";
-    endTime.value = task.end || "";
+    if (dateWrap && dateWrap._flatpickr) dateWrap._flatpickr.setDate(task.date, false);
+    taskName.value = task.name; duration.value = task.duration;
+    if (startTimeWrap && startTimeWrap._flatpickr) startTimeWrap._flatpickr.setDate(task.start || ""); 
+    if (endTimeWrap && endTimeWrap._flatpickr) endTimeWrap._flatpickr.setDate(task.end || ""); 
     remark.value = task.remark || "";
-
+    document.getElementById('taskRemark').dispatchEvent(new Event('input', { bubbles: true }));
+    
     document.querySelectorAll(".subject-item input").forEach(cb => cb.checked = false);
     const extra = [];
     task.category.forEach(cat => {
@@ -618,125 +1956,291 @@ function editTask(date,id) {
         });
         if (!found) extra.push(cat);
     });
-
+    
     customCategory.value = extra.join(" + ");
     addBtn.textContent = "保存修改";
     cancelEditBtn.classList.remove("hidden");
+    
+    // 优化 2: 触发编辑后, 页面丝滑滚动到最顶端的表单处
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function cancelEdit() { clearInputs(); }
 
-function deleteTask(date,id) {
-    if (!confirm("确定彻底除去此条分析记录吗？")) return;
-    const data = loadData();
-    data[date] = data[date].filter(t => String(t.id)!==String(id));
-    saveData(data);
-    render();
+// ================= 真正的跨库斩草除根 =================
+function removeFromTaskHub(taskId) {
+    try {
+        // 直接读取 TaskHub 的底层数据库
+        let thData = JSON.parse(localStorage.getItem('taskhub_data') || "[]");
+        const originalLength = thData.length;
+        thData = thData.filter(t => String(t.id) !== String(taskId));
+        // 如果发现源头, 则一并抹杀
+        if (thData.length !== originalLength) {
+            localStorage.setItem('taskhub_data', JSON.stringify(thData));
+        }
+    } catch(e) { console.error("同步删除 TaskHub 数据失败", e); }
 }
 
-function selectAllTasks() {
-    const boxes = document.querySelectorAll(".batch-check");
-    const allChecked = Array.from(boxes).every(v=>v.checked);
-    boxes.forEach(v=>v.checked=!allChecked);
+function deleteTask(date, id) {
+    customConfirm("确定删除记录吗?此操作无法恢复", () => {
+        const data = loadData();
+        data[date] = data[date].filter(t => String(t.id) !== String(id));
+        saveData(data);
+        removeFromTaskHub(id); // 跨域联动: 一并清除 TaskHub 中对应的源头任务
+        render();
+    }, "删除任务", true, "🗑️");
 }
 
 function deleteSelectedTasks() {
     const checked = document.querySelectorAll(".batch-check:checked");
-    if (!checked.length) { alert("没有需要删减的批量项。"); return; }
-    if (!confirm(`确认流水化移去当前选中的 ${checked.length} 项？`)) return;
-
-    const data = loadData();
-    checked.forEach(cb=>{
-        const date = cb.dataset.date;
-        const id = cb.value;
-        data[date] = data[date].filter(t=>String(t.id)!==String(id));
-    });
-    saveData(data);
-    render();
+    if (!checked.length) { customAlert("请先勾选需要删除的任务", "未选择", "☑️"); return; }
+    customConfirm(`确定批量删除这 ${checked.length} 个任务吗?此操作无法恢复`, () => {
+        const data = loadData();
+        checked.forEach(cb => {
+            const date = cb.dataset.date; const id = cb.value;
+            data[date] = data[date].filter(t => String(t.id) !== String(id));
+            removeFromTaskHub(id); // 批量跨域联动清除
+        });
+        saveData(data);
+        render();
+    }, "批量删除", true, "🗑️");
 }
 
-function matchDate(date,target,mode) {
-    const d = new Date(date); const t = new Date(target);
-    if (mode==="day") return date===target;
-    if (mode==="month") return ( d.getFullYear()===t.getFullYear() && d.getMonth()===t.getMonth() );
-    if (mode==="week") {
+function deleteCurrentDay() {
+    const date = dateInput.value; const data = loadData();
+    if (!data[date] || data[date].length === 0) return;
+    customConfirm(`确定清空 ${formatDate(date)} 的全部记录吗?`, () => {
+        data[date].forEach(task => removeFromTaskHub(task.id)); // 彻底斩草除根
+        delete data[date];
+        saveData(data);
+        render();
+    }, "清空数据", true, "⚠️");
+}
+
+function updateSelectAllBtnState() {
+    const checkboxes = document.querySelectorAll(".batch-check");
+    const btn = document.getElementById("selectAllBtn");
+    if (!btn) return;
+
+    // 如果没有任何任务, 保持“全选”
+    if (checkboxes.length === 0) {
+        btn.textContent = "全选";
+        return;
+    }
+
+    // 检查是否所有的 checkbox 都处于 checked 状态
+    const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+    btn.textContent = allChecked ? "反选" : "全选";
+}
+
+// 升级后的批量勾选逻辑（支持全选/取消全选无缝切换）
+function selectAllTasks() {
+    const checkboxes = document.querySelectorAll(".batch-check");
+    if (checkboxes.length === 0) return;
+
+    // 如果当前已经是全选状态, 则点击动作变为“取消全选”
+    const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+
+    checkboxes.forEach(cb => {
+        cb.checked = !allChecked; // 核心：状态反转
+    });
+
+    // 更新按钮文字
+    updateSelectAllBtnState();
+}
+
+function matchDate(dateStr, targetStr, mode) {
+    if (!dateStr || !targetStr) return false;
+    if (mode === "day") return dateStr === targetStr;
+    const [y1, m1, d1] = dateStr.split("-").map(Number);
+    const [y2, m2, d2] = targetStr.split("-").map(Number);
+    if (mode === "month") return y1 === y2 && m1 === m2;
+    if (mode === "week") {
+        const d = new Date(y1, m1 - 1, d1);
+        const t = new Date(y2, m2 - 1, d2);
         const start = new Date(t);
         const day = t.getDay() || 7;
-        start.setDate(t.getDate()-day+1); start.setHours(0,0,0,0);
+        start.setDate(t.getDate() - day + 1); start.setHours(0,0,0,0);
         const end = new Date(start);
-        end.setDate(start.getDate()+6); end.setHours(23,59,59,999);
-        return d>=start && d<=end;
+        end.setDate(start.getDate() + 6); end.setHours(23,59,59,999);
+        return d >= start && d <= end;
     }
+    return false;
 }
 
-// 精英级纯净图表重绘渲染
+const glassTooltip = (context) => {
+    let tooltipEl = document.getElementById('chartjs-tooltip');
+    if (!tooltipEl) {
+        tooltipEl = document.createElement('div');
+        tooltipEl.id = 'chartjs-tooltip'; tooltipEl.style.position = 'absolute';
+        tooltipEl.style.background = 'rgba(255, 255, 255, 0.65)';
+        tooltipEl.style.backdropFilter = 'blur(24px) saturate(180%)';
+        tooltipEl.style.webkitBackdropFilter = 'blur(24px) saturate(180%)';
+        tooltipEl.style.borderRadius = 'var(--radius-element)';
+        tooltipEl.style.boxShadow = '0 12px 36px rgba(15,23,42,0.12), inset 0 1px 0 rgba(255,255,255,0.9)';
+        tooltipEl.style.border = '1px solid rgba(255,255,255,0.85)';
+        tooltipEl.style.padding = '12px 16px';
+        tooltipEl.style.pointerEvents = 'none';
+        tooltipEl.style.transform = 'translate(-50%, -110%)'; tooltipEl.style.transition = 'all 0.15s ease';
+        tooltipEl.style.zIndex = '9999'; document.body.appendChild(tooltipEl);
+    }
+    const tooltipModel = context.tooltip;
+    
+    if (tooltipModel.opacity === 0) { 
+        tooltipEl.style.opacity = 0;
+        tooltipEl.style.display = 'none';
+        return; 
+    } else {
+        tooltipEl.style.display = 'block';
+    }
+
+    if (tooltipModel.body) {
+        const titleLines = tooltipModel.title || [];
+        const bodyLines = tooltipModel.body.map(b => b.lines);
+        let innerHtml = `<div style="font-weight:800;margin-bottom:6px;color:#0f172a;font-size:13px;">${titleLines.join('\n')}</div>`;
+        bodyLines.forEach((body, i) => {
+            const colors = tooltipModel.labelColors[i];
+            const colorCircle = `<span style="display:inline-block;width:10px;height:10px;margin-right:6px;border-radius:50%;background:${colors.backgroundColor};border:1px solid rgba(15,23,42,0.1)"></span>`;
+            innerHtml += `<div style="color:#475569;font-size:13px;font-weight:700;display:flex;align-items:center;">${colorCircle}${body}</div>`;
+        });
+        tooltipEl.innerHTML = innerHtml;
+    }
+    const position = context.chart.canvas.getBoundingClientRect();
+    tooltipEl.style.opacity = 1;
+    tooltipEl.style.left = position.left + window.scrollX + tooltipModel.caretX + 'px';
+    tooltipEl.style.top = position.top + window.scrollY + tooltipModel.caretY + 'px';
+};
+
 function renderAnalysis(tasks) {
     const allData = loadData();
-    const trendLabels = [];
-    const trendValues = [];
-    const targetDateObj = new Date(dateInput.value || getToday());
+    const trendLabels = []; const trendValues = [];
+    const [targetY, targetM, targetD] = (dateInput.value || getToday()).split("-").map(Number);
+    const targetDateObj = new Date(targetY, targetM - 1, targetD); 
     
     for (let i = 6; i >= 0; i--) {
         const d = new Date(targetDateObj);
         d.setDate(d.getDate() - i);
         const dStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
         trendLabels.push(formatDate(dStr));
-        
         let dayTotal = 0;
-        if (allData[dStr]) {
-            allData[dStr].forEach(t => dayTotal += t.duration);
-        }
+        if (allData[dStr]) allData[dStr].forEach(t => dayTotal += t.duration);
         trendValues.push(dayTotal);
     }
 
-    const fontConfig = { family: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif", size: 11 };
-
-    // 1. 折线图无接缝净化
     const canvas = document.getElementById("trendChart");
     if (canvas) {
         const ctx = canvas.getContext("2d");
-        if (window.taskChart) window.taskChart.destroy();
-        window.taskChart = new Chart(ctx, {
-            type:"line",
-            data:{
-                labels: trendLabels,
-                datasets:[{
-                    label:"分钟", data: trendValues,
-                    tension:0.36, borderWidth:2.5, borderColor:"#007aff",
-                    pointRadius:2, pointBorderWidth:0, pointBackgroundColor:"#007aff",
-                    pointHoverRadius:6, pointHoverBackgroundColor:"#ffffff", pointHoverBorderColor:"#007aff", pointHoverBorderWidth:3,
-                    fill:true,
-                    backgroundColor:(context)=>{
-                        const chart = context.chart; const {ctx,chartArea} = chart;
-                        if (!chartArea) return null;
-                        const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
-                        gradient.addColorStop(0, "rgba(0, 122, 255, 0.12)");
-                        gradient.addColorStop(1, "rgba(0, 122, 255, 0.00)");
-                        return gradient;
+        
+        // Canvas 自定义渲染插件: 智能截断年份, 完美规避重叠
+        const customSlashPlugin = {
+            id: 'customSlashPlugin',
+            afterDatasetsDraw(chart) {
+                const { ctx, scales: { x } } = chart;
+                ctx.save();
+                ctx.textBaseline = 'top';
+                ctx.textAlign = 'center';
+                // [优化点 1]: 字号从 12px 微调为 11px, 更符合 macOS 的辅助文本比例
+                ctx.font = '600 11px -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif';
+                
+                x.ticks.forEach(tick => {
+                    const labelStr = typeof tick.label === 'string' ? tick.label : (tick.label || '').toString();
+                    if (!labelStr) return;
+                    
+                    // 兼容 '-' 或 '/' 作为分隔符的情况
+                    let parts = labelStr.includes('-') ? labelStr.split('-') : labelStr.split('/');
+                    
+                    // [优化点 2]: 智能省略年份: 如果格式是 YYYY/MM/DD (长度为3), 只保留后两项 MM 和 DD
+                    if (parts.length === 3) {
+                        parts = parts.slice(1); 
                     }
-                }]
-            },
-            options:{
-                responsive:true, maintainAspectRatio:false,
-                interaction:{ intersect:false, mode:"index" },
-                plugins:{ legend:{ display: false }, tooltip:{ padding:10, cornerRadius:8 } },
-                scales:{
-                    x:{ grid:{ display: false }, ticks:{ color:"#86868b", font: fontConfig } },
-                    y:{ grid:{ color:"rgba(0,0,0,0.03)", drawBorder:false }, ticks:{ color:"#86868b", font: fontConfig } }
-                }
+                    // 注意: 现在 parts 变成了 ['07', '02']
+
+                    const slashWidth = ctx.measureText('/').width;
+                    const space = 2; // 2px 的紧凑斜杠间距
+                    
+                    // 1. 预先计算整个标签的绝对宽度, 以确保整体居中对齐
+                    let totalW = 0;
+                    const widths = parts.map(p => ctx.measureText(p).width);
+                    widths.forEach((w, i) => {
+                        totalW += w;
+                        if (i < widths.length - 1) totalW += slashWidth + (space * 2);
+                    });
+                    
+                    // 2. 获取该刻度点在 Canvas 中的绝对 X、Y 坐标
+                    let currX = x.getPixelForTick(tick.value) - totalW / 2;
+                    const currY = x.top + 8; // 下移 8px 匹配原有的 padding
+                    
+                    // 3. 像素级分段绘制
+                    parts.forEach((p, i) => {
+                        ctx.fillStyle = '#64748b'; // 日期文字颜色 (深灰)
+                        ctx.fillText(p, currX + widths[i] / 2, currY);
+                        currX += widths[i];
+                        
+                        if (i < parts.length - 1) {
+                            currX += space;
+                            ctx.fillStyle = '#cbd5e1'; // 斜杠的淡化颜色
+                            ctx.fillText('/', currX + slashWidth / 2, currY);
+                            currX += slashWidth + space;
+                        }
+                    });
+                });
+                ctx.restore();
             }
-        });
+        };
+
+        if (window.taskChart) {
+            window.taskChart.data.labels = trendLabels;
+            window.taskChart.data.datasets[0].data = trendValues;
+            window.taskChart.update();
+        } else {
+            // 首次渲染才创建
+            window.taskChart = new Chart(ctx, {
+                type:"line",
+                data:{
+                    labels: trendLabels,
+                    datasets:[{
+                        label:"学习时长 (分钟) ", data: trendValues,
+                        tension:0.42, borderWidth:3, borderColor:"#9DD2FF", 
+                        pointRadius:3, pointHoverRadius:7, pointHoverBorderWidth:4,
+                        pointHoverBackgroundColor:"#ffffff", pointHoverBorderColor:"#9DD2FF", fill:true,
+                        backgroundColor:(context)=>{
+                            const chart = context.chart; const {ctx,chartArea} = chart;
+                            if (!chartArea) return null;
+                            const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+                            gradient.addColorStop(0, "rgba(157, 210, 255, 0.35)");
+                            gradient.addColorStop(1, "rgba(157, 210, 255, 0.02)");
+                            return gradient;
+                        }
+                    }]
+                },
+                options: {
+                    layout: { padding: { bottom: 0 } }, 
+                    responsive: true, maintainAspectRatio: false, interaction: { intersect: false, mode: "index" },
+                    plugins: { legend: { display: false }, tooltip: { enabled: false, external: glassTooltip } },
+                    scales: { 
+                        y: { beginAtZero: true, grid: { color:"rgba(15,23,42,0.05)" }, ticks: { color:"#64748b", font:{weight:'600'} } }, 
+                        x: { 
+                            grid: { display: false }, 
+                            ticks: { 
+                                color:"transparent", // 将原生文本变透明, 给我们的自定义底层插件让位
+                                font:{weight:'600'}, padding: 8 
+                            } 
+                        } 
+                    }
+                },
+                plugins: [customSlashPlugin] // 注册刚刚编写的自定义绘制插件
+            });
+        }
     }
 
-    // 2. 柱状图无国界净化
     const subjectMap = {};
     tasks.forEach(task => {
         task.category.forEach(cat => {
-            const allottedTime = task.duration / task.category.length;
+            const allottedTime = task.duration/task.category.length;
             subjectMap[cat] = (subjectMap[cat] || 0) + allottedTime;
         });
     });
-
+    
     const barLabels = Object.keys(subjectMap);
     const barValues = Object.values(subjectMap).map(v => Math.round(v));
     const barColors = barLabels.map(cat => getSubjectColor(cat));
@@ -748,135 +2252,204 @@ function renderAnalysis(tasks) {
         window.subjectChartInstance = new Chart(barCtx, {
             type: "bar",
             data: {
-                labels: barLabels.length ? barLabels : ["无"],
-                datasets: [{
-                    data: barValues.length ? barValues : [0],
-                    backgroundColor: barColors.length ? barColors : ["#86868b"],
-                    barThickness: 16, borderRadius: 4
-                }]
+                labels: barLabels.length ? barLabels : ["暂无数据"],
+                datasets: [{ label: "学科耗时 (分钟) ", data: barValues.length ? barValues : [0], backgroundColor: barColors.length ? barColors : ["#64748b"], borderRadius: 6 }]
             },
             options: {
+                layout: { padding: { bottom: 16 } }, 
                 responsive: true, maintainAspectRatio: false,
-                plugins: { legend: { display: false }, tooltip: { padding:10, cornerRadius:8 } },
-                scales: {
-                    x: { grid: { display: false }, ticks: { color: "#86868b", font: fontConfig } },
-                    y: { beginAtZero: true, grid: { color: "rgba(0,0,0,0.03)", drawBorder:false }, ticks: { color: "#86868b", font: fontConfig } }
+                plugins: { legend: { display: false }, tooltip: { enabled: false, external: glassTooltip } },
+                scales: { 
+                    y: { beginAtZero: true, grid: { color:"rgba(15,23,42,0.05)" }, ticks: { color:"#64748b", font:{weight:'600'} } }, 
+                    x: { grid: { display: false }, ticks: { color:"#64748b", font:{weight:'600'}, padding: 8 } } 
                 }
             }
         });
     }
+    
+    if (tasks.length === 0) {
+        document.getElementById("chartEmptyState").classList.remove("hidden");
+    } else {
+        document.getElementById("chartEmptyState").classList.add("hidden");
+    }
 
-    let total = 0; let prepare = 0;
-    tasks.forEach(task=>{
-        total += task.duration;
-        if (task.category.includes("准备")) { prepare += task.duration; }
-    });
-
+    let total = 0;
+    let prepare = 0;
+    tasks.forEach(task=>{ total += task.duration; if (task.category.includes("准备")) { prepare += task.duration; } });
     const focus = total===0 ? 0 : Math.round((1-prepare/total)*100);
     const focusBox = document.getElementById("focusAnalysis");
     if (focusBox) {
-        focusBox.innerHTML = `⏱️ 状态总结：在当前分析区间内，学习时间共 <b>${total}</b> 分钟。专注效率达 <b>${focus}%</b>，整理准备共耗时 <b>${prepare}</b> 分钟。`;
+        focusBox.innerHTML = `📊 专注效率: <b style="color:#0f172a;">${focus}%</b> &nbsp; | &nbsp; 🧩 准备时间: <b style="color:#0f172a;">${prepare} 分钟</b> &nbsp; | &nbsp; ⏱️ 总时间: <b style="color:#0f172a;">${total} 分钟</b>`;
     }
 }
 
 function render() {
     const data = loadData();
     const current = dateInput.value;
-    const mode = currentViewMode; // 使用全面解包的状态控制
+    const modeEl = document.querySelector('input[name="viewType"]:checked');
+    const mode = modeEl ? modeEl.value : "day";
+    
+    // 优化 1: 独立计算左侧侧边栏的“今日”专属数据
+    const todayStr = getToday();
+    const todayTasks = data[todayStr] || [];
+    let todayTotal = 0;
+    todayTasks.forEach(t => todayTotal += t.duration);
+    
+    // 永远将左侧面板的数据指向今天, 不随右侧视图而改变
+    document.getElementById("todayText").innerHTML = formatDateHTML(todayStr);
+    document.getElementById("taskCount").textContent = todayTasks.length;
+    document.getElementById("totalTime").textContent = `${todayTotal} min`;
+
+    // 下面开始计算右侧“查看与管理”卡片的视图数据
     let tasks = [];
-
-    for (const date in data) {
-        if (matchDate(date,current,mode)) { tasks.push(...data[date]); }
-    }
-
+    for (const date in data) { if (matchDate(date,current,mode)) tasks.push(...data[date]); }
+    
     taskList.innerHTML = "";
-    let total = 0;
-
-    tasks.forEach(task=>{
-        total += task.duration;
-        const card = document.createElement("div");
-        card.className = "task-card";
-        card.innerHTML = `
-            <div class="task-top">
-                <div style="flex:1;">
-                    <div class="task-name">${task.name}</div>
-                    <div style="display:flex; flex-wrap:wrap;">
-                        ${task.category.map(cat=>`<div class="tag" style="background:${getSubjectColor(cat)}15; color:${getSubjectColor(cat)};">${cat}</div>`).join("")}
-                    </div>
-                </div>
-                <div style="display:flex; gap:8px; align-items:center;">
-                    <input type="checkbox" class="batch-check" value="${task.id}" data-date="${task.date}" style="width:16px; height:16px; margin-right:4px;">
-                    <button class="secondary" style="height:28px; padding:0 10px; font-size:12px;" onclick="editTask('${task.date}','${task.id}')">编辑</button>
-                    <button class="secondary" style="height:28px; padding:0 10px; font-size:12px; color:#ff3b30;" onclick="deleteTask('${task.date}','${task.id}')">删除</button>
-                </div>
-            </div>
-            <div class="task-info">
-                📅 归属日期：${formatDate(task.date)} &nbsp;&nbsp;|&nbsp;&nbsp; ⏱️ 时长：${task.duration} min &nbsp;&nbsp;|&nbsp;&nbsp; 🕒 相对视窗：${task.start && task.end ? `${task.start} - ${task.end}` : "无固定断点数据"}<br>
-                📝 补充摘要：${task.remark || "无备注内容"}
-            </div>
-        `;
-        taskList.appendChild(card);
+    taskList.classList.remove("animate-list");
+    
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            taskList.classList.add("animate-list");
+        });
     });
 
+    let total = 0;
+    const fragment = document.createDocumentFragment();
+
+    tasks.forEach((task, index) => {
+        total += task.duration;
+        const card = document.createElement("div");
+        card.className = "task-card timeline-card animating-in";
+        card.style.animationDelay = `${index * 0.05}s`;
+
+        const formattedDateWithFadedSlash = formatDateHTML(task.date);
+
+        const recordDate = task.createdAt ? new Date(task.createdAt) : null;
+        const recordTimeStr = recordDate ? `${String(recordDate.getHours()).padStart(2, '0')}:${String(recordDate.getMinutes()).padStart(2, '0')}` : "--:--";
+
+        card.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: stretch; gap: 24px; min-height: 110px;">
+                <div style="display: flex; flex-direction: column; justify-content: center; gap: 14px; flex: 1;">
+                    <div style="display: flex; align-items: center;">
+                            <div class="task-checkbox-wrap">
+                                <input type="checkbox" class="batch-check round-checkbox" value="${task.id}" data-date="${task.date}">
+                            </div>
+                            <div style="font-size: 22px; font-weight: 800; color: var(--monet-text); line-height: 1;">${task.name}</div>
+                        </div>
+                    
+                    <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 10px; font-size: 14px; color: var(--monet-sub); font-weight: 600;">
+                        <span>📅 ${formattedDateWithFadedSlash}</span>
+                        <span style="color: #e2e8f0;">|</span>
+                        <span>🕒 ${task.start && task.end ? `<strong style="color: var(--monet-text); font-size: 15px;">${task.start}</strong> ~ <strong style="color: var(--monet-text); font-size: 15px;">${task.end}</strong>` : "待定"}</span>
+                        <span style="color: #e2e8f0;">|</span>
+                        <span>⏱️ <strong style="font-weight: 800; color: var(--monet-text); font-size: 15px;">${task.duration}</strong> 分钟</span>
+                        <span style="color: #e2e8f0;">|</span>
+                        <span style="color: #94a3b8;">📝 录入于 ${recordTimeStr}</span> ${task.remark ? `<span style="color: #e2e8f0;">|</span><span style="color:#94a3b8;">📎 备注: ${task.remark}</span>` : ""}
+                    </div>
+
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        ${task.category.map(cat => {
+                            const hex = getSubjectColor(cat);
+                            return `
+                            <div class="glass-tag" style="background: linear-gradient(135deg, ${hex}80, ${hex}20); box-shadow: 0 6px 12px ${hex}60, inset 0 1.5px 2px rgba(255, 255, 255, 0.95), inset 0 -1.5px 3px ${hex}40;">
+                                ${cat}
+                            </div>
+                            `;
+                        }).join("")}
+                    </div>
+                </div>
+
+                <div style="display: flex; flex-direction: column; justify-content: space-between; padding: 2px 0; flex-shrink: 0;">
+                    <button class="secondary btn-compact" onclick="editTask('${task.date}','${task.id}')">编辑</button>
+                    <button class="danger btn-compact" onclick="deleteTask('${task.date}','${task.id}')">删除</button>
+                </div>
+            </div>
+        `;
+        fragment.appendChild(card);
+    });
+
+    taskList.appendChild(fragment);
+
     if (!tasks.length) {
-        taskList.innerHTML = `<div class="empty">🫧 暂无任务记录。立即开启极简记录吧！</div>`;
+        taskList.innerHTML = `
+            <div class="empty-state" style="animation: alphaTimelineIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;">
+                <div class="icon">🫧</div>
+                <div class="title">暂无任务记录</div>
+                <div class="desc">开始记录今天的学习节奏吧</div>
+            </div>
+        `;
     }
 
+    // 优化: 右侧面板的数据更新只管自己, 不再去污染上方左侧边栏的 ID
     document.getElementById("showCount").textContent = tasks.length;
-    document.getElementById("taskCount").textContent = tasks.length;
     document.getElementById("showDuration").textContent = `${total} min`;
-    document.getElementById("totalTime").textContent = `${total} min`;
-    document.getElementById("summary").textContent = `当前筛选池共计整合 ${tasks.length} 项关键流，统计学累算时长 ${total} 分钟。`;
-    document.getElementById("viewDate").textContent = formatDate(current);
-
+    
+    // 顺便优化一下日期后缀, 使其更美观并带有视觉标签
+    let viewLabelHTML = "-";
+    if (current) {
+        const parts = current.split("-").map(Number);
+        if (parts.length === 3) {
+            const [y, m, d] = parts;
+            const tagStyle = "display: inline-flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 800; color: var(--sub); background: rgba(15, 23, 42, 0.06); padding: 4px 10px; border-radius: 10px; vertical-align: middle; margin-left: 6px; margin-top: -4px;";
+            
+            if (mode === "week") {
+                const weekNum = Math.ceil(d / 7);
+                // [优化点] 引入 faded-slash
+                viewLabelHTML = `${y}<span class="faded-slash">/</span>${m} <span style="${tagStyle}">第 ${weekNum} 周</span>`;
+            } else if (mode === "month") {
+                // [优化点] 引入 faded-slash
+                viewLabelHTML = `${y}<span class="faded-slash">/</span>${m} <span style="${tagStyle}">月</span>`;
+            } else {
+                viewLabelHTML = formatDateHTML(current); 
+            }
+        } else {
+            viewLabelHTML = formatDateHTML(current);
+        }
+    }
+    document.getElementById("viewDate").innerHTML = viewLabelHTML;
+    
     renderAnalysis(tasks);
 }
 
 function exportTXT() {
     const data = loadData();
     const date = dateInput.value;
-    if (!data[date]?.length) { alert("当前选中日期下方没有任何可供导出的数据。"); return; }
-    let text = `日期：${formatDate(date)}\n\n`;
+    if (!data[date]?.length) { customAlert("当前日期无数据, 无法导出", "导出失败", "❌"); return; }
+    let text = `日期: ${formatDate(date)}\n\n`;
     data[date].forEach((task,i)=>{
-        text += `任务 ${i+1}\n任务名称：${task.name}\n类别：${task.category.join(" + ")}\n完成时间：${task.duration} 分钟\n`;
-        if (task.start && task.end) text += `时间段：${task.start}~${task.end}\n`;
-        if (task.remark) text += `备注：${task.remark}\n`;
+        text += `任务 ${i+1}\n任务名称: ${task.name}\n类别: ${task.category.join(" + ")}\n完成时间: ${task.duration} 分钟\n`;
+        if (task.start && task.end) text += `时间段: ${task.start}~${task.end}\n`;
+        if (task.remark) text += `备注: ${task.remark}\n`;
         text += "\n";
     });
     const blob = new Blob([text], {type:"text/plain;charset=utf-8"});
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `${date}_TaskFlow资产包.txt`;
-    a.click();
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `${date}_任务记录.txt`; a.click();
 }
 
 function importTXT(e) {
-    const file = e.target.files[0];
-    if (!file) return;
+    const file = e.target.files[0]; if (!file) return;
     const reader = new FileReader();
     reader.onload = function(ev){
         try {
             const content = ev.target.result.replace(/\r/g,"");
-            const dateMatch = content.match(/日期[:：]\s*(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+            const dateMatch = content.match(/日期[:: ]\s*(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
             let targetDate = getToday();
-            if (dateMatch) {
-                targetDate = `${dateMatch[1]}-${String(dateMatch[2]).padStart(2,"0")}-${String(dateMatch[3]).padStart(2,"0")}`;
-            }
+            if (dateMatch) targetDate = `${dateMatch[1]}-${String(dateMatch[2]).padStart(2,"0")}-${String(dateMatch[3]).padStart(2,"0")}`;
 
             const blocks = content.split(/(?:\n|^)任务\s*\d+/).map(v=>v.trim()).filter(v=>v.includes("任务名称"));
-            if (!blocks.length) { alert("无法解析出标准任务包内容。"); return; }
+            if (!blocks.length) { customAlert("未检测到有效任务格式", "导入失败", "❌"); return; }
 
             const data = loadData();
             if (!data[targetDate]) data[targetDate] = [];
-
             let imported = 0;
+
             blocks.forEach(block=>{
-                const name = (block.match(/任务名称[:：](.*)/)||[])[1]?.trim() || "未命名";
-                const categoryText = (block.match(/类别[:：](.*)/)||[])[1]?.trim() || "其他";
+                const name = (block.match(/任务名称[:: ](.*)/)||[])[1]?.trim() || "未命名";
+                const categoryText = (block.match(/类别[:: ](.*)/)||[])[1]?.trim() || "其他";
                 const category = categoryText.split("+").map(v=>v.trim()).filter(Boolean);
-                const duration = Number((block.match(/完成时间[:：](\d+)/)||[])[1]) || 0;
-                const timeMatch = block.match(/时间段[:：]\s*(\d{2}:\d{2})\s*[~～-]\s*(\d{2}:\d{2})/);
-                const remark = (block.match(/备注[:：](.*)/)||[])[1]?.trim() || "";
+                const duration = Number((block.match(/完成时间[:: ](\d+)/)||[])[1]) || 0;
+                const timeMatch = block.match(/时间段[:: ]\s*(\d{2}:\d{2})\s*[~～-]\s*(\d{2}:\d{2})/);
+                const remark = (block.match(/备注[:: ](.*)/)||[])[1]?.trim() || "";
 
                 const duplicated = data[targetDate].some(task=>
                     task.name===name && task.duration===duration &&
@@ -886,83 +2459,909 @@ function importTXT(e) {
 
                 data[targetDate].push({
                     id: window.crypto?.randomUUID?.() || String(Date.now()+Math.random()),
+                    createdAt: Date.now() + imported,
                     date:targetDate, name, category, duration,
                     start:timeMatch?.[1] || "", end:timeMatch?.[2] || "", remark
                 });
                 imported++;
             });
-
-            data[targetDate].sort((a,b)=>{
-                if (!a.start && !b.start) return 0;
-                if (!a.start) return 1;
-                if (!b.start) return -1;
-                return a.start.localeCompare(b.start);
-            });
-
-            saveData(data);
-            dateInput.value = targetDate;
+            
+            data[targetDate].sort((a,b) => a.createdAt - b.createdAt);
+            saveData(data); 
+            
+            const dateWrap = document.getElementById("dateWrap");
+            if (dateWrap && dateWrap._flatpickr) dateWrap._flatpickr.setDate(targetDate);
             render();
-            alert(`成功导入 ${imported} 条记录。`);
-        } catch(err) {
-            alert("导入异常，请确保导入文件未损坏。");
-        }
+            customAlert(`成功导入 ${imported} 个任务`, "导入成功", "✅");
+        } catch(err) { customAlert("文件解析异常", "导入失败", "❌"); }
         e.target.value = "";
     };
     reader.readAsText(file,"utf-8");
 }
 
 function deleteCurrentDay() {
-    const date = dateInput.value;
-    const data = loadData();
-    if (!data[date]) return;
-    if (!confirm("确认彻底清扫洗涤当天的全部归集条目？不可回溯。")) return;
-    delete data[date];
-    saveData(data);
-    render();
+    const date = dateInput.value; const data = loadData();
+    if (!data[date] || data[date].length === 0) return;
+    customConfirm(`确定清空 ${formatDate(date)} 的全部记录吗?`, () => {
+        delete data[date]; saveData(data); render();
+    }, "清空数据", true, "⚠️");
+}
+
+const inputFlow = ["dateInput", "taskName", "customCategory", "duration", "startTime", "endTime", "taskRemark"];
+function focusNextElement(currentId) {
+    const currentIndex = inputFlow.indexOf(currentId);
+    if (currentIndex > -1 && currentIndex < inputFlow.length - 1) {
+        const nextId = inputFlow[currentIndex + 1];
+        const nextEl = document.getElementById(nextId);
+        if (nextEl) {
+            nextEl.focus();
+        }
+    } else if (currentIndex === inputFlow.length - 1) {
+        addTask();
+    }
 }
 
 function setupAutoNext() {
-    const inputs = ["taskName", "customCategory", "duration", "startTime", "endTime", "remark"];
-    inputs.forEach((id,index)=>{
+    inputFlow.forEach(id => {
         const el = document.getElementById(id);
         if (!el) return;
-        el.addEventListener("keydown",e=>{
-            if (e.key==="Enter") {
+        el.addEventListener("keydown", e => {
+            if (e.key === "Enter") {
+                // 如果是“备注”文本域, 且没有按 Ctrl/Cmd 键, 则允许原生换行, 不拦截!
+                if (id === "taskRemark" && !e.ctrlKey && !e.metaKey) {
+                    return; 
+                }
+                
+                // 其他普通输入框, 或在备注区按下了 Ctrl+Enter / Cmd+Enter, 则执行拦截并流转/提交
                 e.preventDefault();
-                const next = inputs[index+1];
-                if (next) { document.getElementById(next).focus(); } 
-                else { addTask(); }
+                focusNextElement(id);
             }
         });
     });
 }
 
-// 引擎初始化
-document.getElementById("todayText").textContent = formatDate(getToday());
-dateInput.value = getToday();
-setupAutoNext();
-render();
+// ================== 智能文本框伸缩 ==================
+// 1. 核心高度计算器
+function adjustTextareaHeight(el) {
+    if (el.dataset.userResized === 'true') return;
+    
+    // 步骤A: 获取边框厚度 (用于 border-box 的精准补偿)
+    const borderSize = el.offsetHeight - el.clientHeight;
+    
+    // 步骤B: 记住当前的像素高度 (千万不要带 auto)
+    const currentHeight = el.style.height || window.getComputedStyle(el).height;
 
-// 全局监听总控
+    // 步骤C: 暂时剥夺动画权限, 并设为 auto 逼出文字的真实物理高度
+    el.style.transition = 'none';
+    el.style.height = 'auto';
+    
+    // 步骤D: 计算终极目标高度 (内容 + 边框)
+    let targetHeight = el.scrollHeight + borderSize;
+    
+    // 保底高度提升至 126px, 与 CSS 完美对齐, 绝不突变!
+    if (targetHeight < 126) targetHeight = 126;
+
+    // 步骤E: 魔术核心!瞬间恢复原高度, 并强迫浏览器执行“重新排版 (Reflow)”
+    el.style.height = currentHeight;
+    void el.offsetHeight; 
+
+    // 步骤F: 重新开启丝滑过渡, 并优雅地推向新高度
+    el.style.transition = '';
+    el.style.height = targetHeight + 'px';
+}
+
+// 2. 采用【全局事件委托】, 完美兼容动态生成的弹窗和元素
+document.addEventListener('input', (e) => {
+    if (e.target.tagName === 'TEXTAREA') {
+        adjustTextareaHeight(e.target);
+    }
+});
+
+document.getElementById("todayText").innerHTML = formatDateHTML(getToday());
+setupAutoNext();
+
 taskName.addEventListener("input", autoCategory);
-dateInput.addEventListener("change", render);
+document.querySelectorAll('input[name="viewType"]').forEach(radio => radio.addEventListener("change", render));
 addBtn.addEventListener("click", addTask);
-document.getElementById("deleteDayBtn").addEventListener("click", deleteCurrentDay);
-document.getElementById("importBtn").addEventListener("click",()=>document.getElementById("importFile").click());
-document.getElementById("importFile").addEventListener("change",importTXT);
+document.getElementById("importBtn").addEventListener("click", ()=>document.getElementById("importFile").click());
+document.getElementById("importFile").addEventListener("change", importTXT);
 document.getElementById("exportBtn").addEventListener("click", exportTXT);
 
 duration.addEventListener("input", autoCalculateEndTime);
-endTime.addEventListener("change", autoCalculateDuration);
-startTime.addEventListener("change", () => {
-    if (endTime.value) { autoCalculateDuration(); } 
-    else if (duration.value) { autoCalculateEndTime(); }
+endTime.addEventListener("blur", autoCalculateDuration);
+startTime.addEventListener("blur", () => {
+    if (endTime.value) autoCalculateDuration(); 
+    else if (duration.value) autoCalculateEndTime();
 });
 
-// flatpickr 控制层
-flatpickr("#dateInput", { dateFormat: "Y-m-d", defaultDate: getToday(), disableMobile: true });
-flatpickr("#startTime", { enableTime: true, noCalendar: true, dateFormat: "H:i", time_24hr: true, disableMobile: true });
-flatpickr("#endTime", { enableTime: true, noCalendar: true, dateFormat: "H:i", time_24hr: true, disableMobile: true });
+const formatHeader = function(selectedDates, dateStr, instance) {
+    const month = instance.currentMonth + 1;
+    const year = instance.currentYear;
+
+    let customTitle = instance.monthNav.querySelector('.custom-monet-title');
+    if (!customTitle) {
+        customTitle = document.createElement('div');
+        customTitle.className = 'custom-monet-title';
+        customTitle.style.cssText = 'position: absolute; left: 5px; top: 2px; bottom: 0; font-size: 24px; font-weight: 900; color: #0f172a; display: flex; align-items: center; z-index: 10; pointer-events: auto;';
+        instance.monthNav.appendChild(customTitle);
+
+        const defaultMonth = instance.monthNav.querySelector('.flatpickr-current-month');
+        if (defaultMonth) defaultMonth.style.opacity = '0';
+
+        customTitle.addEventListener('click', (e) => {
+            if (e.target.classList.contains('monet-year-btn')) showSelector(instance, 'year');
+            else if (e.target.classList.contains('monet-month-btn')) showSelector(instance, 'month');
+        });
+
+        // 💡 物理防线一: 注入 onOpen 拦截器 (开门瞬间核对, 彻底根治再次点击图标导致的文字停留旧月份 Bug)
+        if (!instance.config.onOpen) instance.config.onOpen = [];
+        instance.config.onOpen.push(function(selDates, dStr, inst) {
+            inst.__silentReset = true; // 强制静默, 防止点开瞬间画面产生位移抽搐
+            
+            // 如果存在选中的日期, 打开时 Flatpickr 必然定位回选中日期的月份, 直接提取
+            const targetYear = inst.currentYear;
+            const targetMonth = inst.currentMonth + 1;
+            
+            let cTitle = inst.monthNav.querySelector('.custom-monet-title');
+            if (cTitle) {
+                cTitle.innerHTML = `<span class="monet-year-btn">${targetYear}</span> <span class="faded-slash">/</span> <span class="monet-month-btn">${targetMonth}</span>`;
+            }
+            
+            // 重置滑动判定锚点, 彻底抹平旧历史残余
+            inst._lastMonth = inst.currentMonth;
+            inst._lastYear = inst.currentYear;
+            
+            requestAnimationFrame(() => {
+                inst.__silentReset = false;
+            });
+        });
+
+        // 💡 物理防线二: 注入 onClose 拦截器 (关闭时平滑同步)
+        if (!instance.config.onClose) instance.config.onClose = [];
+        instance.config.onClose.push(function(selDates, dStr, inst) {
+            setTimeout(() => {
+                const targetYear = inst.currentYear;
+                const targetMonth = inst.currentMonth + 1;
+                
+                let cTitle = inst.monthNav.querySelector('.custom-monet-title');
+                if (cTitle) {
+                    cTitle.innerHTML = `<span class="monet-year-btn">${targetYear}</span> <span class="faded-slash">/</span> <span class="monet-month-btn">${targetMonth}</span>`;
+                }
+                
+                if (inst.daysContainer) {
+                    inst.daysContainer.classList.remove('calendar-flipping-left', 'calendar-flipping-right');
+                }
+            }, 10);
+        });
+    }
+
+    // 平日点击翻页或面板穿梭时, 实时渲染标题文字
+    customTitle.innerHTML = `<span class="monet-year-btn">${year}</span> <span class="faded-slash">/</span> <span class="monet-month-btn">${month}</span>`;
+
+    const currentTotal = year * 12 + month;
+    const lastTotal = (instance._lastYear || year) * 12 + (instance._lastMonth !== undefined ? instance._lastMonth + 1 : month);
+    const monthChanged = currentTotal !== lastTotal;
+
+    // 只有在日历正规处于显现状态且非跳转静默期, 才批准滑动翻页过渡动画
+    if (monthChanged && !instance.__silentReset && instance.isOpen && instance.daysContainer) {
+        const direction = currentTotal < lastTotal ? 'left' : 'right';
+        instance.daysContainer.classList.remove('calendar-flipping-left', 'calendar-flipping-right');
+        void instance.daysContainer.offsetWidth; // 强迫重绘
+        instance.daysContainer.classList.add(direction === 'left' ? 'calendar-flipping-left' : 'calendar-flipping-right');
+    }
+
+    instance._lastMonth = instance.currentMonth;
+    instance._lastYear = instance.currentYear;
+};
+
+// 渲染毛玻璃下拉选择网格
+function showSelector(instance, type) {
+    let selector = instance.calendarContainer.querySelector('.monet-selector');
+    if (!selector) {
+        selector = document.createElement('div');
+        selector.className = 'monet-selector';
+        instance.calendarContainer.appendChild(selector);
+    }
+    selector.innerHTML = '';
+    
+    // 【核心视觉魔法】获取日历背后的元素, 让它们模糊、变暗退居幕后
+    const inner = instance.calendarContainer.querySelector('.flatpickr-innerContainer');
+    const weekdays = instance.calendarContainer.querySelector('.flatpickr-weekdays');
+    const rArrow = instance.calendarContainer.querySelector('.flatpickr-next-month');
+    const lArrow = instance.calendarContainer.querySelector('.flatpickr-prev-month');
+    
+    const backgroundElements = [inner, weekdays, rArrow, lArrow];
+    backgroundElements.forEach(el => {
+        if(el) {
+            el.style.transition = "all 0.3s cubic-bezier(0.22, 1, 0.36, 1)";
+            el.style.filter = "blur(6px) grayscale(20%)"; // 强力高斯模糊
+            el.style.opacity = "0.3"; // 变暗
+            el.style.pointerEvents = "none";
+        }
+    });
+    
+    if (type === 'month') {
+        selector.style.gridTemplateColumns = 'repeat(4, 1fr)';
+        for (let i = 1; i <= 12; i++) {
+            let btn = document.createElement('div');
+            btn.className = `monet-selector-item ${i === instance.currentMonth + 1 ? 'active' : ''}`;
+            btn.textContent = i + ' 月';
+            btn.onclick = () => { 
+                instance.__silentReset = true; // 💡 核心修复 3: 面板跳转时强制静默, 不触发滑动动画
+                instance.changeMonth(i - 1 - instance.currentMonth); 
+                closeSelector(); 
+                requestAnimationFrame(() => instance.__silentReset = false);
+            };
+            selector.appendChild(btn);
+        }
+    } else {
+        selector.style.gridTemplateColumns = 'repeat(3, 1fr)';
+        const currentYear = instance.currentYear;
+        const startYear = currentYear - 4; 
+        for (let i = 0; i < 9; i++) {
+            let y = startYear + i;
+            let btn = document.createElement('div');
+            btn.className = `monet-selector-item ${y === currentYear ? 'active' : ''}`;
+            btn.textContent = y;
+            btn.onclick = () => { 
+                instance.__silentReset = true; // 💡 核心修复 3: 面板跳转时强制静默
+                instance.changeYear(y); 
+                closeSelector(); 
+                requestAnimationFrame(() => instance.__silentReset = false);
+            };
+            selector.appendChild(btn);
+        }
+    }
+    
+    void selector.offsetWidth; 
+    selector.classList.add('open');
+    
+    // 恢复背景函数
+    function closeSelector() {
+        selector.classList.remove('open');
+        backgroundElements.forEach(el => {
+            if(el) {
+                el.style.filter = "none";
+                el.style.opacity = "1";
+                el.style.pointerEvents = "auto";
+            }
+        });
+    }
+    
+    // 点击空白处平滑关闭
+    const closeHandler = (e) => {
+        if (!selector.contains(e.target) && !e.target.classList.contains(`monet-${type}-btn`)) {
+            closeSelector(); 
+            document.removeEventListener('click', closeHandler);
+        }
+    };
+    setTimeout(() => document.addEventListener('click', closeHandler), 10);
+}
+
+function forceTimeFormat(inputEl, wrapId) {
+    let val = inputEl.value.trim();
+    if (!val || val.includes(':')) return; 
+    
+    let raw = val.replace(/\D/g, "");
+    let h = 0, m = 0, valid = false;
+    if (raw.length === 3) {
+        h = parseInt(raw.slice(0, 1), 10);
+        m = parseInt(raw.slice(1, 3), 10);
+        valid = true;
+    } else if (raw.length === 4) {
+        h = parseInt(raw.slice(0, 2), 10);
+        m = parseInt(raw.slice(2, 4), 10);
+        valid = true;
+    }
+    
+    if (valid && h <= 23 && m <= 59) {
+        let formatted = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+        inputEl.value = formatted; 
+        
+        let wrapEl = document.getElementById(wrapId);
+        if (wrapEl && wrapEl._flatpickr) {
+            wrapEl._flatpickr.setDate(formatted, true);
+        }
+    }
+}
+
+function forceTimeFormat(instance, val) {
+    if (!val) return false;
+    let raw = val.replace(/\D/g, "");
+    if (raw.length < 3) return false;
+    let h = null, m = null;
+    if (raw.length === 3) { h = raw.slice(0, 1); m = raw.slice(1, 3); } 
+    else if (raw.length >= 4) { h = raw.slice(0, 2); m = raw.slice(2, 4); }
+    if (h !== null && m !== null) {
+        let hi = parseInt(h, 10), mi = parseInt(m, 10);
+        if (hi <= 23 && mi <= 59) {
+            let formatted = `${String(hi).padStart(2, "0")}:${String(mi).padStart(2, "0")}`;
+            instance.input.value = formatted;
+            instance.setDate(formatted, true);
+            return true;
+        }
+    }
+    return false;
+}
+
+const timeConfig = { 
+    wrap: true, clickOpens: false, position: "auto left", enableTime: true, 
+    noCalendar: true, dateFormat: "H:i", time_24hr: true, disableMobile: true, allowInput: true, minuteIncrement: 1,
+    onReady: function(selectedDates, dateStr, instance) {
+        
+        // 1. 终极防击穿事件拦截器
+        const flatpickrEnterHook = function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                e.stopImmediatePropagation(); // 彻底阻断 Flatpickr 内部干预
+                
+                // 💡 核心修复: 只有在键盘真正【按下】(keydown) 阶段才执行跳转, 彻底没收【弹起】(keyup) 阶段的穿透残影
+                if (e.type === 'keydown') {
+                    if (e.target.value) {
+                        forceTimeFormat(instance, e.target.value);
+                    }
+                    instance.close();
+                    
+                    // 丝滑转移焦点至下一个控件
+                    setTimeout(() => focusNextElement(e.target.id), 60);
+                }
+            } else if (e.key !== 'Tab') {
+                // 依然保持对 "1222 -> 12:02" 篡改 bug 的绝对封杀
+                e.stopImmediatePropagation();
+            }
+        };
+
+        // 确保在事件捕获阶段优先拿到绝对控制权
+        ['input', 'keyup', 'keydown'].forEach(evt => {
+            instance.input.addEventListener(evt, flatpickrEnterHook, true);
+        });
+
+        instance.input.addEventListener('blur', function(e) { 
+            forceTimeFormat(instance, this.value); 
+        }, true);
+    }
+};
+flatpickr("#startTimeWrap", timeConfig);
+flatpickr("#endTimeWrap", timeConfig);
+
+flatpickr("#dateWrap", {
+    wrap: true,
+    clickOpens: false,
+    position: "auto left",
+    dateFormat: "Y-m-d",
+    defaultDate: getToday(),
+    disableMobile: true,
+    allowInput: true,
+
+    prevArrow: '<svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>',
+    nextArrow: '<svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>',
+
+    onOpen: function(selectedDates, dateStr, instance) {
+        instance.__dateSelected = false;
+        
+        // 1. 开启静默模式, 彻底阻断进入时的任何抽搐或翻页动画
+        instance.__silentReset = true;
+        
+        // 2. 探查当前输入框中真实的日期记录
+        let targetDate = null;
+        let currentInputVal = instance.input.value.trim();
+        if (currentInputVal) {
+            const parsed = instance.config.parseDate(currentInputVal);
+            if (parsed && !isNaN(parsed.getTime())) {
+                targetDate = parsed;
+            }
+        }
+        if (!targetDate || isNaN(targetDate.getTime())) {
+            targetDate = new Date(); // 兜底今天
+        }
+
+        // 3. 核心大手术: 趁着日历此时还是透明的 (opacity: 0), 在“幕后”强行将视图拨回正确的日期! 
+        instance.setDate(targetDate, false);
+        instance.jumpToDate(targetDate);
+        
+        // 4. 物理拔除可能因为 jumpToDate 而附着上去的动画 class
+        if (instance.daysContainer) {
+            instance.daysContainer.classList.remove('calendar-flipping-left', 'calendar-flipping-right');
+        }
+
+        // 5. 将底层的“上一次所处年月”刷新为当前正确的年月, 防止下次点箭头方向错乱
+        instance._lastMonth = instance.currentMonth;
+        instance._lastYear = instance.currentYear;
+
+        // 6. 安排在下一帧恢复正常模式, 日历此时刚好开始执行渐显动画
+        requestAnimationFrame(() => {
+            instance.__silentReset = false;
+        });
+    },
+
+    onChange: function(selectedDates, dateStr, instance) {
+        instance.__dateSelected = true;
+
+        if (!instance.__silentReset) {
+            render();
+        }
+    },
+
+    parseDate: function(dateStr, format) {
+        let text = (dateStr || "").trim();
+        if (!text) return undefined;
+
+        let raw = text.replace(/\D/g, "");
+
+        if (!text.includes('-') && raw.length >= 6 && raw.length <= 8) {
+            let y = parseInt(raw.slice(0, 4), 10);
+            let m, d;
+            if (raw.length === 8) {
+                m = parseInt(raw.slice(4, 6), 10);
+                d = parseInt(raw.slice(6, 8), 10);
+            } else if (raw.length === 6) {
+                m = parseInt(raw.slice(4, 5), 10) || 1;
+                d = parseInt(raw.slice(5, 6), 10) || 1;
+            } else {
+                m = parseInt(raw.slice(4, 6), 10) || 1;
+                d = parseInt(raw.slice(6), 10) || 1;
+            }
+            if (y >= 1900 && y <= 2100 && m >= 1 && m <= 12 && d >= 1 && d <= 31) {
+                return new Date(y, m - 1, d);
+            }
+            return new Date();
+        }
+
+        if (text.includes('-')) {
+            let parts = text.split('-');
+            if (parts.length === 3) {
+                let y = parseInt(parts[0], 10);
+                let m = parseInt(parts[1], 10);
+                let d = parseInt(parts[2], 10);
+                if (y >= 1900 && y <= 2100 && m >= 1 && m <= 12 && d >= 1 && d <= 31) {
+                    return new Date(y, m - 1, d);
+                }
+            }
+        }
+
+        let parsed = new Date(text);
+        if (!isNaN(parsed.getTime()) && parsed.getFullYear() >= 1900 && parsed.getFullYear() <= 2100) {
+            return parsed;
+        }
+        return new Date();
+    },
+
+    onClose: function(selectedDates, dateStr, instance) {
+        // 【核心大手术二】: 把关闭时的所有延迟重置、DOM干预彻底删掉! 
+        // 什么都不做, 就让它干干净净地在维持原样的情况下执行 CSS 淡出动画! 
+        if (instance.__dateSelected) {
+            instance.__dateSelected = false;
+        }
+    },
+
+    onReady: [
+        formatHeader,
+        function(selectedDates, dateStr, instance) {
+            instance.__silentReset = false;
+
+            // 核心修复: 终极物理冻结法 (Absolute DOM Freeze)
+            // 彻底剥夺 Flatpickr 在关闭状态下的 DOM 重绘权, 让它安安静静地维持原貌淡出
+            const freezeDOM = (originalFn) => {
+                return function(...args) {
+                    // 只要日历弹窗不处于完全开启状态, 直接拒绝一切由失焦或底层机制触发的视觉更新
+                    if (!instance.isOpen) return; 
+                    return originalFn.apply(this, args);
+                };
+            };
+
+            // 拦截并接管三大核心刷新引擎
+            if (instance.redraw) instance.redraw = freezeDOM(instance.redraw);
+            if (instance.jumpToDate) instance.jumpToDate = freezeDOM(instance.jumpToDate);
+            if (instance.updateNavigationCurrentMonth) {
+                instance.updateNavigationCurrentMonth = freezeDOM(instance.updateNavigationCurrentMonth);
+            }
+        }
+    ],
+    onMonthChange: [formatHeader],
+    onYearChange: [formatHeader]
+});
+
+render();
+// ================= 液态玻璃悬浮球拖拽逻辑 =================
+window.addEventListener('DOMContentLoaded', () => {
+    const appContainer = document.querySelector('.app');
+    
+    // 核心修复 2：进场动画播放完毕后，立刻卸载动画属性
+    if (appContainer) {
+        appContainer.addEventListener('animationend', (e) => {
+            if (e.animationName === 'alphaPageIn') {
+                // 瞬间摧毁残留的 animation 属性
+                // 这将解除强制生成的“层叠上下文”，让 .app 内部和外部的 fixed 定位、z-index 以及 Blur 遮罩完美恢复原状！
+                appContainer.style.animation = 'none';
+            }
+        });
+    }
+
+    // 拦截全局下拉菜单中带有 href 且指向内部页面的 <a> 标签
+    document.querySelectorAll('a[href^="./"]').forEach(link => {
+        link.addEventListener('click', (e) => {
+            const targetUrl = link.getAttribute('href');
+            
+            const currentPath = window.location.pathname.split('/').pop() || 'index.html';
+            const targetPath = targetUrl.replace('./', '');
+            if (currentPath === targetPath) return; 
+
+            e.preventDefault();
+            
+            if (appContainer) {
+                // 挂载退场动画
+                appContainer.classList.add('page-transition-leave');
+                
+                // 等待 400ms 后物理跳转
+                setTimeout(() => {
+                    window.location.href = targetUrl;
+                }, 400);
+            } else {
+                window.location.href = targetUrl;
+            }
+        });
+    });
+});
+
+// ================= 鼠标滚轮调节时间 (极致性能优化版) =================
+document.addEventListener('wheel', function(e) {
+    if (e.target.classList.contains('flatpickr-hour') || e.target.classList.contains('flatpickr-minute')) {
+        e.preventDefault();
+        
+        // 修复：向下滚(deltaY > 0)增加时间(变晚)；向上滚(deltaY < 0)减少时间(变早)
+        const step = e.deltaY > 0 ? 1 : -1; 
+        
+        let max = e.target.classList.contains('flatpickr-hour') ? 23 : 59;
+        let val = parseInt(e.target.value, 10);
+        if (isNaN(val)) val = 0;
+        
+        val += step;
+        if (val > max) val = 0;
+        if (val < 0) val = max;
+        
+        e.target.value = String(val).padStart(2, '0');
+        e.target.dispatchEvent(new Event('input', { bubbles: true })); 
+    }
+}, { passive: false });
+
+(function() {
+    const resizer = document.getElementById('glassResizer');
+    // 自动兼容 .app 或 .container 主容器
+    const layout = document.querySelector('.app') || document.querySelector('.container');
+    if (!resizer || !layout) return;
+
+    resizer.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        resizer.setPointerCapture(e.pointerId);
+        resizer.classList.add('dragging');
+        
+        // 唤醒防掉帧重绘引擎: 平滑降级毛玻璃, 让推拽反馈达到极致 60FPS
+        layout.classList.add('resizing-active');
+
+        const startX = e.clientX;
+        // 获取左侧第一个直系子面板的初始宽度
+        const leftTarget = layout.children[0];
+        const startLeftWidth = leftTarget.offsetWidth;
+        const maxLayoutWidth = layout.offsetWidth;
+
+        const onPointerMove = (moveEvent) => {
+            const deltaX = moveEvent.clientX - startX;
+            let newLeftWidth = startLeftWidth + deltaX;
+
+            // 安全阈值限制: 由于日历和图表需要完整展示, 左侧最窄锁死 300px, 最宽不超过整屏的 45%
+            if (newLeftWidth < 300) newLeftWidth = 300;
+            if (newLeftWidth > (maxLayoutWidth * 0.45)) newLeftWidth = maxLayoutWidth * 0.45;
+
+            // 顺应屏幕物理刷新率, 无缝调节 CSS 变量
+            requestAnimationFrame(() => {
+                layout.style.setProperty('--left-width', `${newLeftWidth}px`);
+            });
+        };
+
+        const onPointerUp = (upEvent) => {
+            resizer.removeEventListener('pointermove', onPointerMove);
+            resizer.removeEventListener('pointerup', onPointerUp);
+            resizer.releasePointerCapture(e.pointerId);
+            
+            resizer.classList.remove('dragging');
+            layout.classList.remove('resizing-active'); // 停止拖拽, 瞬间恢复奢华极致画质
+        };
+
+        resizer.addEventListener('pointermove', onPointerMove);
+        resizer.addEventListener('pointerup', onPointerUp);
+    });
+})();
+
+// 心跳机制
+// 记录当前页面的数据快照, 作为比对指纹
+let lastSyncData = localStorage.getItem(STORAGE_KEY);
+
+// 1. 跨标签页实时无感同步 (其他页面修改数据时, 瞬间触发)
+window.addEventListener('storage', (e) => {
+    if (e.key === STORAGE_KEY) {
+        lastSyncData = e.newValue;
+        if (typeof render === 'function') render();
+    }
+});
+
+// 2. 切回页面时的智能补漏 (只在数据真有变动时才重绘, 彻底消灭无意义的重复动画)
+window.addEventListener('focus', () => {
+    const currentData = localStorage.getItem(STORAGE_KEY);
+    if (currentData !== lastSyncData) {
+        lastSyncData = currentData;
+        if (typeof render === 'function') render();
+    }
+});
+
+// 3. 代理原生保存函数: 确保在当前页面手动添加/删除任务时, 同步更新快照, 防止误判
+const originalSaveData = saveData;
+saveData = function(data) {
+    originalSaveData(data);
+    lastSyncData = localStorage.getItem(STORAGE_KEY);
+};
+
+// ================= 全局景深导航逻辑 (性能与状态分离版) =================
+let alphaMenuTimeout; // 全局定时器拦截连触
+
+function toggleAlphaMenu(e) {
+    e.stopPropagation();
+    const menu = document.getElementById('alphaDropdownMenu');
+    const trigger = document.getElementById('logoTrigger');
+    
+    // 如果还没创建捕获层, 则动态插入一个 (保留这个层仅作视觉模糊的载体)
+    if (!document.getElementById('navClickCatcher')) {
+        const catcher = document.createElement('div');
+        catcher.id = 'navClickCatcher';
+        catcher.className = 'nav-click-catcher';
+        document.body.appendChild(catcher);
+    }
+    
+    if (menu.classList.contains('hidden')) {
+        clearTimeout(alphaMenuTimeout); 
+        menu.classList.remove('hidden');
+        if (trigger) trigger.classList.add('active');
+        
+        // 确保清除残留的关闭状态, 瞬间挂载开启状态
+        document.body.classList.remove('alpha-menu-closing');
+        document.body.classList.add('alpha-menu-open'); 
+        
+        // 核心修复: 延迟开启全局点击监听, 捕获所有漏网之鱼
+        setTimeout(() => {
+            document.addEventListener('click', handleAlphaMenuOutsideClick);
+        }, 0);
+    } else {
+        closeAlphaMenu();
+    }
+}
+
+// 新增: 全局点击智能判定引擎
+function handleAlphaMenuOutsideClick(e) {
+    const menu = document.getElementById('alphaDropdownMenu');
+    const trigger = document.getElementById('logoTrigger');
+    
+    // 1. 如果点击的是触发器本身, 防范冗余触发 (由 toggleAlphaMenu 统一接管) 
+    if (trigger && trigger.contains(e.target)) return;
+    
+    // 2. 如果点击区域在下拉菜单内部
+    if (menu && menu.contains(e.target)) {
+        // 如果精准点击了具体的菜单项 (如当前 active 项) , 则执行关闭
+        // 如果只是点到了菜单里的纯白缝隙, 则维持打开状态 (严格遵循 macOS 原生菜单行为) 
+        if (e.target.closest('.dropdown-item')) {
+            closeAlphaMenu();
+        }
+        return;
+    }
+    
+    // 3. 点击菜单外部的任何区域 (包含 sidebar 空白、右侧大面积虚化区等) , 统统关闭
+    closeAlphaMenu();
+}
+
+function closeAlphaMenu() {
+    const menu = document.getElementById('alphaDropdownMenu');
+    const trigger = document.getElementById('logoTrigger');
+    
+    if (menu && !menu.classList.contains('hidden')) {
+        menu.classList.add('hidden');
+        if (trigger) trigger.classList.remove('active');
+        
+        document.body.classList.remove('alpha-menu-open'); 
+        document.body.classList.add('alpha-menu-closing'); 
+        
+        // 核心修复: 退场时立刻卸载全局监听, 保证性能绝不侧漏
+        document.removeEventListener('click', handleAlphaMenuOutsideClick);
+        
+        clearTimeout(alphaMenuTimeout);
+        alphaMenuTimeout = setTimeout(() => {
+            // 300ms 后, 下拉框动画彻底退场, 撤掉保护伞, 完美落地
+            document.body.classList.remove('alpha-menu-closing'); 
+        }, 300);
+    }
+}
+
+// ================= 液态滑块张力引擎 =================
+let sliderTimeout;
+// 获取所有关联的单选框数组
+const viewRadios = Array.from(document.querySelectorAll('input[name="viewType"]'));
+
+// 初始化获取当前默认选中的索引
+let currentActiveIndex = viewRadios.findIndex(radio => radio.checked);
+if (currentActiveIndex === -1) currentActiveIndex = 0; // 保底兜底
+
+viewRadios.forEach((radio, index) => {
+    radio.addEventListener('change', () => {
+        const slider = document.querySelector('.toggle-slider');
+        if (!slider) return;
+
+        clearTimeout(sliderTimeout);
+
+        // 1. 核心修复逻辑：对比新旧索引, 计算真实的滑动方向
+        const isMovingRight = index > currentActiveIndex;
+        currentActiveIndex = index; // 及时更新当前位置指针
+
+        // 2. 清理旧有的动画状态类名以支持连续触发
+        slider.classList.remove("is-sliding-right", "is-sliding-left");
+        void slider.offsetWidth; // 触发浏览器重绘重排 (Reflow)
+
+        // 3. 根据运动方向注入专属的高阶阻尼动效类
+        if (isMovingRight) {
+            slider.classList.add("is-sliding-right");
+        } else {
+            slider.classList.add("is-sliding-left");
+        }
+
+        // 4. 维持原有的定时器清理机制, 防止状态污染
+        sliderTimeout = setTimeout(() => {
+            slider.classList.remove("is-sliding-right", "is-sliding-left");
+        }, 430);
+    });
+});
+
+// 全局监听复选框的点击状态, 动态更新“全选”按钮的文字
+document.addEventListener('change', function(e) {
+    if (e.target && e.target.classList.contains('batch-check')) {
+        updateSelectAllBtnState();
+    }
+});
+
+// ================= 全局页面切换动效拦截引擎 V2 =================
+window.addEventListener('DOMContentLoaded', () => {
+    const appContainer = document.querySelector('.app');
+    
+    // 核心修复 2：进场动画播放完毕后，立刻卸载动画属性
+    if (appContainer) {
+        appContainer.addEventListener('animationend', (e) => {
+            if (e.animationName === 'alphaPageIn') {
+                // 瞬间摧毁残留的 animation 属性
+                // 这将解除强制生成的“层叠上下文”，让 .app 内部和外部的 fixed 定位、z-index 以及 Blur 遮罩完美恢复原状！
+                appContainer.style.animation = 'none';
+            }
+        });
+    }
+
+    // 拦截全局下拉菜单中带有 href 且指向内部页面的 <a> 标签
+    document.querySelectorAll('a[href^="./"]').forEach(link => {
+        link.addEventListener('click', (e) => {
+            const targetUrl = link.getAttribute('href');
+            
+            const currentPath = window.location.pathname.split('/').pop() || 'index.html';
+            const targetPath = targetUrl.replace('./', '');
+            if (currentPath === targetPath) return; 
+
+            e.preventDefault();
+            
+            if (appContainer) {
+                // 挂载退场动画
+                appContainer.classList.add('page-transition-leave');
+                
+                // 等待 400ms 后物理跳转
+                setTimeout(() => {
+                    window.location.href = targetUrl;
+                }, 400);
+            } else {
+                window.location.href = targetUrl;
+            }
+        });
+    });
+});
+
+// ================= 全局毛玻璃 Tooltip 劫持引擎 =================
+window.addEventListener('DOMContentLoaded', () => {
+    // 1. 创建全局唯一的 Tooltip 玻璃面板
+    const tooltipNode = document.createElement('div');
+    tooltipNode.id = 'alphaTooltip';
+    document.body.appendChild(tooltipNode);
+
+    // 2. 利用事件委托，监听全局的鼠标悬停（支持 JS 动态生成的元素）
+    document.addEventListener('mouseover', (e) => {
+        // 寻找当前鼠标下带有 title 或 data-tooltip 的最近元素
+        const target = e.target.closest('[title], [data-tooltip]');
+        if (!target) return;
+
+        // 核心：瞬间没收原生 title，防止浏览器自带的生硬黑框弹出来
+        if (target.hasAttribute('title')) {
+            target.setAttribute('data-tooltip', target.getAttribute('title'));
+            target.removeAttribute('title'); 
+        }
+
+        const tipText = target.getAttribute('data-tooltip');
+        if (tipText) {
+            tooltipNode.textContent = tipText;
+            tooltipNode.classList.add('visible');
+            updateTooltipPosition(e); // 立刻计算一次位置，防止动画乱飞
+        }
+    });
+
+    // 3. 鼠标移动时，玻璃板柔性跟随
+    document.addEventListener('mousemove', (e) => {
+        if (tooltipNode.classList.contains('visible')) {
+            updateTooltipPosition(e);
+        }
+    });
+
+    // 4. 离开时褪去
+    document.addEventListener('mouseout', (e) => {
+        const target = e.target.closest('[data-tooltip]');
+        if (target) {
+            tooltipNode.classList.remove('visible');
+        }
+    });
+
+    // 5. 点击时主动隐藏（防遮挡视线优化）
+    document.addEventListener('mousedown', () => {
+        tooltipNode.classList.remove('visible');
+    });
+
+    // 💡 定位计算函数（附带屏幕边缘防溢出系统）
+    function updateTooltipPosition(e) {
+        const offsetX = 14; // 距离鼠标的横向距离
+        const offsetY = 18; // 距离鼠标的纵向距离
+        
+        let x = e.clientX + offsetX;
+        let y = e.clientY + offsetY;
+
+        // 右侧边界碰撞检测：如果超出版面，就翻转到鼠标左侧
+        if (x + tooltipNode.offsetWidth > window.innerWidth) {
+            x = e.clientX - tooltipNode.offsetWidth - 8;
+        }
+        
+        // 底部边界碰撞检测：如果超出底部，就翻转到鼠标上方
+        if (y + tooltipNode.offsetHeight > window.innerHeight) {
+            y = e.clientY - tooltipNode.offsetHeight - 8;
+        }
+
+        tooltipNode.style.left = `${x}px`;
+        tooltipNode.style.top = `${y}px`;
+    }
+});
 </script>
+
+<div id="glassSphere" class="glass-sphere">
+    <span class="sphere-icon">💡</span>
+</div>
+
+<div id="sphereModal" class="sphere-modal hidden">
+    <div class="modal-content">
+        <h3 style="margin-bottom: 12px; color: #0f172a; font-size: 20px;">使用提示</h3>
+        <div style="color: #64748b; font-size: 15px; line-height: 1.8; margin-bottom: 24px;">
+            欢迎使用 TaskFlow: <br>
+            • <b>快捷操作</b>: 你可以将鼠标悬停或点击界面元素获取更多反馈<br>
+            • <b>数据同步</b>: 任务与计时数据已打通, 会自动归档至本地存储<br>
+            • <b>自动跳转</b>: 添加任务时, 单击 Enter 可自动跳转下一输入框；输入完毕后按 Ctrl + Enter 可自动提交<br>
+        </div>
+        <button class="primary" style="width: 100% !important;" onclick="document.getElementById('sphereModal').classList.add('hidden')">我知道了</button>
+    </div>
+</div>
+
+<div id="customDialog" class="sphere-modal hidden">
+    <div class="modal-content" style="width: 360px; text-align: center;">
+        <div id="dialogIcon" style="font-size: 48px; margin-bottom: 16px; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.1));">⚠️</div>
+        <h3 id="dialogTitle" style="margin-bottom: 12px; color: #0f172a; font-size: 20px;">提示</h3>
+        <div id="dialogMessage" style="color: #64748b; font-size: 15px; line-height: 1.6; margin-bottom: 24px;"></div>
+        <div style="display: flex; gap: 12px; justify-content: center;">
+            <button class="secondary" id="dialogCancelBtn" style="flex: 1;" onclick="document.getElementById('customDialog').classList.add('hidden')">取消</button>
+            <button class="primary" id="dialogConfirmBtn" style="flex: 1;" onclick="if(window.dialogConfirmCallback) window.dialogConfirmCallback()">确定</button>
+        </div>
+    </div>
+</div>
 </body>
 </html>

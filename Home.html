@@ -1,0 +1,1510 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>主页 | Tasks</title>
+<link rel="icon" href="Home.ico" type="image/x-icon">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<base href="./">
+<style>
+/* ================== 全局与动态色彩体系 ================== */
+:root {
+    /* 默认主题色 (可通过壁纸取色动态修改) */
+    --theme-hue: 210;
+    --theme-sat: 20%;
+    --theme-light: 85%;
+    
+    --text: #0f172a; 
+    --sub: #64748b;
+    
+    /* 根据主题色生成的动态 Liquid Glass 颜色 */
+    --dyn-bg: hsl(var(--theme-hue), var(--theme-sat), 96%);
+    --dyn-panel: hsla(var(--theme-hue), var(--theme-sat), 98%, 0.45);
+    --dyn-panel-border: hsla(var(--theme-hue), var(--theme-sat), 100%, 0.6);
+    --dyn-primary: linear-gradient(135deg, hsla(var(--theme-hue), 50%, 85%, 0.85), hsla(var(--theme-hue), 60%, 88%, 0.85));
+    --dyn-primary-hover: linear-gradient(135deg, hsla(var(--theme-hue), 50%, 90%, 0.95), hsla(var(--theme-hue), 60%, 93%, 0.95));
+    --dyn-shadow: hsla(var(--theme-hue), 25%, 55%, 0.12);
+
+    --glass: var(--dyn-panel);
+    --glass-border: var(--dyn-panel-border);
+
+    --shadow-xl: 0 40px 80px rgba(15,23,42,.08);
+    --shadow-sm: 0 8px 20px rgba(15,23,42,.04);
+
+    --spacing-main: 32px;   /* Panel 级内边距 */
+    --spacing-card: 24px;   /* Card 级内边距 */
+    --spacing-inside: 16px; /* 元素级内边距 */
+    
+    /* 4 级同心圆角体系 (Concentric Radius System) */
+    --radius-panel: 32px;   /* L1: 主面板、侧边栏、全局弹窗 (原 main) */
+    --radius-card: 24px;    /* L2: 任务卡片、图表容器、侧边小卡 */
+    --radius-element: 16px; /* L3: 按钮、输入框、视图切换器 (独立出来) */
+    --radius-sm: 10px;      /* L4: 内部小标签、日历箭头、下拉项 */
+
+    --ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+* {
+    margin: 0; padding: 0; box-sizing: border-box;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+    outline: none !important; -webkit-tap-highlight-color: transparent;
+}
+
+html { scroll-behavior: smooth; overflow-y: auto; overflow-x: hidden; }
+
+::-webkit-scrollbar { width: 0; height: 0; background: transparent; }
+/* 🎯 自适应的选中文字颜色 */
+::selection { background-color: hsla(var(--theme-hue), 60%, 80%, 0.6); color: #0f172a; }
+::-moz-selection { background-color: hsla(var(--theme-hue), 60%, 80%, 0.6); color: #0f172a; }
+
+body {
+    min-height: 100vh; color: var(--text);
+    background: var(--dyn-bg);
+    transition: background 1s ease;
+    display: flex; flex-direction: column;
+    scrollbar-width: none; -ms-overflow-style: none;
+}
+
+body > *:not(script):not(style):not(link):not(.sphere-modal):not(.flatpickr-calendar):not(#alphaTooltip) {
+    animation: alphaPageIn 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes alphaPageIn {
+    0% {
+        opacity: 0;
+        /* 关键修改：改成负值 (-120px)！让界面从屏幕顶部优雅降落下来 */
+        transform: translateY(-120px) scale(0.96); 
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* ================== 上半部分: 动态壁纸区 ================== */
+.hero-wallpaper {
+    position: relative; width: 100%; height: 45vh; min-height: 300px;
+    background-color: #e2e8f0; background-size: cover; background-position: center;
+    box-shadow: inset 0 -40px 100px -20px var(--dyn-bg);
+    transition: box-shadow 1s ease, background-image 0.5s ease;
+    display: flex; align-items: flex-end; justify-content: flex-end;
+    /* 🎯 增加底部内边距, 防重叠 */
+    padding: 40px 40px 80px 40px; 
+}
+.hero-wallpaper::after {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(to bottom, transparent 40%, var(--dyn-bg) 100%);
+    pointer-events: none;
+}
+.pip-btn {
+    position: relative; z-index: 10;
+    height: 44px; padding: 0 20px; border-radius:  var(--radius-element);
+    background: rgba(255, 255, 255, 0.45); backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.6); box-shadow: 0 4px 12px rgba(15,23,42,0.05);
+    color: #0f172a; font-weight: 700; cursor: pointer; transition: all 0.26s var(--ease);
+}
+.pip-btn:hover { background: rgba(255, 255, 255, 0.85); transform: translateY(-2px); border-color: #fff; }
+
+/* ================== 下半部分: 功能区 ================== */
+.home-layout {
+    display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-main);
+    width: 100%; max-width: 1600px; margin: -60px auto 40px auto; padding: 0 40px;
+    position: relative; z-index: 10;
+}
+@media(max-width: 1000px) { .home-layout { grid-template-columns: 1fr; } }
+
+.panel {
+    /* 采用更具液态光泽的渐变半透明，代替单一的纯色 */
+    background: linear-gradient(135deg, hsla(var(--theme-hue), var(--theme-sat), 100%, 0.55) 0%, hsla(var(--theme-hue), var(--theme-sat), 96%, 0.3) 100%);
+    border: 1px solid var(--glass-border);
+    
+    backdrop-filter: blur(48px) saturate(200%); 
+    -webkit-backdrop-filter: blur(48px) saturate(200%);
+    
+    /* 修复: 移除了不存在的 var(--shadow-lg)，重新构建了多层高光内阴影与柔和外发光 */
+    box-shadow: 0 24px 48px rgba(15, 23, 42, 0.06), 
+                inset 0 2px 6px rgba(255, 255, 255, 0.6), 
+                inset 0 1px 1px rgba(255, 255, 255, 0.9), 
+                inset 1.5px 0 2px rgba(255, 255, 255, 0.3);
+                
+    border-radius: var(--radius-panel); 
+    padding: 32px;
+    transition: all 0.8s ease; 
+    display: flex; 
+    flex-direction: column; 
+    gap: 20px;
+}
+.section-title { font-size: 24px; font-weight: 800; color: var(--text); display: flex; align-items: center; gap: 10px; }
+
+.home-layout > .panel:first-child {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    height: 100%; /* 强迫左侧卡片物理高度与右侧 Grid 轨道保持绝对一致 */
+}
+
+/* ================== 文本框/输入框公共属性 ================== */
+textarea, textarea#todoInput, input[type="text"] {
+    width: 100%;
+    border-radius: var(--radius-element);
+    color: #0f172a; 
+    font-size: 15px; 
+    font-weight: 600; 
+    line-height: 1.6;
+    resize: none;
+    transition: all 0.3s var(--ease);
+}
+
+/* ================== ⚔️ 核心隔离区: 精准控制两层描边 ================== */
+
+/* 1 左侧“方法指南”文本框: 让它独自继承完美的2层白色光学描边, 作为动画过渡起点 */
+textarea#todoInput {
+    /* 修复核心: 剥除 flex-grow, 防止过度拉伸吃掉低于剩余空间的回弹动画 */
+    flex: 0 0 auto; 
+    /* 新增: 让下外边距自动吸收父级的剩余高度, 彻底解放文本框自身的物理高度限制 */
+    margin-bottom: auto; 
+    
+    height: 200px; 
+
+    transition: height 0.4s cubic-bezier(0.34, 1.45, 0.64, 1), box-shadow 0.3s ease, border-color 0.3s ease !important;
+
+    padding: 16px 20px; 
+    background: rgba(255, 255, 255, 0.6);
+    overflow-y: hidden; 
+
+    /* 修复: 彻底剥除 4px 的白色软包常驻外圈, 仅保留内阴影, 把双圈效果留给 focus 状态 */
+    border: 1px solid rgba(255, 255, 255, 0.9) !important;
+    box-shadow: 0 0 0 0 transparent, inset 0 2px 5px rgba(15, 23, 42, 0.05), inset 0 -1px 1.5px rgba(255, 255, 255, 0.65) !important;
+}
+
+/* 2 右侧“普通单行输入框”: 彻底删除多余的白色软包, 保持 Liquid Glass 干净隐形状态 */
+input[type="text"] {
+    height: 50px;
+    padding: 0 20px;
+    background: rgba(255, 255, 255, 0.5);
+
+    /* 剥除白色软包, 隐形状态 */
+    border: 1px solid transparent !important;
+    box-shadow: 0 0 0 0 transparent, inset 0 2px 5px rgba(15, 23, 42, 0.05), inset 0 -1px 1.5px rgba(255, 255, 255, 0.65) !important;
+}
+
+input::placeholder, textarea::placeholder { color: #748091; font-weight: 500; }
+input:hover, textarea:hover, textarea#todoInput:hover { background: rgba(255, 255, 255, 0.9); }
+input:focus, textarea:focus {
+    background: #ffffff; border-color: var(--monet-blue) !important;
+    box-shadow: 0 0 0 4px rgba(157, 210, 255, 0.25), 0 12px 24px rgba(15, 23, 42, 0.08) !important;
+}
+
+/* 聚焦状态: 双圈随动变色系统 */
+input:focus, textarea:focus, textarea#todoInput:focus { 
+    background: #ffffff; 
+    /* 聚焦第 1 圈: 变为主题色实线 */
+    border-color: hsla(var(--theme-hue), 60%, 75%, 1) !important; 
+    /* 聚焦第 2 圈: 变为同色系的半透明呼吸光晕, 并附带底部大阴影 */
+    box-shadow: 
+        0 0 0 4px hsla(var(--theme-hue), 60%, 75%, 0.25), 
+        0 12px 24px var(--dyn-shadow) !important; 
+}
+
+/* ================== 按钮动效系统升级 ================== */
+button, upload-label {
+    position: relative; overflow: hidden; display: inline-flex; height: 52px; border: none;
+    align-items: center; justify-content: center; padding: 0 24px;
+    border-radius: var(--radius-element); cursor: pointer; font-size: 16px !important; font-weight: 700 !important; 
+    /* 极致顺滑的过渡：使用弹性阻尼曲线，保留 transform 硬件加速 */
+    transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), background 0.3s ease, box-shadow 0.3s ease; 
+    outline: none; letter-spacing: 0.5px;
+    will-change: transform, box-shadow; 
+}
+
+/* 废弃原先粗暴的 ::before 伪元素高光，改用更优雅的多重 background */
+button::before { display: none; }
+button:active { transform: scale(0.96) !important; }
+
+/* ------------------------------------------------
+   1. Primary (同色边缘折射版 - 动态取色适配)
+------------------------------------------------ */
+.primary { 
+    background: 
+        radial-gradient(circle at 85% 15%, rgba(255, 250, 240, 0.35) 0%, transparent 60%),
+        /* 将写死的莫奈蓝转译为基于 var(--theme-hue) 的高亮色调 */
+        linear-gradient(135deg, hsla(var(--theme-hue), 71%, 88%, 0.75) 0%, hsla(var(--theme-hue), 80%, 72%, 0.45) 100%);
+    color: #0f172a; 
+    
+    /* 彻底移除 border，用 box-shadow 模拟边框以获得更完美的折射发光效果 */
+    border: none;
+    
+    box-shadow: 
+        0 6px 16px hsla(var(--theme-hue), 70%, 68%, 0.2), 
+        inset 0 1.5px 2px rgba(255, 255, 255, 0.95), 
+        inset -1px -1px 2px rgba(255, 255, 255, 0.3), 
+        /* 💡 高透冰莹边缘：映射为浅白底透出当前主题色 */
+        0 0 0 1px hsla(var(--theme-hue), 92%, 97%, 0.85); 
+        
+    backdrop-filter: blur(16px) saturate(180%); 
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+}
+
+.primary:hover { 
+    background: 
+        radial-gradient(circle at 85% 15%, rgba(255, 250, 240, 0.55) 0%, transparent 65%),
+        linear-gradient(135deg, hsla(var(--theme-hue), 80%, 84%, 0.95) 0%, hsla(var(--theme-hue), 80%, 78%, 0.55) 100%);
+    transform: translateY(-2px); 
+    
+    box-shadow: 
+        0 12px 24px hsla(var(--theme-hue), 70%, 68%, 0.3), 
+        inset 0 2px 3px rgba(255, 255, 255, 1), 
+        inset -1px -1px 2px rgba(255, 255, 255, 0.5),
+        /* 💡 悬浮时呈现带有一点点主题色调的高透霜白色 */
+        0 0 0 1.5px hsla(var(--theme-hue), 90%, 96%, 0.9); 
+}
+
+.primary:active {
+    background: 
+        radial-gradient(circle at 85% 15%, rgba(255, 250, 240, 0.2) 0%, transparent 40%),
+        /* 💡 自适应降维：点击时渐变色稍稍加深，模拟手指按压遮光效果 */
+        linear-gradient(135deg, hsla(var(--theme-hue), 80%, 76%, 0.75) 0%, hsla(var(--theme-hue), 80%, 70%, 0.35) 100%);
+    
+    /* 🪄 极客级物理交互：微量下沉回弹，配合 0.98 的阻尼微缩，立刻释放物理实体按压质感 */
+    transform: translateY(0px) scale(0.98); 
+    
+    box-shadow: 
+        0 2px 6px hsla(var(--theme-hue), 70%, 68%, 0.1), 
+        inset 0 3px 6px rgba(15, 23, 42, 0.08), 
+        inset 0 1px 1px rgba(255, 255, 255, 0.5),
+        /* 💡 按下时高透边缘折射环跟随同步变暗，完美贴合物理深陷阴影 */
+        0 0 0 1px hsla(var(--theme-hue), 80%, 78%, 0.6);
+}
+
+/* ------------------------------------------------
+   2. Secondary (清透玻璃) - 微调适配
+------------------------------------------------ */
+.secondary { 
+    background: 
+        radial-gradient(circle at 85% 15%, rgba(255, 252, 245, 0.5) 0%, transparent 50%),
+        linear-gradient(135deg, rgba(255, 255, 255, 0.5) 0%, rgba(240, 248, 255, 0.15) 100%); 
+    color: var(--monet-text);
+    box-shadow: 
+        0 6px 16px rgba(15, 23, 42, 0.04), 
+        inset 0 1.5px 2px rgba(255, 255, 255, 0.95), 
+        inset -1px -1px 2px rgba(255, 255, 255, 0.3), 
+        /* 💡 将死白改为带有淡淡冷灰/冷蓝的珍珠白，消除锐利感 */
+        0 0 0 1px rgba(241, 245, 249, 0.85);
+    backdrop-filter: blur(16px) saturate(180%); 
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+}
+
+.secondary:hover { 
+    background: 
+        radial-gradient(circle at 85% 15%, rgba(255, 252, 245, 0.7) 0%, transparent 60%),
+        linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(245, 250, 255, 0.35) 100%); 
+    transform: translateY(-2px);
+    box-shadow: 
+        0 10px 24px rgba(15, 23, 42, 0.08), 
+        inset 0 2px 3px rgba(255, 255, 255, 1), 
+        inset -1px -1px 2px rgba(255, 255, 255, 0.5), 
+        0 0 0 1.5px rgba(255, 255, 255, 0.95); 
+}
+
+.secondary:active {
+    background: 
+        radial-gradient(circle at 85% 15%, rgba(255, 252, 245, 0.3) 0%, transparent 40%),
+        linear-gradient(135deg, rgba(245, 250, 255, 0.4) 0%, rgba(230, 240, 255, 0.1) 100%);
+    box-shadow: 
+        0 2px 6px rgba(15, 23, 42, 0.03), 
+        inset 0 3px 6px rgba(15, 23, 42, 0.04), 
+        inset 0 1px 1px rgba(255, 255, 255, 0.6),
+        0 0 0 1px rgba(226, 232, 240, 0.7);
+}
+
+/* ------------------------------------------------
+   3. Danger (警示红) - 同色边缘折射版
+------------------------------------------------ */
+.danger { 
+    background: 
+        radial-gradient(circle at 85% 15%, rgba(255, 235, 230, 0.2) 0%, transparent 50%),
+        linear-gradient(135deg, rgba(250, 66, 62, 0.75) 0%, rgba(220, 38, 38, 0.55) 100%); 
+    color: #ffffff; 
+    box-shadow: 
+        0 6px 16px rgba(239, 68, 68, 0.2), 
+        inset 0 1.5px 2px rgba(255, 255, 255, 0.5), 
+        inset -1px -1px 2px rgba(0, 0, 0, 0.08),
+        /* 💡 将白边改为高透珊瑚红：红玻璃的边缘就应该是透亮的红色 */
+        0 0 0 1px rgba(255, 199, 199, 0.75); 
+    backdrop-filter: blur(16px) saturate(180%); 
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+}
+
+.danger:hover { 
+    background: 
+        radial-gradient(circle at 85% 15%, rgba(255, 235, 230, 0.45) 0%, transparent 65%),
+        linear-gradient(135deg, rgba(248, 113, 113, 0.95) 0%, rgba(239, 68, 68, 0.7) 100%); 
+    transform: translateY(-2px); 
+    box-shadow: 
+        0 10px 24px rgba(239, 68, 68, 0.3), 
+        inset 0 2px 3px rgba(255, 255, 255, 0.75), 
+        inset -1px -1px 2px rgba(0, 0, 0, 0.12),
+        /* 💡 修复：将刺眼的亮红边，改为带有一丝微粉的珍珠白 */
+        0 0 0 1.5px rgba(255, 240, 240, 0.9); 
+}
+
+.danger:active {
+    background: 
+        linear-gradient(135deg, rgba(220, 38, 38, 0.75) 0%, rgba(185, 28, 28, 0.45) 100%);
+    box-shadow: 
+        0 2px 6px rgba(239, 68, 68, 0.1), 
+        inset 0 3px 6px rgba(0, 0, 0, 0.15), 
+        inset 0 1px 1px rgba(255, 255, 255, 0.3),
+        /* 💡 按下时压暗边缘红色 */
+        0 0 0 1px rgba(220, 38, 38, 0.5);
+}
+
+/* ================== 账户设置 ==================== */
+.alpha-avatar-hook {
+    position: absolute;
+    top: 40px; 
+    left: 40px; /* 如果你想放在右上角, 可改为 right: 40px */
+    width: 28px; 
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.35);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.7);
+    box-shadow: 0 8px 24px rgba(15,23,42,0.08), inset 0 2px 4px rgba(255,255,255,0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    /* 延长过渡时间配合阻尼曲线，让动画更具韧性 */
+    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    z-index: 1000;
+    overflow: hidden;
+}
+
+/* 🎯 修复核心 1：增加容器悬浮时的放大率与主题光晕 */
+.alpha-avatar-hook:hover {
+    transform: translateY(-6px) scale(1.2);
+    box-shadow: 0 16px 32px rgba(15,23,42,0.15), 
+                0 0 0 3px hsla(var(--theme-hue), 60%, 80%, 0.3), /* 融入当前动态壁纸的主题光晕 */
+                inset 0 2px 4px rgba(255,255,255,0.9);
+    background: rgba(255, 255, 255, 0.85);
+}
+
+/* 🎯 新增：极客级物理交互按压反馈 */
+.alpha-avatar-hook:active {
+    transform: translateY(-2px) scale(0.95);
+    box-shadow: 0 4px 12px rgba(15,23,42,0.1), inset 0 2px 4px rgba(255,255,255,0.4);
+}
+
+.alpha-avatar-hook .avatar-emoji {
+    font-size: 24px;
+    /* 赋予内部元素同频的过渡动画 */
+    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* 🎯 修复核心 2：内部 Emoji 在容器悬浮时的微缩放与俏皮旋转 */
+.alpha-avatar-hook:hover .avatar-emoji {
+    transform: scale(1.15) rotate(5deg);
+}
+
+.alpha-avatar-hook img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    position: absolute;
+    top: 0; left: 0;
+    /* 赋予图片层独立的阻尼过渡 */
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* 🎯 修复核心 3：头像图片在悬浮时的视差透视感 */
+.alpha-avatar-hook:hover img {
+    transform: scale(1.15) rotate(3deg);
+}
+
+/* ================== Flatpickr & Time 控件深度定制 ================== */
+.time-wrap { display: flex; align-items: center; position: relative; width: 130px; flex-shrink: 0; }
+.time-wrap input { padding-right: 44px; padding-left: 16px; }
+.time-wrap .time-icon {
+    position: absolute; right: 8px; font-size: 18px; cursor: pointer;
+    width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+    border-radius: var(--radius-sm); /* 柔和的圆角 */
+    transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.time-wrap .time-icon:hover { 
+    transform: scale(1.1); 
+    background: rgba(15, 23, 42, 0.05); /* 半透明灰底, 透出玻璃质感 */
+}
+.time-wrap .time-icon:active { 
+    transform: scale(0.95); 
+    background: rgba(15, 23, 42, 0.08); 
+}
+
+.flatpickr-calendar {
+    /* 彻底锁定绝对定位与顶级图层，防止计算坐标时发生弹跳 (滚哪里去了) */
+    position: absolute !important; 
+    z-index: 99999 !important;
+    display: block !important; 
+    animation: none !important;
+
+    margin-top: 12px !important; 
+
+    opacity: 0 !important; 
+    visibility: hidden !important;
+    
+    /* 开启 3D 硬件加速 (translateZ)，强制 GPU 单独渲染此图层，防止隐形 (只见阴影) */
+    transform: translateY(12px) scale(0.95) translateZ(0) !important;
+    pointer-events: none !important;
+
+    /* 移除容易导致图层崩溃的 will-change，回归纯粹的阻尼过渡 */
+    transition: opacity 0.3s cubic-bezier(0.22, 1, 0.36, 1), 
+                transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), 
+                visibility 0s 0.3s !important;
+}
+
+.flatpickr-calendar.open, .flatpickr-calendar.inline {
+    opacity: 1 !important; 
+    visibility: visible !important;
+    /* 同步加上 translateZ(0) 保护 */
+    transform: translateY(0) scale(1) translateZ(0) !important;
+    pointer-events: auto !important;
+
+    transition: opacity 0.3s cubic-bezier(0.22, 1, 0.36, 1), 
+                transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), 
+                visibility 0s 0s !important;
+}
+
+.flatpickr-calendar.noCalendar {
+    width: max-content !important; 
+    min-width: 160px !important;
+    padding: 0 !important;
+    
+    background: rgba(255, 255, 255, 0.35) !important;
+    
+    /* 补全背面隐藏属性，彻底防止毛玻璃在动画过程中的闪烁与透视错误 */
+    backface-visibility: hidden !important;
+    -webkit-backface-visibility: hidden !important;
+    
+    backdrop-filter: blur(48px) saturate(200%) !important; 
+    -webkit-backdrop-filter: blur(48px) saturate(200%) !important;
+    box-shadow: var(--shadow-xl), inset 0 1.5px 2px rgba(255,255,255,0.9), inset 1.5px 0 2px rgba(255,255,255,0.3) !important; 
+    border: 1px solid rgba(255, 255, 255, 0.6) !important; 
+    border-radius: var(--radius-element) !important; 
+    overflow: hidden !important;
+}
+
+.flatpickr-time .numInputWrapper span {
+    display: none !important;
+    appearance: none !important;
+}
+
+.flatpickr-time {
+    height: 100px !important; max-width: none !important; border-radius:  var(--radius-element) !important; margin: 0 !important;
+    background: transparent !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
+    box-shadow: none !important; border: none !important;
+    display: flex !important; align-items: center !important; justify-content: center !important; gap: 8px; padding: 0 14px !important;
+}
+.flatpickr-time .numInputWrapper {
+    background: #f1f5f9 !important; border-radius: var(--radius-sm)  !important; height: 30px !important; width: 50px !important;
+    display: flex !important; align-items: center !important; justify-content: center !important;
+    border: 2px solid transparent !important; transition: all 0.2s; outline: none !important;
+}
+.flatpickr-time .numInputWrapper:focus-within {
+    border-color: hsla(var(--theme-hue), 60%, 75%, 0.6) !important; background: #ffffff !important; box-shadow: 0 4px 12px var(--dyn-shadow) !important;
+}
+.flatpickr-time input {
+    font-size: 22px !important; font-weight: 800 !important; background: transparent !important; color: #0f172a !important;
+    height: 100% !important; line-height: 48px !important; text-align: center !important; padding: 0 !important;
+    border: none !important; outline: none !important; box-shadow: none !important;
+}
+/* 🎯 重点替换: 让小时数字颜色跟随壁纸动态变化 */
+.flatpickr-time input.flatpickr-hour { color: hsla(var(--theme-hue), 65%, 65%, 1) !important; }
+.flatpickr-time .flatpickr-time-separator { color: #64748b !important; font-weight: 700 !important; font-size: 20px !important; align-self: center; margin: 0 !important; display: flex; align-items: center; justify-content: center; height: 100%;}
+.flatpickr-calendar::before, .flatpickr-calendar::after { display: none !important; content: none !important; border: none !important; }
+
+/* ================== 导航卡片区 ================== */
+.nav-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 12px; }
+.nav-card {
+    background: linear-gradient(135deg, hsla(var(--theme-hue), var(--theme-sat), 100%, 0.6) 0%, hsla(var(--theme-hue), var(--theme-sat), 98%, 0.25) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    border-radius: var(--radius-card); 
+    padding: 24px 20px; 
+    text-decoration: none;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
+    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); 
+    cursor: pointer;
+    
+    /* 修复: 补齐缺失的毛玻璃滤镜，使其拥有真实的物理透视感 */
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    
+    box-shadow: var(--shadow-sm), 
+                inset 0 1.5px 3px rgba(255, 255, 255, 0.7), 
+                inset 0 1px 1px rgba(255, 255, 255, 0.9);
+}
+.nav-card:hover {
+    background: linear-gradient(135deg, hsla(var(--theme-hue), var(--theme-sat), 100%, 0.75) 0%, hsla(var(--theme-hue), var(--theme-sat), 98%, 0.4) 100%);
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: 0 16px 32px var(--dyn-shadow), 0 0 0 1px rgba(255, 255, 255, 1);
+}
+.nav-card .icon { font-size: 36px; margin-bottom: 12px; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.1)); }
+.nav-card h3 { font-size: 18px; font-weight: 800; color: var(--text); margin-bottom: 4px; }
+.nav-card p { font-size: 13px; font-weight: 600; color: var(--sub); }
+
+/* ================== 日程闹钟列表 ================== */
+.alarm-list { 
+    display: flex; 
+    flex-direction: column; 
+    gap: 12px; 
+    max-height: 240px; 
+    overflow-y: auto; 
+    overflow-x: hidden; /* 🎯 核心修复: 彻底封杀由弹性动画引发的横向滚动条闪现 */
+    padding-right: 8px; 
+
+    /* 光学渐隐遮罩 (Scroll Edge Masking) */
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 16px, black calc(100% - 16px), transparent 100%);
+    mask-image: linear-gradient(to bottom, transparent 0%, black 16px, black calc(100% - 16px), transparent 100%);
+
+    padding-top: 16px;
+    padding-bottom: 16px;
+    margin-top: -12px;
+    margin-bottom: -16px;
+}
+
+@keyframes alarmPopIn {
+    0% { opacity: 0; transform: translateX(-16px) scale(0.95); }
+    60% { opacity: 1; transform: translateX(4px) scale(1.01); } /* 略微收敛放大比例, 避免过度溢出 */
+    100% { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+/* 🎯 新增: 极致平滑的退出动画 */
+@keyframes alarmPopOut {
+    0% { opacity: 1; transform: scale(1) translateX(0); }
+    100% { opacity: 0; transform: scale(0.9) translateX(16px); }
+}
+
+.alarm-item {
+    display: flex; justify-content: space-between; align-items: center;
+    background: rgba(255,255,255,0.6); border: 1px solid rgba(255,255,255,0.9);
+    padding: 16px 20px; box-shadow: 0 4px 12px rgba(15,23,42,0.02);
+    border-radius: var(--radius-element);
+    animation: alarmPopIn 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+.alarm-item.removing {
+    animation: alarmPopOut 0.3s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    pointer-events: none;
+}
+
+.alarm-item.ringing { animation: ringShake 0.5s ease infinite alternate; background: #fff3f3; border-color: #ffcaca; }
+@keyframes ringShake { 0% { transform: translateX(-2px); } 100% { transform: translateX(2px); } }
+.alarm-time { font-size: 18px; font-weight: 800; color: var(--text); font-variant-numeric: tabular-nums; }
+.alarm-name { font-size: 14px; font-weight: 600; color: var(--sub); flex: 1; margin: 0 16px; }
+.alarm-del { cursor: pointer; color: #cbd5e1; font-weight: 800; transition: 0.2s; font-size: 18px; }
+.alarm-del:hover { color: #f17875; transform: scale(1.1); }
+
+/* 全局弹窗引擎 */
+.sphere-modal {
+    position: fixed; inset: 0; z-index: 10000; 
+    display: flex !important; align-items: center; justify-content: center;
+    
+    background: hsla(var(--theme-hue, 210), var(--theme-sat, 20%), 10%, 0.25); 
+    
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    opacity: 1; visibility: visible;
+    will-change: opacity, backdrop-filter;
+    transform: translateZ(0);
+    transition: opacity 0.3s cubic-bezier(0.22, 1, 0.36, 1), 
+                backdrop-filter 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+                visibility 0s 0s;
+}
+
+.sphere-modal.hidden {
+    opacity: 0; visibility: hidden; pointer-events: none;
+    backdrop-filter: blur(0px); -webkit-backdrop-filter: blur(0px);
+    transition: opacity 0.3s cubic-bezier(0.22, 1, 0.36, 1), 
+                backdrop-filter 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+                visibility 0s 0.3s;
+}
+
+.sphere-modal .modal-content {
+    background: hsla(var(--theme-hue, 210), var(--theme-sat, 20%), 99%, 0.82);
+    
+    backdrop-filter: blur(48px) saturate(200%); -webkit-backdrop-filter: blur(48px) saturate(200%);
+    
+    border: 1px solid hsla(var(--theme-hue, 210), var(--theme-sat, 20%), 100%, 0.9); 
+    
+    border-radius: var(--radius-panel, 24px); 
+    padding: var(--spacing-main, 32px); 
+    width: 360px; 
+    
+    box-shadow: 0 24px 64px rgba(15, 23, 42, 0.15), 
+                inset 0 2px 6px hsla(var(--theme-hue, 210), var(--theme-sat, 20%), 100%, 0.6);
+    
+    will-change: transform, opacity;
+    transform: translateY(0) scale(1) translateZ(0); 
+    opacity: 1;
+    
+    /* iOS 风格弹性阻尼动画, 防止掉帧 */
+    transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1), 
+                opacity 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.sphere-modal.hidden .modal-content {
+    transform: translateY(24px) scale(0.92) translateZ(0); 
+    opacity: 0;
+    transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), 
+                opacity 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ================== 全局 Alpha Tooltip (极致动画修复版) ================== */
+#alphaTooltip {
+    position: fixed;
+    top: 0;
+    left: 0;
+    padding: 6px 12px;
+    background: rgba(255, 255, 255, 0.65);
+    backdrop-filter: blur(24px) saturate(200%);
+    -webkit-backdrop-filter: blur(24px) saturate(200%);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-top-color: rgba(255, 255, 255, 0.85); 
+    box-shadow: 
+        0 8px 24px rgba(15, 23, 42, 0.12),
+        inset 0 1px 1px rgba(255, 255, 255, 0.9),
+        inset 0 0 12px rgba(255, 255, 255, 0.4);
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+    color: var(--text, #0f172a);
+    font-weight: 500;
+    pointer-events: none;
+    z-index: 10000;
+    white-space: nowrap;
+
+    /* 1. 基础隐藏状态 */
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(6px) scale(0.94);
+
+    transition: opacity 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), 
+                transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+                visibility 0s linear 0.25s; 
+    
+    will-change: transform, opacity; /* 移除 left/top 避免引发渲染管线抖动 */
+}
+
+#alphaTooltip.visible {
+    /* 2. 悬停展示状态 */
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scale(1);
+
+    /* 🛠️ 核心修复 (进场动画)：visibility 延迟 0s 立刻生效（瞬间可见），
+       此时 opacity 和 transform 再完美播放 0.25s 动画！ */
+    transition: opacity 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), 
+                transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+                visibility 0s linear 0s;
+}
+</style>
+</head>
+<body>
+
+<div class="hero-wallpaper" id="heroWallpaper">
+    <button class="pip-btn" onclick="document.getElementById('wpInput').click()">🌄 更换壁纸</button>
+    <input type="file" id="wpInput" hidden accept="image/*">
+</div>
+
+<div class="alpha-avatar-hook" onclick="window.location.href='Account.html'" title="进入账户中心">
+    <span class="avatar-emoji">👤</span>
+    <img id="userAvatarPreview" src="" alt="User" style="display: none;">
+</div>
+
+<input type="file" id="avatarUploadInput" style="display: none;" accept="image/*">
+
+<div class="home-layout">
+    <div class="panel">
+        <div class="section-title"><span>📋</span> To Do 智能导入</div>
+        <p style="font-size: 14px; color: var(--sub); font-weight: 600; margin-top: -10px;">粘贴 Microsoft To Do 文本, 智能分发至 Hub 与 Flow</p>
+        
+        <textarea id="todoInput" placeholder="方法指南: &#10;1. 打开 Microsoft To Do 中需要导出的列表&#10;2. 点击“更多”图标&#10;3. 选择“以电子邮件发送列表”&#10;4. 在弹出的提示窗口中选择任意一个电子邮件软件, 打开“链接”&#10;5. 等待响应&#10;6. 将电子邮件中的文本粘贴至此处"></textarea>
+        <button class="primary" onclick="parseToDo()">解析并分配任务</button>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 16px; height: 100%; justify-content: space-between;">
+        <div class="panel">
+            <div class="section-title" style="margin-bottom: -4px;"><span>⏰</span> 日程闹钟</div>
+            
+            <div style="display:flex; gap:12px; align-items: center; width: 100%;">
+                <div class="time-wrap" id="alarmTimeWrap" data-wrap="true">
+                    <input type="text" id="alarmTime" data-input placeholder="-- : --">
+                    <span class="time-icon" data-toggle>🕒</span>
+                </div>
+                <input type="text" id="alarmName" placeholder="日程提醒内容..." style="flex:1;">
+            </div>
+
+            <div style="display:flex; gap:12px;">
+                <button class="secondary" id="ringtoneBtn" style="flex: 1; height: 48px; border-radius: var(--radius-element); font-size: 15px !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">🔔 默认铃声</button>
+                <input type="file" id="ringtoneInput" accept="audio/*" hidden>
+                <button class="primary" onclick="addAlarm()" style="flex: 1.5; height: 48px; border-radius: var(--radius-element); font-size: 15px !important;">添加日程</button>
+            </div>
+            
+            <div class="alarm-list" id="alarmList"></div>
+        </div>
+
+        <div class="nav-grid">
+            <a href="TaskHub.html" class="nav-card">
+                <div class="icon">🌏</div><h3>TaskHub</h3><p>规划与分配</p>
+            </a>
+            <a href="TaskTimer.html" class="nav-card">
+                <div class="icon">⏳</div><h3>TaskTimer</h3><p>沉浸式执行</p>
+            </a>
+            <a href="TaskFlow.html" class="nav-card">
+                <div class="icon">🗃️</div><h3>TaskFlow</h3><p>数据复盘</p>
+            </a>
+        </div>
+    </div>
+</div>
+
+<div id="customDialog" class="sphere-modal hidden">
+    <div class="modal-content" style="text-align: center;">
+        <div id="dialogIcon" style="font-size: 48px; margin-bottom: 16px; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.1));">💡</div>
+        <h3 id="dialogTitle" style="margin-bottom: 12px; color: #0f172a; font-size: 20px;">提示</h3>
+        <div id="dialogMessage" style="color: #64748b; font-size: 15px; line-height: 1.6; margin-bottom: 24px;"></div>
+        <div style="display: flex; gap: 12px; justify-content: center;">
+            <!-- 改用 secondary 类, 移除硬编码限制, 使其自动继承 52px 高度 -->
+            <button class="secondary" id="dialogCancelBtn" style="flex: 1; display: none;" onclick="document.getElementById('customDialog').classList.add('hidden')">取消</button>
+            
+            <!-- 剥除 style 里的 height: 44px 和 font-size 限制 -->
+            <button class="primary" id="dialogConfirmBtn" style="flex: 1;" onclick="if(window.dialogConfirmCallback) window.dialogConfirmCallback()">确定</button>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+<script>
+// ================== 全局弹窗引擎 ==================
+window.dialogConfirmCallback = null;
+function customAlert(msg, title = "提示", icon = "💡", onClose = null) {
+    document.getElementById('dialogIcon').textContent = icon;
+    document.getElementById('dialogTitle').textContent = title;
+    document.getElementById('dialogMessage').innerHTML = msg;
+    document.getElementById('dialogCancelBtn').style.display = 'none';
+    const confirmBtn = document.getElementById('dialogConfirmBtn');
+    confirmBtn.textContent = "我知道了";
+    window.dialogConfirmCallback = () => {
+        document.getElementById('customDialog').classList.add('hidden');
+        if (onClose) onClose(); 
+    };
+    document.getElementById('customDialog').classList.remove('hidden');
+}
+
+// ================== Material You 自动萃取引擎 ==================
+const wpInput = document.getElementById('wpInput');
+const heroWallpaper = document.getElementById('heroWallpaper');
+
+const savedWp = localStorage.getItem('alpha_wallpaper');
+if (savedWp) {
+    heroWallpaper.style.backgroundImage = `url(${savedWp})`;
+    extractColorFromBase64(savedWp);
+} else {
+    document.documentElement.style.setProperty('--theme-hue', '210');
+}
+
+wpInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+        const dataUrl = ev.target.result;
+        const img = new Image();
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const MAX_WIDTH = 1920;
+            let width = img.width, height = img.height;
+            if (width > MAX_WIDTH) { height = Math.round(height * MAX_WIDTH / width); width = MAX_WIDTH; }
+            canvas.width = width; canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+            const compressed = canvas.toDataURL('image/jpeg', 0.85);
+            try {
+                localStorage.setItem('alpha_wallpaper', compressed);
+                heroWallpaper.style.backgroundImage = `url(${compressed})`;
+                extractThemeColor(img);
+            } catch(err) {
+                customAlert("壁纸文件过大, 无法存入本地缓存, 请裁剪后重试", "壁纸保存失败", "⚠️");
+            }
+        };
+        img.src = dataUrl;
+    };
+    reader.readAsDataURL(file);
+});
+
+function extractColorFromBase64(base64) {
+    const img = new Image();
+    img.onload = () => extractThemeColor(img);
+    img.src = base64;
+}
+
+function extractThemeColor(img) {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = 100; canvas.height = 100;
+    ctx.drawImage(img, 0, 0, 100, 100);
+    const data = ctx.getImageData(0, 0, 100, 100).data;
+    let r = 0, g = 0, b = 0, count = 0;
+    for (let i = 0; i < data.length; i += 4) {
+        if (data[i] > 240 && data[i+1] > 240 && data[i+2] > 240) continue; 
+        if (data[i] < 20 && data[i+1] < 20 && data[i+2] < 20) continue; 
+        r += data[i]; g += data[i+1]; b += data[i+2]; count++;
+    }
+    if (count === 0) return;
+    r = Math.floor(r/count); g = Math.floor(g/count); b = Math.floor(b/count);
+    
+    r /= 255; g /= 255; b /= 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    let h, s, l = (max + min) / 2;
+    if (max === min) { h = s = 0; }
+    else {
+        const d = max - min;
+        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+        switch (max) {
+            case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+            case g: h = (b - r) / d + 2; break;
+            case b: h = (r - g) / d + 4; break;
+        }
+        h /= 6;
+    }
+    document.documentElement.style.setProperty('--theme-hue', Math.round(h * 360));
+}
+
+// ================= 🎯 核心修复: 强制时间格式化与焦点引擎 =================
+function forceTimeFormat(instance, val) {
+    if (!val || !instance) return false;
+    let raw = val.replace(/\D/g, ""); 
+    if (raw.length < 3) return false; 
+    
+    let h = null, m = null;
+    if (raw.length === 3) { h = raw.slice(0, 1); m = raw.slice(1, 3); } 
+    else if (raw.length >= 4) { h = raw.slice(0, 2); m = raw.slice(2, 4); }
+    
+    if (h !== null && m !== null) {
+        let hi = parseInt(h, 10), mi = parseInt(m, 10);
+        if (hi <= 23 && mi <= 59) {
+            let formatted = `${String(hi).padStart(2, "0")}:${String(mi).padStart(2, "0")}`;
+            
+            // 比对状态锁
+            // 拦截由于 input 失去焦点(blur)导致的无效重绘, 保护 CSS 退出动画不被打断
+            if (instance.input.value !== formatted) {
+                instance.input.value = formatted;
+                instance.setDate(formatted, true);
+            }
+            return true;
+        }
+    }
+    return false;
+}
+
+const alarmTimeInput = document.getElementById('alarmTime');
+const alarmNameInput = document.getElementById('alarmName');
+
+// 终极独立事件拦截器 (Capture Phase + Immediate Stop)
+const flatpickrEnterHook = function(e) {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        e.stopImmediatePropagation(); // 核心修复: 彻底阻断同层级 Flatpickr 内部的回车监听器
+        
+        if (forceTimeFormat(fpInstance, e.target.value) || e.target.value) {
+            fpInstance.close();
+            // 延迟 60ms 将焦点安全转移给下一个输入框
+            setTimeout(() => alarmNameInput.focus(), 60);
+        }
+    } else if (e.key !== 'Tab') {
+        // 核心修复: 只要不是 Tab 键, 任何输入 (如 1222) 在到达 Flatpickr 前被直接就地拦截没收
+        e.stopImmediatePropagation();
+    }
+};
+
+const fpInstance = flatpickr("#alarmTimeWrap", {
+    enableTime: true,
+    noCalendar: true,
+    dateFormat: "H:i",
+    time_24hr: true,
+    wrap: true,
+    clickOpens: false, 
+    allowInput: true,
+    minuteIncrement: 1,
+    
+    // 这里原本的 appendTo: document.getElementById(...) 已被彻底删除！
+    // 让其自由挂载到 body，重获全局 Liquid Glass 质感
+    
+    onReady: function(selectedDates, dateStr, instance) {
+        // 确保我们在事件捕获阶段 (true) 优先拿到控制权
+        ['input', 'keyup', 'keydown'].forEach(evt => {
+            instance.input.addEventListener(evt, flatpickrEnterHook, true);
+        });
+
+        instance.input.addEventListener('blur', function(e) { 
+            forceTimeFormat(instance, this.value); 
+        }, true);
+    }
+});
+
+// 独立绑定名称输入框的回车事件
+alarmNameInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        addAlarm();
+    }
+});
+
+// ================== 自定义闹钟铃声功能 ==================
+const defaultRingtoneUrl = "https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3";
+const alarmAudio = new Audio(defaultRingtoneUrl);
+const savedRingtone = localStorage.getItem('alpha_home_ringtone');
+const savedRingtoneName = localStorage.getItem('alpha_home_ringtone_name');
+const ringtoneBtn = document.getElementById('ringtoneBtn');
+
+// 页面加载时恢复文件名
+if (savedRingtone) {
+    alarmAudio.src = savedRingtone;
+    ringtoneBtn.textContent = `🎵 ${savedRingtoneName || '自定义铃声'}`;
+}
+
+let ringtoneClickTimer = null;
+
+// 🎯 单双击防冲突判定引擎
+ringtoneBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    if (ringtoneClickTimer) {
+        // 双击触发: 清除定时器, 执行重置恢复逻辑
+        clearTimeout(ringtoneClickTimer);
+        ringtoneClickTimer = null;
+        
+        if(localStorage.getItem('alpha_home_ringtone')) {
+            localStorage.removeItem('alpha_home_ringtone');
+            localStorage.removeItem('alpha_home_ringtone_name');
+            alarmAudio.src = defaultRingtoneUrl;
+            ringtoneBtn.textContent = "🎵 默认铃声";
+            customAlert("已恢复系统默认闹钟铃声", "恢复默认", "🔄");
+        }
+    } else {
+        // 单击触发: 等待 250ms, 如果没有第二次点击, 再唤起文件选择框
+        ringtoneClickTimer = setTimeout(() => {
+            ringtoneClickTimer = null;
+            document.getElementById('ringtoneInput').click();
+        }, 250);
+    }
+});
+
+document.getElementById('ringtoneInput').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            const base64Str = ev.target.result;
+            try {
+                // 提取简短的文件名 (去除后缀和过长部分) 防撑爆按钮
+                let rawName = file.name.replace(/\.[^/.]+$/, "");
+                let shortName = rawName.length > 8 ? rawName.substring(0, 8) + '...' : rawName;
+                
+                localStorage.setItem('alpha_home_ringtone', base64Str);
+                localStorage.setItem('alpha_home_ringtone_name', shortName); // 记忆文件名
+                
+                alarmAudio.src = base64Str;
+                ringtoneBtn.textContent = `🎵 ${shortName}`;
+                customAlert("个性化铃声已保存!<br>提示: 双击该按钮可恢复系统默认铃声", "铃声设置成功", "🎉");
+            } catch (err) {
+                customAlert("音频文件过大, 无法保存至浏览器本地缓存", "上传失败", "❌");
+            }
+        };
+        reader.readAsDataURL(file);
+    }
+});
+
+// ================== Microsoft To Do 智能解析引擎 ==================
+function getTargetDateStr(keyword) {
+    const d = new Date();
+    if (keyword === '明天') d.setDate(d.getDate() + 1);
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+}
+
+function parseToDo() {
+    const text = document.getElementById('todoInput').value.trim();
+    if (!text) { customAlert("请先粘贴 To Do 列表文本!", "内容为空", "📋"); return; }
+
+    let lines = text.split('\n').filter(l => l.trim() !== '');
+    if (lines.length === 0) return;
+
+    const listCategory = lines[0].trim();
+    let isCompletedSection = false;
+    let parentTaskName = "";
+    
+    let hubData = JSON.parse(localStorage.getItem('taskhub_data') || '[]');
+    let flowData = JSON.parse(localStorage.getItem('taskflow_data') || '{}');
+    let addedHub = 0, addedFlow = 0;
+
+    for (let i = 1; i < lines.length; i++) {
+        let line = lines[i];
+        if (line.trim() === '已完成') { isCompletedSection = true; continue; }
+
+        const isPending = line.includes('⬜');
+        const isDone = line.includes('✅');
+        
+        if (!isPending && !isDone) continue; 
+        
+        const isSubtask = line.startsWith(' ') || line.startsWith('\t') || line.startsWith(' ');
+        let taskName = line.replace(/⬜|✅/g, '').trim();
+        let priority = 'Medium';
+        let deadline = '无截止日期';
+
+        if (taskName.includes('★')) { priority = 'High'; taskName = taskName.replace('★', '').trim(); }
+        
+        const dateMatch = taskName.match(/- 截止 (今天|明天)/);
+        if (dateMatch) {
+            deadline = getTargetDateStr(dateMatch[1]);
+            taskName = taskName.replace(dateMatch[0], '').trim();
+        }
+
+        if (isSubtask && parentTaskName) { taskName = `${parentTaskName} - ${taskName}`; } 
+        else { parentTaskName = taskName; }
+
+        let taskObj = {
+            id: window.crypto?.randomUUID?.() || String(Date.now() + i),
+            name: taskName,
+            subject: [listCategory],
+            priority: priority,
+            remark: "从 To Do 导入",
+            start: "", end: "",
+            isCompleted: isCompletedSection || isDone
+        };
+
+        if (taskObj.isCompleted) {
+            const todayStr = getTargetDateStr('今天');
+            if (!flowData[todayStr]) flowData[todayStr] = [];
+            flowData[todayStr].push({
+                id: taskObj.id, name: taskObj.name, category: taskObj.subject,
+                duration: 25, date: todayStr, remark: taskObj.remark, createdAt: Date.now()
+            });
+            addedFlow++;
+        } else {
+            hubData.push(taskObj);
+            addedHub++;
+            let mapping = JSON.parse(localStorage.getItem('alpha_task_mapping') || '{}');
+            mapping[taskObj.id] = ['default'];
+            localStorage.setItem('alpha_task_mapping', JSON.stringify(mapping));
+        }
+    }
+
+    localStorage.setItem('taskhub_data', JSON.stringify(hubData));
+    localStorage.setItem('taskflow_data', JSON.stringify(flowData));
+    
+    document.getElementById('todoInput').value = '';
+    customAlert(`✅ 解析完成!<br><br>新增待办计划 (Hub): <b>${addedHub}</b> 项<br>新增已完结记录 (Flow): <b>${addedFlow}</b> 项`, "导入成功", "🎉");
+}
+
+document.getElementById('todoInput').addEventListener('keydown', function(e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        parseToDo();
+    }
+});
+
+// ================== 日程闹钟引擎 ==================
+let alarms = JSON.parse(localStorage.getItem('alpha_alarms') || '[]');
+
+function renderAlarms() {
+    const list = document.getElementById('alarmList');
+    list.innerHTML = '';
+    alarms.sort((a, b) => a.time.localeCompare(b.time));
+    alarms.forEach((al) => {
+        list.innerHTML += `
+            <div class="alarm-item" id="alarm-${al.id}">
+                <div class="alarm-time">${al.time}</div>
+                <div class="alarm-name">${al.name}</div>
+                <div class="alarm-del" onclick="deleteAlarm('${al.id}')">✕</div>
+            </div>`;
+    });
+}
+
+function addAlarm() {
+    // 🎯 修复 Bug: 传入正确的 fpInstance 对象, 而不是 DOM 节点
+    forceTimeFormat(fpInstance, alarmTimeInput.value);
+    
+    const time = alarmTimeInput.value;
+    const name = alarmNameInput.value.trim() || "日程提醒";
+    if (!time) { customAlert("请先选择或输入闹钟时间!", "缺失时间", "⏰"); return; }
+    
+    alarms.push({ id: String(Date.now()), time, name, triggeredDay: '' });
+    localStorage.setItem('alpha_alarms', JSON.stringify(alarms));
+    alarmNameInput.value = '';
+    
+    // 添加成功后, 把焦点还给时间输入框, 方便连续添加
+    fpInstance.clear();
+    alarmTimeInput.focus();
+    
+    renderAlarms();
+}
+
+function deleteAlarm(id) {
+    const itemEl = document.getElementById(`alarm-${id}`);
+    if (itemEl) {
+        // 🎯 触发退出动画
+        itemEl.classList.add('removing');
+        // 等待动画结束后再销毁 DOM 与数据
+        setTimeout(() => {
+            alarms = alarms.filter(a => a.id !== id);
+            localStorage.setItem('alpha_alarms', JSON.stringify(alarms));
+            renderAlarms();
+        }, 280); 
+    } else {
+        alarms = alarms.filter(a => a.id !== id);
+        localStorage.setItem('alpha_alarms', JSON.stringify(alarms));
+        renderAlarms();
+    }
+}
+
+setInterval(() => {
+    const now = new Date();
+    const currentHM = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+    const todayStr = `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}`;
+    
+    alarms.forEach(al => {
+        if (al.time === currentHM && al.triggeredDay !== todayStr) {
+            al.triggeredDay = todayStr;
+            localStorage.setItem('alpha_alarms', JSON.stringify(alarms));
+            
+            const itemEl = document.getElementById(`alarm-${al.id}`);
+            if (itemEl) itemEl.classList.add('ringing');
+            try { alarmAudio.play(); } catch(e){}
+            
+            customAlert(`⏰ <b>${al.time}</b> 到了!<br><br>${al.name}`, "日程提醒", "🔔", () => {
+                alarmAudio.pause(); alarmAudio.currentTime = 0;
+                if (itemEl) itemEl.classList.remove('ringing');
+            });
+        }
+    });
+}, 10000);
+
+renderAlarms();
+
+// ================== 智能文本框伸缩 ==================
+let ghostTextarea = null;
+
+// 1. 核心高度计算器
+function adjustTextareaHeight(el) {
+    if (el.dataset.userResized === 'true') return;
+
+    // A. 初始化全局幽灵节点 (仅执行一次) 
+    if (!ghostTextarea) {
+        ghostTextarea = document.createElement('textarea');
+        ghostTextarea.style.cssText = `
+            position: absolute !important;
+            top: -9999px !important;
+            visibility: hidden !important;
+            overflow: hidden !important;
+            box-sizing: border-box !important;
+        `;
+        document.body.appendChild(ghostTextarea);
+    }
+
+    // B. 将真实文本框的核心尺寸样式同步给替身
+    const computedStyle = window.getComputedStyle(el);
+    ghostTextarea.style.width = computedStyle.width;
+    ghostTextarea.style.font = computedStyle.font;
+    ghostTextarea.style.lineHeight = computedStyle.lineHeight;
+    ghostTextarea.style.padding = computedStyle.padding;
+    ghostTextarea.style.border = computedStyle.border;
+    ghostTextarea.style.wordWrap = 'break-word';
+
+    // C. 让替身接管当前输入的内容, 并收缩计算出真正的包含换行后的高度
+    ghostTextarea.value = el.value;
+    ghostTextarea.style.height = '0px'; 
+    let targetHeight = ghostTextarea.scrollHeight;
+
+    // D. 边界校验: 必须与你 CSS 中的 min-height 和 max-height 严格对齐
+    if (targetHeight < 200) targetHeight = 200;
+    const maxHeight = 380;
+
+    // E. 性能优化: 如果高度根本没变, 直接终止, 不做任何 DOM 操作
+    if (el.dataset.lastTargetHeight === String(targetHeight)) return;
+    el.dataset.lastTargetHeight = String(targetHeight);
+
+    // F. 丝滑赋值: 真实文本框接收算好的高度, 并对 overflow 进行生命周期管理
+    if (targetHeight >= maxHeight) {
+        el.style.height = maxHeight + 'px';
+        
+        // 向上生长触顶时: 延迟 400ms 开启滚动条, 保护向外的回弹动画不被打断
+        setTimeout(() => {
+            if (parseInt(el.style.height) >= maxHeight) {
+                el.style.overflowY = 'auto';
+            }
+        }, 400); 
+        
+    } else {
+        // 向下收缩时: 核心修复区
+        if (el.style.overflowY === 'auto') {
+            el.style.overflowY = 'hidden'; // 立刻剥夺滚动条, 防止 Overshoot 激出滚动条
+            void el.offsetHeight;          // 🎯 强制刷新渲染管线, 割裂前后帧, 确保动画引擎不吞帧！
+        }
+        
+        el.style.height = targetHeight + 'px';
+        el.style.overflowY = 'hidden'; 
+    }
+}
+
+// 2. 采用【全局事件委托】, 完美兼容动态生成的弹窗和元素
+document.addEventListener('input', (e) => {
+    if (e.target.tagName === 'TEXTAREA') {
+        adjustTextareaHeight(e.target);
+    }
+});
+
+// 3. 极简拖拽雷达 (判定用户是否手动拉伸了文本框)
+document.addEventListener('mousedown', (e) => {
+    if (e.target.tagName === 'TEXTAREA' && window.getComputedStyle(e.target).resize !== 'none') {
+        e.target.dataset.startH = e.target.offsetHeight;
+    }
+});
+document.addEventListener('mouseup', (e) => {
+    if (e.target.tagName === 'TEXTAREA' && window.getComputedStyle(e.target).resize !== 'none') {
+        if (e.target.dataset.startH && e.target.offsetHeight !== parseInt(e.target.dataset.startH)) {
+            e.target.dataset.userResized = 'true';
+        }
+    }
+});
+
+// ================== 账户头像 ==================
+// ================== 账户头像 (ALPHA 生态双向同步 - 黄金流对齐版) ==================
+const DEPRECATED_AVATAR_KEY = 'alpha_user_avatar';
+const UNIFIED_ACCOUNT_KEY = 'alpha_account_data';
+
+function syncAvatarToHome() {
+    try {
+        let avatarBase64 = "";
+        
+        // 1. 优先读取统一账户中心的数据
+        const accountStr = localStorage.getItem(UNIFIED_ACCOUNT_KEY);
+        if (accountStr) {
+            const accountData = JSON.parse(accountStr);
+            if (accountData && accountData.avatar) {
+                avatarBase64 = accountData.avatar;
+            }
+        }
+        
+        // 2. 兜底读取旧独立键值
+        if (!avatarBase64) {
+            avatarBase64 = localStorage.getItem(DEPRECATED_AVATAR_KEY) || "";
+        }
+
+        const hookWrap = document.querySelector('.alpha-avatar-hook');
+        const imgEl = document.getElementById('userAvatarPreview');
+        const emojiSpan = hookWrap ? hookWrap.querySelector('.avatar-emoji') : null;
+
+        // 核心修复: 彻底移除外部干涉样式, 不强制赋予 relative, 确保 100% 尊重原网页 CSS 设定
+        if (hookWrap) {
+            hookWrap.style.position = '';
+            hookWrap.style.overflow = '';
+        }
+
+        if (avatarBase64 && imgEl) {
+            imgEl.src = avatarBase64;
+            
+            // 💎 终极无损流: 保持原生 display 块级占位, 完美继承原网页对头像框的所有边距与对齐控制
+            imgEl.style.display = 'block';
+            imgEl.style.position = 'static'; // 确保不脱离文档流
+            imgEl.style.width = '100%';
+            imgEl.style.height = '100%';
+            imgEl.style.objectFit = 'cover';
+            imgEl.style.borderRadius = '50%';
+            
+            // 完美对齐原版设计逻辑: 直接让 Emoji 消失, 腾出完美的正圆坑位给图片, 零位移风险
+            if (emojiSpan) emojiSpan.style.display = 'none';
+            if (emojiSpan) emojiSpan.style.opacity = '1'; // 重置上版遗留样式
+        } else {
+            // 无头像状态, 安全回归原貌
+            if (imgEl) imgEl.style.display = 'none';
+            if (emojiSpan) emojiSpan.style.display = 'block';
+        }
+    } catch (e) {
+        console.error("ALPHA 头像流式位置同步异常:", e);
+    }
+}
+
+// 保持原有的生命周期与跨标签监听不变
+document.addEventListener('DOMContentLoaded', syncAvatarToHome);
+syncAvatarToHome();
+
+window.addEventListener('storage', (e) => {
+    if (e.key === UNIFIED_ACCOUNT_KEY || e.key === DEPRECATED_AVATAR_KEY) {
+        syncAvatarToHome();
+    }
+});
+
+document.addEventListener('wheel', function(e) {
+    if (e.target.classList.contains('flatpickr-hour') || e.target.classList.contains('flatpickr-minute')) {
+        e.preventDefault();
+        
+        // 修复: 向下滚(deltaY > 0)增加时间(变晚)；向上滚(deltaY < 0)减少时间(变早)
+        const step = e.deltaY > 0 ? 1 : -1; 
+        
+        let max = e.target.classList.contains('flatpickr-hour') ? 23 : 59;
+        let val = parseInt(e.target.value, 10);
+        if (isNaN(val)) val = 0;
+        
+        val += step;
+        if (val > max) val = 0;
+        if (val < 0) val = max;
+        
+        e.target.value = String(val).padStart(2, '0');
+        e.target.dispatchEvent(new Event('input', { bubbles: true })); 
+    }
+}, { passive: false });
+
+// ================== “负一屏” (TaskNote) 无缝切入引擎 (视差保护版) ==================
+let isTransitioningToNote = false;
+
+window.addEventListener('wheel', (e) => {
+    if (isTransitioningToNote) return;
+
+    // 探测机制: 检查当前页面是否已经滚动到了绝对底部
+    const isAtBottom = Math.ceil(window.innerHeight + window.scrollY) >= document.body.scrollHeight;
+    
+    // 如果已经在底部，并且用户继续用力向下滚动
+    if (isAtBottom && e.deltaY > 40) {
+        isTransitioningToNote = true;
+        
+        // 关键核心 🪄：选中所有的内容模块，而不是 body！让 body 和壁纸留在原地
+        const pageElements = document.querySelectorAll('body > *:not(script):not(style):not(link):not(.sphere-modal):not(.flatpickr-calendar)');
+        
+        pageElements.forEach(el => {
+            // 强行剥夺 CSS keyframes 的控制权
+            el.style.animation = 'none';
+            void el.offsetHeight; // 强制浏览器刷新状态
+            
+            // 启动 iOS 风格阻尼过渡动画，将所有内容向上推移并渐隐
+            el.style.transition = 'transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.6s ease';
+            el.style.transform = 'translateY(-100vh) scale(0.95)';
+            el.style.opacity = '0';
+        });
+        
+        // 动画过半时执行物理路由跳转
+        setTimeout(() => {
+            window.location.href = 'Focus.html';
+        }, 500);
+    }
+}, { passive: true });
+
+// ================= 全局毛玻璃 Tooltip 劫持引擎 =================
+window.addEventListener('DOMContentLoaded', () => {
+    // 1. 创建全局唯一的 Tooltip 玻璃面板
+    const tooltipNode = document.createElement('div');
+    tooltipNode.id = 'alphaTooltip';
+    document.body.appendChild(tooltipNode);
+
+    // 2. 利用事件委托，监听全局的鼠标悬停
+    document.addEventListener('mouseover', (e) => {
+        const target = e.target.closest('[title], [data-tooltip]');
+        if (!target) return;
+
+        // 瞬间没收原生 title
+        if (target.hasAttribute('title')) {
+            target.setAttribute('data-tooltip', target.getAttribute('title'));
+            target.removeAttribute('title'); 
+        }
+
+        const tipText = target.getAttribute('data-tooltip');
+        if (tipText) {
+            tooltipNode.textContent = tipText;
+            
+            // 第一步：在保持隐藏的情况下，偷偷把位置计算好并移动过去
+            updateTooltipPosition(e); 
+            
+            // 🛠️ 核心修复：强制浏览器重绘 (Layout Flush)！
+            // 读取 offsetWidth 会强迫浏览器立刻结算上述的坐标与文字变动，
+            // 确保渲染引擎能够精准捕捉到动画的“第 0 帧”，绝不再发生吞帧闪现。
+            void tooltipNode.offsetWidth; 
+            
+            // 第二步：添加 visible 类名，引爆进场阻尼动画！
+            tooltipNode.classList.add('visible');
+        }
+    });
+
+    // 3. 鼠标移动时，玻璃板柔性跟随
+    document.addEventListener('mousemove', (e) => {
+        if (tooltipNode.classList.contains('visible')) {
+            updateTooltipPosition(e);
+        }
+    });
+
+    // 4. 离开时褪去
+    document.addEventListener('mouseout', (e) => {
+        const target = e.target.closest('[data-tooltip]');
+        if (target) {
+            // 🛠️ 核心修复 3：精准边界判定
+            // e.relatedTarget 是鼠标即将进入的下一个元素。
+            // 只有当鼠标真正离开了这个按钮（而不是在按钮内部的 SVG/文字上打转）时，才执行隐藏！
+            if (!e.relatedTarget || !target.contains(e.relatedTarget)) {
+                tooltipNode.classList.remove('visible');
+            }
+        }
+    });
+
+    // 5. 点击时主动隐藏（防遮挡视线优化）
+    document.addEventListener('mousedown', () => {
+        tooltipNode.classList.remove('visible');
+    });
+
+    // 💡 定位计算函数（附带屏幕边缘防溢出系统）
+    function updateTooltipPosition(e) {
+        const offsetX = 14; // 距离鼠标的横向距离
+        const offsetY = 18; // 距离鼠标的纵向距离
+        
+        let x = e.clientX + offsetX;
+        let y = e.clientY + offsetY;
+
+        // 右侧边界碰撞检测：如果超出版面，就翻转到鼠标左侧
+        if (x + tooltipNode.offsetWidth > window.innerWidth) {
+            x = e.clientX - tooltipNode.offsetWidth - 8;
+        }
+        
+        // 底部边界碰撞检测：如果超出底部，就翻转到鼠标上方
+        if (y + tooltipNode.offsetHeight > window.innerHeight) {
+            y = e.clientY - tooltipNode.offsetHeight - 8;
+        }
+
+        tooltipNode.style.left = `${x}px`;
+        tooltipNode.style.top = `${y}px`;
+    }
+});
+
+// ================== 首次启动版权提示 ==================
+function checkFirstLaunch() {
+    // 检查是否已经显示过
+    if (localStorage.getItem('alpha_welcome_shown')) return;
+
+    // 组装弹窗内容（支持 HTML）
+    const msg = `
+        <div style="text-align: left; font-size: 15px; line-height: 1.8;">
+            <p style="margin-bottom: 12px;"><b>欢迎使用 Tasks!</b></p>
+            <p style="margin-bottom: 12px;">
+                本产品基于 <b>GPL-3.0</b> 协议开源，但请知悉其中使用的字体为 
+                <b>OPPO Sans 4.0</b> 系列，版权归广东 OPPO 公司所有。
+            </p>
+            <p style="margin-bottom: 0; color: #64748b; font-size: 14px;">
+                该信息将不再提示，请务必知悉。
+            </p>
+        </div>
+    `;
+
+    // 调用 Home.html 中已有的 customAlert
+    customAlert(msg, '提示', '📜');
+
+    // 标记已显示，下次不再弹出
+    localStorage.setItem('alpha_welcome_shown', 'true');
+}
+
+// 在页面加载完成后执行检测（不干扰其他初始化）
+document.addEventListener('DOMContentLoaded', checkFirstLaunch);
+</script>
+</body>
+</html>

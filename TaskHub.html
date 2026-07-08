@@ -1,0 +1,3766 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>TaskHub</title>
+<link rel="icon" href="TaskHub.ico" type="image/x-icon">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<base href="./">
+<style>
+/* ===========================
+   1. Design Tokens & Global
+=========================== */
+::selection { background-color: #d4ebff; color: #0f172a; }
+::-moz-selection { background-color: #9DD2FF; color: #0f172a; }
+
+:root {
+    --text: #0f172a; 
+    --sub: #64748b;
+    --monet-blue: #9DD2FF;
+    --monet-text: #2F354F;
+    --monet-sub: #78829E;
+    --monet-danger: #e3605d;
+    --monet-success: #10b981;
+    
+    --glass: rgba(255, 255, 255, 0.35);
+    --glass-border: rgba(255, 255, 255, 0.6);
+    --glass-card: rgba(255, 255, 255, 0.1);
+
+    --shadow-xl: 0 40px 80px rgba(15,23,42,.12);
+    --shadow-lg: 0 24px 64px rgba(15,23,42,.06);
+    --shadow-md: 0 16px 40px rgba(15,23,42,.05);
+    --shadow-sm: 0 8px 20px rgba(15,23,42,.04);
+
+    --spacing-main: 32px;   /* Panel 级内边距 */
+    --spacing-card: 24px;   /* Card 级内边距 */
+    --spacing-inside: 16px; /* 元素级内边距 */
+    
+    /* 4 级同心圆角体系 (Concentric Radius System) */
+    --radius-panel: 32px;   /* L1: 主面板、侧边栏、全局弹窗 */
+    --radius-card: 24px;    /* L2: 任务卡片、图表容器、侧边小卡 */
+    --radius-element: 16px; /* L3: 按钮、输入框、视图切换器 */
+    --radius-sub: 14px;
+    --radius-sm: 10px;      /* L4: 内部小标签、下拉项 */
+
+    --ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+* {
+    margin: 0; padding: 0; box-sizing: border-box;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", sans-serif;
+    -webkit-tap-highlight-color: transparent; outline: none !important;
+}
+
+html { scroll-behavior: smooth; }
+
+::-webkit-scrollbar { width: 0; height: 0; background: transparent; }
+
+body {
+    min-height: 100vh;
+    margin: 0;
+    padding: 32px; 
+    color: var(--text);
+    color-scheme: light;
+    /* 1. 将底色剥离到 body，作为最安全的托底，防止动画穿帮 */
+    background-color: #f6f8fa; 
+    position: relative;
+    box-sizing: border-box;
+    overflow-x: hidden;
+    scrollbar-width: none; -ms-overflow-style: none;
+}
+
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+/* 2. 赋予流光容器生命 - 恢复原版清冷灰蓝底色 */
+.alpha-ambient-bg {
+    position: fixed;
+    inset: 0;
+    z-index: -3;
+    overflow: hidden;
+    background-color: #f2f5f9; /* 恢复你原版极其微弱的冷灰蓝底色 */
+    pointer-events: none;
+}
+
+/* ================== 环境光优化版 ================== */
+.sunbeam {
+    position: absolute; top: -10%; right: -5%; width: 35vw; height: 80vh;
+    /* 移除 filter: blur，直接在渐变中实现柔和过渡 */
+    background: radial-gradient(ellipse at top right, rgba(255, 245, 225, 0.12) 0%, rgba(255, 235, 200, 0.05) 40%, transparent 65%);
+    transform-origin: top right; will-change: transform, opacity;
+    animation: sunbeam-pulse 12s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
+}
+.orb { 
+    position: absolute; border-radius: 50%; 
+    /* 彻底移除 filter: blur(110px); */
+    will-change: transform; opacity: 0.85; 
+}
+/* 渐变的结尾必须是完全透明，自然形成毛边光晕 */
+.orb-1 { width: 60vw; height: 60vw; background: radial-gradient(circle, rgba(178, 219, 255, 0.3) 0%, transparent 60%); top: -15%; right: -15%; animation: orb-drift-1 18s infinite alternate cubic-bezier(0.4, 0, 0.2, 1); }
+.orb-2 { width: 70vw; height: 70vw; background: radial-gradient(circle, rgba(212, 206, 255, 0.4) 0%, transparent 60%); bottom: -20%; left: -20%; animation: orb-drift-2 22s infinite alternate-reverse cubic-bezier(0.4, 0, 0.2, 1); }
+.orb-3 { width: 50vw; height: 50vw; background: radial-gradient(circle, rgba(255, 204, 194, 0.3) 0%, transparent 60%); top: 20%; left: 30%; animation: orb-drift-3 20s infinite alternate cubic-bezier(0.4, 0, 0.2, 1); }
+
+/* 错落有致的非线性运动轨迹 (加入了 translate3d 强制触发 GPU 渲染防静止) */
+@keyframes orb-drift-1 {
+    0% { transform: translate3d(0, 0, 0) scale(1); }
+    100% { transform: translate3d(-15vw, 12vh, 0) scale(1.15); }
+}
+@keyframes orb-drift-2 {
+    0% { transform: translate3d(0, 0, 0) scale(1); }
+    100% { transform: translate3d(12vw, -12vh, 0) scale(0.95); }
+}
+@keyframes orb-drift-3 {
+    0% { transform: translate3d(0, 0, 0) scale(1); }
+    100% { transform: translate3d(-10vw, -15vh, 0) scale(1.2); }
+}
+@keyframes sunbeam-pulse {
+    0% { transform: rotate(0deg) scale(1) translate3d(0, 0, 0); opacity: 0.5; }
+    100% { transform: rotate(-3deg) scale(1.02) translate3d(-1vw, 1vh, 0); opacity: 1; }
+}
+
+/* Glass Reflection - 液态高光微折射层 (保持静止) */
+body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1; 
+    pointer-events: none;
+    background:
+        linear-gradient(
+            135deg,
+            rgba(255, 255, 255, 0.05) 0%,
+            rgba(255, 255, 255, 0.01) 25%,
+            transparent 50%,
+            transparent 75%,
+            rgba(255, 255, 255, 0.03) 100%
+        );
+}
+
+/* ===========================
+   2. Layout & Height Alignment
+=========================== */
+.app { 
+    display: grid !important; 
+    /* 强制锁定三条底层轨道: 动态左栏、32px控制条间距、自适应右栏所有元素 */
+    grid-template-columns: var(--left-width, 320px) 32px minmax(0, 1fr) !important; 
+    gap: 0 !important; /* 物理布局间距由分屏条全权承载 */
+    max-width: 1600px; 
+    min-height: 100vh;
+    margin: 0 auto; 
+    align-items: flex-start; 
+    position: relative;
+}
+
+.sidebar {
+    grid-column: 1 !important;
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    position: sticky; 
+    top: var(--spacing-main, 32px); 
+    height: calc(100vh - (var(--spacing-main, 32px) * 2));
+}
+
+.glass-resizer-bar {
+    grid-column: 2 !important;
+    width: 100%; 
+    cursor: col-resize; 
+    z-index: 100;
+    display: flex; 
+    align-items: center; 
+    justify-content: center;
+    position: sticky; 
+    top: var(--spacing-main, 32px); 
+    height: calc(100vh - (var(--spacing-main, 32px) * 2));
+    margin: 0;
+}
+
+/* 药丸默认状态 */
+.glass-resizer-bar::after {
+    content: ""; width: 4px; height: 32px; border-radius: 99px;
+    background: rgba(15, 23, 42, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.6);
+    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    position: absolute; 
+}
+
+/* 药丸激活状态 (悬浮/拖拽) 转换为 72px Liquid Glass 长药丸 */
+.glass-resizer-bar:hover::after, .glass-resizer-bar.dragging::after {
+    height: 72px; width: 8px; border-radius: 99px;
+    background: rgba(255, 255, 255, 0.28);
+    border-color: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(20px) saturate(190%) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(190%) !important;
+    box-shadow: 0 0 20px rgba(164, 170, 178, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.app > section.panel {
+    grid-column: 3 !important;
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    margin-bottom: 24px !important; /* 恢复上下卡片之间的舒适缝隙 */
+}
+
+/* 拖拽时的防多选、防掉帧引擎 */
+.app.resizing-active * { user-select: none !important; }
+.app.resizing-active section.panel, .app.resizing-active .sidebar {
+    backdrop-filter: blur(8px) saturate(100%) !important;
+    -webkit-backdrop-filter: blur(8px) saturate(100%) !important;
+    pointer-events: none !important;
+}
+
+.panel {
+    background: var(--glass); 
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(48px) saturate(200%); 
+    -webkit-backdrop-filter: blur(48px) saturate(200%);
+    box-shadow: var(--shadow-lg), inset 0 2px 6px rgba(255, 255, 255, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.9), inset 1.5px 0 2px rgba(255, 255, 255, 0.3);
+    border-radius: var(--radius-panel);
+    padding: var(--spacing-main);
+    position: relative;
+    overflow: visible !important;
+    width: 100%;
+}
+
+.sidebar { 
+    display: flex; flex-direction: column; gap: var(--spacing-card); 
+    align-items: center; position: sticky; top: var(--spacing-main);
+    height: calc(100vh - (var(--spacing-main) * 2));
+    justify-content: flex-start;
+}
+
+.main { display: flex; flex-direction: column; gap: var(--spacing-main); }
+
+.logo-area { width: 100%; text-align: left; margin-bottom: 10px; }
+.logo { font-size: 32px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 8px; position: relative; z-index: 1;}
+.subtitle { color: var(--sub); line-height: 1.6; margin-bottom: var(--spacing-main); font-size: 14px; position: relative; z-index: 1;}
+
+/* ===========================
+   3. Liquid Glass Clock 
+=========================== */
+.clock-container {
+    width: 250px; height: 250px; flex-shrink: 0;
+    background: rgba(255, 255, 255, 0.35); /* 更加通透的底色 */
+    backdrop-filter: blur(40px) saturate(200%); -webkit-backdrop-filter: blur(40px) saturate(200%);
+    /* 修复 2: 去掉笨重的粗边框, 改为极细高光边框 */
+    border: 1px solid rgba(255, 255, 255, 0.7); 
+    border-radius: 50%;
+    /* 修复 2: 移植 TaskTimer 的顶级 3D 内凹立体光影 */
+    box-shadow: 
+        0 24px 64px rgba(15,23,42,0.06), 
+        inset 0 16px 32px rgba(15,23,42,0.06), 
+        inset 0 -12px 24px rgba(255,255,255,0.9);
+    position: relative; margin: 10px 0 20px 0;
+}
+.clock-center { 
+    position: absolute; left: 50%; top: 50%; width: 16px; height: 16px; transform: translate(-50%, -50%); 
+    background: #1e293b; border-radius: 50%; z-index: 10; 
+    border: 3px solid white; 
+    /* 顺带增强轴心的物理阴影感 */
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3), inset 0 2px 4px rgba(255,255,255,0.3); 
+}
+.hand { position: absolute; left: 50%; top: 50%; border-radius: 999px; transition: transform 0.05s cubic-bezier(0.4, 2.08, 0.55, 0.44); }
+.hour-hand { width: 6px; height: 65px; margin-left: -3px; margin-top: -45px; transform-origin: 50% 45px; background: #2F354F; z-index: 5; }
+.minute-hand { width: 4px; height: 95px; margin-left: -2px; margin-top: -75px; transform-origin: 50% 75px; background: #78829E; z-index: 6; }
+.second-hand { width: 2px; height: 110px; margin-left: -1px; margin-top: -85px; transform-origin: 50% 85px; background: #ff3b30; z-index: 7; }
+.tick { position: absolute; left: 50%; top: 50%; width: 3px; height: 8px; margin-left: -1.5px; margin-top: -4px; background: #cbd5e1; border-radius: 4px; }
+.tick.major { width: 4px; height: 14px; margin-left: -2px; margin-top: -7px; background: #94a3b8; }
+.digital-clock { font-size: 44px; font-weight: 900; letter-spacing: -1px; color: var(--monet-text); text-shadow: 0 4px 12px rgba(255,255,255,0.8); font-variant-numeric: tabular-nums; }
+.current-date { font-size: 15px; color: var(--sub); font-weight: 600; margin-top: -8px; }
+
+/* ===========================
+   4. Form & Inputs
+=========================== */
+.section-title { font-size: 26px; font-weight: 800; margin-bottom: var(--spacing-card); display: flex; justify-content: space-between; align-items: center; position: relative; z-index: 1; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-card); position: relative; z-index: 1; }
+.full-width { grid-column: 1 / -1; }
+.field { display: flex; flex-direction: column; gap: 10px; }
+label { font-size: 14px; font-weight: 700; color: #334155; }
+
+.subject-box { display: flex; flex-wrap: wrap; gap: 12px; }
+.subject-item { position: relative; cursor: pointer; }
+.subject-item input { display: none; }
+
+/* ===========================
+   Subject Tags
+=========================== */
+.subject-item span {
+    display: flex; align-items: center; justify-content: center;
+    padding: 10px 18px; 
+    border-radius: var(--radius-sub);
+    
+    /* 降低基础白度, 让未选中态更加隐退 */
+    background-color: rgba(255, 255, 255, 0.25); 
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    
+    /* 强化内阴影高光, 弥补背景变暗后的质感流失 */
+    box-shadow: 
+        0 4px 10px rgba(15, 23, 42, 0.02), 
+        inset 0 1px 2px rgba(255, 255, 255, 0.7),
+        inset 0 -1px 2px rgba(255, 255, 255, 0.1);
+    
+    /* 性能优化: 彻底弃用 transition: all */
+    transition: transform 0.3s var(--ease), background-color 0.3s var(--ease), box-shadow 0.3s var(--ease), border-color 0.3s var(--ease); 
+    
+    font-size: 14px; font-weight: 700; color: #475569; /* 未选中时字体稍微变灰 */
+    cursor: pointer; user-select: none;
+}
+
+/* 悬浮态 (Hover): 明显上浮, 微微放大, 光感增强 */
+.subject-item:hover span {
+    background-color: rgba(255, 255, 255, 0.45);
+    transform: translateY(-2px);
+    box-shadow: 
+        0 8px 16px rgba(15, 23, 42, 0.05), 
+        inset 0 2px 4px rgba(255, 255, 255, 0.9);
+    border-color: rgba(255, 255, 255, 0.7);
+    color: #0f172a;
+}
+
+/* 按压态 (Active): 清脆的深陷回弹感, 瞬间响应 */
+.subject-item:active span {
+    transform: translateY(1px) scale(0.94);
+    background-color: rgba(255, 255, 255, 0.45);
+    box-shadow: 
+        0 2px 4px rgba(15, 23, 42, 0.04), 
+        inset 0 2px 6px rgba(0, 0, 0, 0.02);
+    transition-duration: 0.1s; 
+}
+
+/* 选中态 (Checked): 核心修复点! 弃用渐变, 改用高亮单色配合环境光晕 */
+.subject-item input:checked + span { 
+    /* 背景极大地透明化, 仅保留淡淡的蓝意 */
+    background-color: rgba(157, 210, 255, 0.25) !important; 
+    color: #0f172a !important; 
+    
+    /* 边框注入 Monet Blue, 模拟玻璃边缘的色彩折射 */
+    border-color: rgba(157, 210, 255, 0.7) !important; 
+    
+    box-shadow: 
+        0 8px 20px rgba(140, 185, 225, 0.15), /* 减弱外部光晕, 不抢主按钮戏份 */
+        inset 0 2px 4px rgba(255, 255, 255, 0.95), /* 维持顶部强高光 */
+        inset 0 -2px 6px rgba(140, 185, 225, 0.2) !important; /* 底部内凹透出蓝色 */
+        
+    transform: translateY(-2px) scale(1.02);
+}
+
+/* 🔴 高 (High): 莫奈淡红选中态 */
+.subject-item input[value="High"]:checked + span {
+    background-color: rgba(255, 194, 194, 0.15) !important; border-color: rgba(255, 194, 194, 0.7) !important; color: #581f1f !important;
+    box-shadow: 
+        0 8px 20px rgba(255, 150, 150, 0.15), 
+        inset 0 2px 4px rgba(255, 255, 255, 0.95),
+        inset 0 -1px 3px rgba(255, 150, 150, 0.1) !important;
+    transform: translateY(-2px) scale(1.02);
+}
+
+/* 🟡 中 (Medium): 莫奈淡黄选中态 */
+.subject-item input[value="Medium"]:checked + span {
+    background-color: rgba(255, 231, 160, 0.15) !important; border-color: rgba(255, 231, 160, 0.7) !important; color: #4b3700 !important;
+    box-shadow: 
+        0 8px 20px rgba(245, 158, 11, 0.05), 
+        inset 0 2px 4px rgba(255, 255, 255, 0.95),
+        inset 0 -1px 3px rgba(245, 158, 11, 0.05) !important;
+    transform: translateY(-2px) scale(1.02);
+}
+
+/* 🟢 低 (Low): 莫奈淡绿选中态 */
+.subject-item input[value="Low"]:checked + span {
+    background-color: rgba(184, 230, 201, 0.15) !important; border-color: rgba(184, 230, 201, 0.7) !important; color: #164128 !important;
+    box-shadow: 
+        0 8px 20px rgba(16, 185, 129, 0.1), 
+        inset 0 2px 4px rgba(255, 255, 255, 0.95),
+        inset 0 -1px 3px rgba(16, 185, 129, 0.1) !important;
+    transform: translateY(-2px) scale(1.02);
+}
+
+input[type="text"], input[type="number"] {
+    width: 100%; padding: 0 20px; border-radius: var(--radius-element); height:50px;
+    border: 1px solid rgba(255, 255, 255, 0.62); background: rgba(255, 255, 255, 0.5);
+    color: #0f172a; font-size: 15px; font-weight: 600; line-height: 1.6;
+    box-shadow: inset 0 2px 5px rgba(15, 23, 42, 0.05), inset 0 -1px 1.5px rgba(255, 255, 255, 0.65); transition: background 0.3s var(--ease), border-color 0.3s var(--ease), box-shadow 0.3s var(--ease);
+    resize: none;
+    transition: background 0.3s var(--ease), border-color 0.3s var(--ease), box-shadow 0.3s var(--ease), transform 0.3s var(--ease);
+    transform: translateY(0);
+}
+input::placeholder, textarea::placeholder { color: #748091; font-weight: 500; }
+input:hover, textarea:hover { background: rgba(255, 255, 255, 0.9); }
+input:focus, textarea:focus {
+    background: #ffffff; border-color: var(--monet-blue) !important;
+    box-shadow: 0 0 0 4px rgba(157, 210, 255, 0.25), 0 12px 24px rgba(15, 23, 42, 0.08) !important;
+}
+textarea {
+    width: 100%; 
+    padding: 14px 20px; 
+    border-radius: var(--radius-element);
+    height: 126px;       /* 完美匹配: 4行文字 + 边距 + 边框 = 126px, 消灭首行跳动 */
+    border: 1px solid rgba(255, 255, 255, 0.62); 
+    background: rgba(255, 255, 255, 0.5);
+    color: #0f172a; font-size: 15px; font-weight: 600; line-height: 1.6;
+    box-shadow: inset 0 2px 5px rgba(15, 23, 42, 0.05), inset 0 -1px 1.5px rgba(255, 255, 255, 0.65);
+    resize: none;
+    overflow-y: auto;
+    transition: background 0.3s var(--ease), border-color 0.3s var(--ease), box-shadow 0.3s var(--ease), transform 0.3s var(--ease), height 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transform: translateY(0);
+    will-change: height;
+}
+
+.input-wrap { position: relative; display: block; width: 100%; }
+.input-wrap input { padding-right: 48px !important; height: 50px !important; line-height: 50px !important; }
+.picker-icon {
+    position: absolute !important; right: 8px !important; top: 50% !important; transform: translateY(-50%) !important;
+    width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
+    border-radius: var(--radius-sm); cursor: pointer; z-index: 10; font-size: 18px; opacity: 0.85;
+    /* 修复: 精准过渡并增加硬件加速前置声明 */
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.25s ease, opacity 0.25s ease;
+    will-change: transform;
+}
+.picker-icon:hover { 
+    /* 移植: 悬浮放大并叠加淡灰色, 注意叠加 translateY 保持垂直居中 */
+    transform: translateY(-50%) scale(1.1) !important; 
+    background: rgba(15, 23, 42, 0.05); 
+    opacity: 1; 
+}
+.picker-icon:active { 
+    /* 移植: 点击按压回缩 */
+    transform: translateY(-50%) scale(0.95) !important; 
+    background: rgba(15, 23, 42, 0.08); 
+}
+
+/* ================== 按钮与工具栏 ================== */
+.toolbar { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; margin-bottom: var(--spacing-card); position: relative; z-index: 1;}
+.toolbar button { height: 52px; }
+
+/* 按钮 */
+button, upload-label {
+    position: relative; overflow: hidden; display: inline-flex; height: 52px; border: none;
+    align-items: center; justify-content: center; padding: 0 24px;
+    border-radius: var(--radius-element); cursor: pointer; font-size: 16px !important; font-weight: 700 !important; 
+    /* 极致顺滑的过渡：使用弹性阻尼曲线，保留 transform 硬件加速 */
+    transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), background 0.3s ease, box-shadow 0.3s ease; 
+    outline: none; letter-spacing: 0.5px;
+    will-change: transform, box-shadow; 
+}
+
+/* 废弃原先粗暴的 ::before 伪元素高光，改用更优雅的多重 background */
+button::before { display: none; }
+button:active { transform: scale(0.96) !important; }
+
+/* ------------------------------------------------
+   1. Primary (莫奈蓝) - 同色边缘折射版
+------------------------------------------------ */
+.primary { 
+    background: 
+        radial-gradient(circle at 85% 15%, rgba(255, 250, 240, 0.35) 0%, transparent 60%),
+        linear-gradient(135deg, rgba(145, 205, 255, 0.85) 0%, rgba(115, 185, 255, 0.45) 100%);
+    color: #0f172a; 
+    box-shadow: 
+        0 6px 16px rgba(120, 175, 225, 0.2), 
+        inset 0 1.5px 2px rgba(255, 255, 255, 0.95), 
+        inset -1px -1px 2px rgba(255, 255, 255, 0.3), 
+        /* 💡 将白边改为高透冰蓝色：完美融入基底，边缘像纯净的蓝水晶 */
+        0 0 0 1px rgba(217, 237, 254, 0.85); 
+    backdrop-filter: blur(16px) saturate(180%); 
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+}
+
+.primary:hover { 
+    background: 
+        radial-gradient(circle at 85% 15%, rgba(255, 250, 240, 0.55) 0%, transparent 65%),
+        linear-gradient(135deg, rgba(175, 220, 255, 0.95) 0%, rgba(145, 205, 255, 0.55) 100%);
+    transform: translateY(-2px); 
+    box-shadow: 
+        0 12px 24px rgba(120, 175, 225, 0.3), 
+        inset 0 2px 3px rgba(255, 255, 255, 1), 
+        inset -1px -1px 2px rgba(255, 255, 255, 0.5),
+        /* 💡 修复：将刺眼的蓝色霓虹边，改为带有一点点冷蓝调的“高透霜白色” */
+        0 0 0 1.5px rgba(240, 248, 255, 0.9); 
+}
+
+.primary:active {
+    background: 
+        radial-gradient(circle at 85% 15%, rgba(255, 250, 240, 0.2) 0%, transparent 40%),
+        linear-gradient(135deg, rgba(135, 195, 255, 0.75) 0%, rgba(105, 175, 255, 0.35) 100%);
+    box-shadow: 
+        0 2px 6px rgba(120, 175, 225, 0.1), 
+        inset 0 3px 6px rgba(15, 23, 42, 0.08), 
+        inset 0 1px 1px rgba(255, 255, 255, 0.5),
+        /* 💡 按下时蓝边暗淡，贴合物理阴影 */
+        0 0 0 1px rgba(145, 205, 255, 0.6);
+}
+
+/* ------------------------------------------------
+   2. Secondary (清透玻璃) - 微调适配
+------------------------------------------------ */
+.secondary { 
+    background: 
+        radial-gradient(circle at 85% 15%, rgba(255, 252, 245, 0.5) 0%, transparent 50%),
+        linear-gradient(135deg, rgba(255, 255, 255, 0.5) 0%, rgba(240, 248, 255, 0.15) 100%); 
+    color: var(--monet-text);
+    box-shadow: 
+        0 6px 16px rgba(15, 23, 42, 0.04), 
+        inset 0 1.5px 2px rgba(255, 255, 255, 0.95), 
+        inset -1px -1px 2px rgba(255, 255, 255, 0.3), 
+        /* 💡 将死白改为带有淡淡冷灰/冷蓝的珍珠白，消除锐利感 */
+        0 0 0 1px rgba(241, 245, 249, 0.85);
+    backdrop-filter: blur(16px) saturate(180%); 
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+}
+
+.secondary:hover { 
+    background: 
+        radial-gradient(circle at 85% 15%, rgba(255, 252, 245, 0.7) 0%, transparent 60%),
+        linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(245, 250, 255, 0.35) 100%); 
+    transform: translateY(-2px);
+    box-shadow: 
+        0 10px 24px rgba(15, 23, 42, 0.08), 
+        inset 0 2px 3px rgba(255, 255, 255, 1), 
+        inset -1px -1px 2px rgba(255, 255, 255, 0.5), 
+        0 0 0 1.5px rgba(255, 255, 255, 0.95); 
+}
+
+.secondary:active {
+    background: 
+        radial-gradient(circle at 85% 15%, rgba(255, 252, 245, 0.3) 0%, transparent 40%),
+        linear-gradient(135deg, rgba(245, 250, 255, 0.4) 0%, rgba(230, 240, 255, 0.1) 100%);
+    box-shadow: 
+        0 2px 6px rgba(15, 23, 42, 0.03), 
+        inset 0 3px 6px rgba(15, 23, 42, 0.04), 
+        inset 0 1px 1px rgba(255, 255, 255, 0.6),
+        0 0 0 1px rgba(226, 232, 240, 0.7);
+}
+
+/* ------------------------------------------------
+   3. Danger (警示红) - 同色边缘折射版
+------------------------------------------------ */
+.danger { 
+    background: 
+        radial-gradient(circle at 85% 15%, rgba(255, 235, 230, 0.2) 0%, transparent 50%),
+        linear-gradient(135deg, rgba(250, 66, 62, 0.75) 0%, rgba(220, 38, 38, 0.55) 100%); 
+    color: #ffffff; 
+    box-shadow: 
+        0 6px 16px rgba(239, 68, 68, 0.2), 
+        inset 0 1.5px 2px rgba(255, 255, 255, 0.5), 
+        inset -1px -1px 2px rgba(0, 0, 0, 0.08),
+        /* 💡 将白边改为高透珊瑚红：红玻璃的边缘就应该是透亮的红色 */
+        0 0 0 1px rgba(255, 199, 199, 0.75); 
+    backdrop-filter: blur(16px) saturate(180%); 
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+}
+
+.danger:hover { 
+    background: 
+        radial-gradient(circle at 85% 15%, rgba(255, 235, 230, 0.45) 0%, transparent 65%),
+        linear-gradient(135deg, rgba(248, 113, 113, 0.95) 0%, rgba(239, 68, 68, 0.7) 100%); 
+    transform: translateY(-2px); 
+    box-shadow: 
+        0 10px 24px rgba(239, 68, 68, 0.3), 
+        inset 0 2px 3px rgba(255, 255, 255, 0.75), 
+        inset -1px -1px 2px rgba(0, 0, 0, 0.12),
+        /* 💡 修复：将刺眼的亮红边，改为带有一丝微粉的珍珠白 */
+        0 0 0 1.5px rgba(255, 240, 240, 0.9); 
+}
+
+.danger:active {
+    background: 
+        linear-gradient(135deg, rgba(220, 38, 38, 0.75) 0%, rgba(185, 28, 28, 0.45) 100%);
+    box-shadow: 
+        0 2px 6px rgba(239, 68, 68, 0.1), 
+        inset 0 3px 6px rgba(0, 0, 0, 0.15), 
+        inset 0 1px 1px rgba(255, 255, 255, 0.3),
+        /* 💡 按下时压暗边缘红色 */
+        0 0 0 1px rgba(220, 38, 38, 0.5);
+}
+
+.btn-compact {
+    width: 78px !important; height: 44px !important; min-height: 44px !important;
+    padding: 0 !important; 
+    border-radius: var(--radius-element); /* 修正: 依据 44px 高度进行收缩, 维持矩形感 */
+    font-size: 15px !important; font-weight: 800 !important; 
+    box-shadow: 0 4px 12px rgba(47, 53, 79, 0.06) !important; margin: 0 !important;
+}
+
+.round-checkbox {
+    appearance: none !important; -webkit-appearance: none !important;
+    width: 24px !important; height: 24px !important; flex: 0 0 24px !important;
+    border-radius: 50% !important; background: #ffffff !important; border: 2px solid #cbd5e1 !important;
+    cursor: pointer !important; margin: 0 !important; padding: 0 !important; position: relative;
+    transition: all 0.2s var(--ease);
+}
+.round-checkbox:checked { 
+    background: #64748b !important; 
+    border-color: #64748b !important; 
+    /* “啵”一声的视觉 Q 弹动画 */
+    animation: checkboxPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+.round-checkbox:checked::after {
+    content: "✓" !important; color: white !important; font-size: 14px !important; font-weight: 800 !important;
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+}
+
+@keyframes checkboxPop {
+    0% { transform: scale(0.8); }
+    50% { transform: scale(1.15); }
+    100% { transform: scale(1); }
+}
+
+/* ===========================
+   任务卡片
+=========================== */
+.task-card {
+    position: relative;
+    /* 核心修改 1：削薄实体白度，注入 15% 的莫奈蓝偏光基底 */
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.45) 0%, rgba(157, 210, 255, 0.15) 100%);
+    /* 核心修改 2：提升色彩饱和度与透过率 */
+    backdrop-filter: blur(16px) saturate(200%);
+    -webkit-backdrop-filter: blur(16px) saturate(200%);
+    
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-card);
+    padding: 18px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    
+    /* 核心修改 3：引入 TaskFlow 验证过的物理级双层彩色环境发光阴影 + 超高折射内侧边缘高光 */
+    box-shadow: 
+        0 12px 32px rgba(47, 53, 79, 0.05),       /* 奠定实体厚度的骨架外阴影 */
+        0 4px 16px rgba(157, 210, 255, 0.18),     /* 莫奈蓝光晕向外漫射（流光凸显的关键！） */
+        inset 0 1.5px 2px rgba(255, 255, 255, 0.95), /* 顶部锐利切边反射高光 */
+        inset 0 -1.5px 3px rgba(157, 210, 255, 0.25); /* 底部承接底层光源的翻折射 */
+        
+    transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), 
+                box-shadow 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), 
+                opacity 0.4s ease;
+    cursor: grab;
+    user-select: none;
+    transform-origin: center center;
+    will-change: transform, box-shadow;
+}
+
+.task-card:hover { 
+    transform: translateY(-3px); 
+    /* 按需索取资源。仅在鼠标悬停的一瞬间才向 GPU 申请硬件加速 */
+    will-change: transform, box-shadow;
+    box-shadow: 
+        0 16px 40px rgba(15, 23, 42, 0.08), 
+        inset 0 2px 4px rgba(255, 255, 255, 1),
+        inset 0 -1px 2px rgba(255, 255, 255, 0.4); 
+}
+/* ===========================
+   微拟态玻璃标签 (Micro-Glass Tag)
+=========================== */
+.glass-tag {
+    padding: 6px 14px; 
+    font-size: 13px; 
+    font-weight: 800; 
+    border-radius: 999px; 
+    display: inline-flex; 
+    align-items: center; 
+    justify-content: center;
+    color: #1e293b;
+    
+    border: 1px solid rgba(255, 255, 255, 0.85);
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+    white-space: nowrap; 
+}
+
+/* 拖拽划线特效 */
+.strike-container {
+    position: relative; display: inline-block; cursor: crosshair; user-select: none; touch-action: none;
+    font-size: 22px; font-weight: 800; color: var(--monet-text); line-height: 0.75; padding: 4px 0;
+    
+    /* 修复 1: 默认无左偏移, 并赋予平滑推移的阻尼动画 */
+    margin-left: 0;
+    transition: margin-left 0.3s cubic-bezier(0.22, 1, 0.36, 1), color 0.3s;
+}
+.strike-line {
+    position: absolute; top: 50%; left: -4px; height: 2px; background: #e3605d;
+    width: 0; pointer-events: none; transform: translateY(-50%); border-radius: 2px;
+    box-shadow: 0 2px 8px rgba(227, 96, 93, 0.4); z-index: 2; transition: none;
+}
+.strike-line.done { width: calc(100% + 8px) !important; background: #64748b82; box-shadow: none; transition: width 0.3s ease-out, background 0.3s; margin-left: 4px;}
+.strike-container.done { color: #94a3b8; }
+.strike-container span { pointer-events: none; } /* 彻底屏蔽文字干扰, 让容器完整接收拖拽事件 */
+
+.empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 60px 0; width: 100%; height: 100%; position: relative; z-index: 1;}
+.empty-state .icon { font-size: 58px; margin-bottom: 14px; filter: drop-shadow(0 10px 10px rgba(15,23,42,0.05)); }
+.empty-state .title { font-size: 20px; font-weight: 800; color: #0f172a; margin-bottom: 8px; }
+.empty-state .desc { font-size: 15px; color: #64748bdb; font-weight: 500;}
+.hidden { display: none !important; }
+
+.task-card:has(.strike-container.done)::before {
+    content: "";
+    position: absolute;
+    inset: 0; /* 铺满整个卡片 */
+    border-radius: inherit;
+    background: rgba(255, 255, 255, 0.45); /* 柔和的白霜效果 */
+    pointer-events: none; /* 核心防线: 绝对不拦截鼠标, 确保底层按钮可点击！ */
+    z-index: 1; 
+    transition: all 0.4s ease;
+}
+
+/* 能量剥夺: 精准抽干 glass-tag (学科标签) 的高光与渐变色 */
+.task-card:has(.strike-container.done) .glass-tag {
+    /* 使用 !important 强行压制之前你在 JS 里内联写入的绚丽色彩 */
+    background: rgba(255, 255, 255, 0.4) !important; 
+    box-shadow: none !important; /* 关掉霓虹外发光 */
+    border-color: rgba(255, 255, 255, 0.5) !important;
+    color: #94a3b8 !important; /* 莫奈低饱和灰 */
+    text-shadow: none !important;
+    transition: all 0.4s ease;
+}
+
+/* 次要信息弱化: 让时间、备注等其他文本一同变灰变淡 */
+.task-card:has(.strike-container.done) span:not(.glass-tag),
+.task-card:has(.strike-container.done) p {
+    color: #aeb9c9 !important; /* 如果你的时间文本是特殊的类名, 也可以并排加在这里 */
+    transition: color 0.4s ease;
+}
+
+/* 重点保护按钮: 让卡片内部的 button 不受白霜影响, 并给出微弱的变暗反馈 */
+.task-card:has(.strike-container.done) button {
+    position: relative;
+    z-index: 2; /* 把按钮的层级抬高, 浮在白霜之上 */
+    opacity: 0.6; /* 未交互时轻微变暗, 融入“已完成”的氛围 */
+    transition: opacity 0.3s ease;
+}
+
+/* 即使任务划掉了, 鼠标放上按钮依然会亮起, 明确告诉用户: “我还能点” */
+.task-card:has(.strike-container.done) button:hover {
+    opacity: 1; 
+}
+
+/* ===========================
+   7. Flatpickr Fix
+=========================== */
+/* ================== Flatpickr 时钟原生 macOS 化 ================== */
+.flatpickr-calendar.noCalendar {
+    position: absolute !important;
+    width: auto !important;
+    padding: 0 !important;
+    /* 修复渲染卡顿: 将时间框的背景和毛玻璃属性全部上提到父级容器 */
+    background: rgba(255, 255, 255, 0.65) !important;
+    backdrop-filter: blur(24px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+    box-shadow: 0 12px 32px rgba(47, 53, 79, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+    border: 1px solid rgba(255, 255, 255, 0.8) !important;
+    border-radius: var(--radius-element) !important;
+    overflow: visible !important;
+}
+
+.flatpickr-time {
+    height: 100px !important;
+    max-width: 160px !important;
+    border-radius: var(--radius-element) !important;
+    margin: 0 !important; /* 彻底对齐边缘 */
+    
+    /* 清除原本在此层的材质属性, 交由父级承载 */
+    background: transparent !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: none !important;
+    border: none !important;
+    
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px;
+    padding: 0 14px !important;
+}
+.flatpickr-time .numInputWrapper { background: #f1f5f9 !important; border-radius: var(--radius-sm)  !important; height: 30px !important; width: 50px !important; display: flex !important; align-items: center !important; justify-content: center !important; border: 2px solid transparent !important; transition: all 0.2s; outline: none !important; }
+.flatpickr-time .numInputWrapper:focus-within { border-color: #98cfff94 !important; background: #ffffff !important; box-shadow: 0 4px 12px rgba(157, 210, 255, 0.3) !important; }
+.flatpickr-time input { font-size: 22px !important; font-weight: 800 !important; background: transparent !important; color: #0f172a !important; height: 100% !important; line-height: 48px !important; text-align: center !important; padding: 0 !important; border: none !important; outline: none !important; box-shadow: none !important; }
+.flatpickr-time input.flatpickr-hour { color: #80c4ff !important; }
+.flatpickr-time .flatpickr-time-separator { color: #64748b !important; font-weight: 700 !important; font-size: 20px !important; align-self: center; margin: 0 !important; display: flex; align-items: center; justify-content: center; height: 100%;}
+.flatpickr-calendar::before, .flatpickr-calendar::after { display: none !important; content: none !important; border: none !important; }
+.flatpickr-current-month svg, .flatpickr-monthDropdown-months, .flatpickr-monthDropdown-month, select.flatpickr-monthDropdown-months, .numInputWrapper span { display: none !important; appearance: none !important; -webkit-appearance: none !important; }
+
+/* ===========================
+   8. 液态玻璃悬浮球 & 弹窗
+=========================== */
+.glass-sphere {
+    position: fixed; right: 40px; bottom: 40px; width: 64px; height: 64px;
+    border-radius: 50%; cursor: grab; z-index: 9999;
+    display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, rgba(255,255,255,0.9), rgba(255,255,255,0.2));
+    backdrop-filter: blur(24px) saturate(200%); -webkit-backdrop-filter: blur(24px) saturate(200%);
+    border: 1px solid rgba(255,255,255,0.9);
+    box-shadow: 0 16px 32px rgba(15,23,42,0.1), inset 0 4px 12px rgba(255,255,255,1), inset 0 -4px 12px rgba(0,0,0,0.05);
+    transition: transform 0.2s cubic-bezier(0.4, 2.08, 0.55, 0.44);
+    user-select: none; touch-action: none;
+}
+.glass-sphere:active { cursor: grabbing; transform: scale(0.9); transition: transform 0.1s; }
+.sphere-icon { font-size: 28px; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.1)); pointer-events: none;}
+
+/* ===========================
+   液态玻璃弹窗与动画引擎
+=========================== */
+.sphere-modal {
+    position: fixed; inset: 0; z-index: 10000; display: flex; align-items: center; justify-content: center;
+    background: rgba(15, 23, 42, 0.25);
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    opacity: 1; visibility: visible; 
+    
+    transition: opacity 0.3s var(--ease), 
+                backdrop-filter 0.3s var(--ease),
+                -webkit-backdrop-filter 0.3s var(--ease),
+                visibility 0s 0s;
+                
+    /* 修复掉帧 2: 提前宣告模糊度的变化, 并强制开启底层硬件加速 */
+    will-change: opacity, backdrop-filter;
+    transform: translateZ(0);
+}
+
+.sphere-modal.hidden {
+    display: flex !important; 
+    opacity: 0; 
+    visibility: hidden; 
+    pointer-events: none;
+    
+    /* 修复掉帧 3: 退出时将模糊度归零, 彻底释放底层渲染压力 */
+    backdrop-filter: blur(0px); -webkit-backdrop-filter: blur(0px);
+    
+    transition: opacity 0.3s var(--ease), 
+                backdrop-filter 0.3s var(--ease),
+                -webkit-backdrop-filter 0.3s var(--ease),
+                visibility 0s 0.3s;
+}
+
+.sphere-modal .modal-content {
+    background: rgba(255, 255, 255, 0.82); 
+    backdrop-filter: blur(48px) saturate(200%); -webkit-backdrop-filter: blur(48px) saturate(200%);
+    border: 1px solid rgba(255, 255, 255, 1); 
+    
+    border-radius: var(--radius-panel);
+    
+    padding: var(--spacing-main);
+    
+    width: 360px; 
+    
+    box-shadow: 0 24px 64px rgba(15,23,42,0.15), inset 0 2px 6px rgba(255, 255, 255, 0.6);
+    
+    will-change: transform, opacity;
+    transform: translateY(0) scale(1) translateZ(0); 
+    opacity: 1;
+    
+    transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1),
+                opacity 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.sphere-modal.hidden .modal-content {
+    transform: translateY(24px) scale(0.92) translateZ(0); 
+    opacity: 0;
+    transition: transform 0.3s var(--ease),
+                opacity 0.3s var(--ease);
+}
+/* ================== Flatpickr 日历动画 ================== */
+.flatpickr-calendar {
+    width: 365px !important; border-radius: var(--radius-element) !important; padding: 24px !important;
+    box-sizing: border-box !important; margin-top: 10px !important;
+    background: rgba(255, 255, 255, 0.55) !important;
+    backdrop-filter: blur(48px) saturate(200%) !important;
+    -webkit-backdrop-filter: blur(48px) saturate(200%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.7) !important;
+    box-shadow: 0 12px 32px rgba(47, 53, 79, 0.08), inset 0 1.5px 3px rgba(255, 255, 255, 0.7), inset 0 1px 1px rgba(255, 255, 255, 0.9) !important;
+
+    /* 1. 强制保留在渲染树中 */
+    overflow: visible !important;
+    display: block !important; 
+
+    /* 封杀 Flatpickr 自带的原生动画, 防止它抢占动画控制权 */
+    animation: none !important;
+
+    /* 初始隐藏状态 */
+    opacity: 0 !important;
+    visibility: hidden !important; /* 恢复为 hidden, 但由下方的过渡引擎接管 */
+    transform: translateY(12px) scale(0.95) !important;
+    pointer-events: none !important;
+    z-index: 9999 !important;
+
+    top: 0;
+    left: 0;
+
+    /* 【退出动画】visibility 延迟 0.3s 执行, 先让 opacity 完美淡出, 0.3s后再彻底隐身 */
+    transition: opacity 0.3s cubic-bezier(0.22, 1, 0.36, 1), 
+                transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+                visibility 0s 0.3s !important; 
+}
+
+.flatpickr-calendar.open, .flatpickr-calendar.inline {
+    /* 展开后的最终状态 */
+    opacity: 1 !important;
+    visibility: visible !important; 
+    transform: translateY(0) scale(1) !important;
+    pointer-events: auto !important;
+
+    /* visibility 延迟 0s (瞬间现身) , 为 opacity 和 transform 的 0.3s 阻尼动画铺平道路 */
+    transition: opacity 0.3s cubic-bezier(0.22, 1, 0.36, 1), 
+                transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+                visibility 0s 0s !important; 
+}
+
+/* ===========================
+   2. 列表渲染上浮动画 (性能优化版)
+=========================== */
+@keyframes alphaCardIn {
+    0% { opacity: 0; transform: translateY(24px) scale(0.96); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.hub-card-wrap {
+    /* 将 both 改为 backwards, 动画结束后立刻交还 GPU 控制权 */
+    animation: alphaCardIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+    transform: translateZ(0); /* 基础 3D 硬件加速垫底 */
+}
+
+/* 给底层的表单分组容器也加上同款弹性展开过渡 */
+.list-section-panel {
+    animation: alphaCardIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+    transform: translateZ(0);
+    border-radius: calc(var(--radius-panel)) !important; /* 新增: 修复表单外层圆角大小不统一的 Bug */
+}
+
+/* ===========================
+   9. 响应式布局对齐 TaskFlow (自适应单列)
+=========================== */
+@media(max-width: 1050px) { 
+    /* 修复: 加入 gap: var(--spacing-main), 让卡片之间重新撑开呼吸间距 */
+    .app { grid-template-columns: 1fr !important; gap: var(--spacing-main) !important; } 
+    /* 窄屏时取消侧边栏固定, 让其自适应堆叠 */
+    .sidebar { position: relative; top: 0; height: auto; flex-direction: column; } 
+    
+    .glass-resizer-bar { display: none !important; }
+}
+
+@media(max-width: 768px) {
+    /* 手机/极窄屏幕下: 表单变为单列 */
+    .form-grid { grid-template-columns: 1fr; }
+    
+    /* 卡片内部结构转为纵向排列 */
+    .task-card > div { flex-direction: column; gap: 16px !important; }
+    
+    /* 按钮组横向平分铺满底部, 方便触控 */
+    .task-card > div > div:last-child { 
+        flex-direction: row; 
+        width: 100%; 
+        padding: 8px 0 0 0;
+    }
+    .btn-compact { flex: 1; }
+}
+
+/* =================================================================
+   Dynamic Engine
+================================================================= */
+.list-pop-cb {
+    -webkit-appearance: none; appearance: none;
+    width: 18px; height: 18px; border-radius: 50%;
+    border: 2px solid #94a3b8; background: transparent;
+    cursor: pointer; position: relative; margin: 0; outline: none;
+    transition: all 0.2s var(--ease); flex-shrink: 0;
+}
+.list-pop-cb:checked { 
+    background: #64748b !important; 
+    border-color: #64748b !important; 
+    animation: checkboxPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+.list-pop-cb:checked::after {
+    content: "✓" !important; color: white !important; 
+    font-size: 11px !important; font-weight: 800 !important; 
+    position: absolute; top: 50%; left: 50%; 
+    transform: translate(-50%, -50%);
+}
+
+.list-trigger-container {
+    width: 100%; padding: 10px 16px; box-sizing: border-box;
+    background: rgba(255, 255, 255, 0.6);
+    border: 1px solid var(--glass-border); border-radius: var(--radius-element);
+    display: flex; justify-content: space-between; align-items: center;
+    cursor: pointer; transition: all 0.3s var(--ease);
+}
+.list-trigger-container:hover { background: rgba(255, 255, 255, 0.85); }
+.list-trigger-action-btn {
+    font-size: 12px; font-weight: 600; color: #64748b;
+    background: rgba(15, 23, 42, 0.06); padding: 5px 10px;
+    border-radius: var(--radius-sm); transition: background 0.2s;
+}
+.list-trigger-container:hover .list-trigger-action-btn { background: rgba(15, 23, 42, 0.1); }
+
+.pop-input-fx {
+    background: rgba(255, 255, 255, 0.5) !important;
+    border: 1px solid rgba(255, 255, 255, 0.62) !important;
+    box-shadow: inset 0 2px 5px rgba(15, 23, 42, 0.05), inset 0 -1px 1.5px rgba(255, 255, 255, 0.65) !important;
+    transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1) !important;
+    color: var(--text) !important;
+}
+.pop-input-fx:focus {
+    background: #ffffff !important;
+    border-color: var(--monet-blue) !important;
+    box-shadow: 0 0 0 4px rgba(157, 210, 255, 0.25), inset 0 2px 5px rgba(15, 23, 42, 0.05) !important;
+}
+.pop-input-fx:hover {
+    background: rgba(255, 255, 255, 0.85) !important;
+}
+
+.glass-icon-btn {
+    width: 32px; height: 32px; border-radius: var(--radius-sm); /* 统一内部微小圆角 */
+    display: flex; align-items: center; justify-content: center;
+    background-color: rgba(255, 255, 255, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05), inset 0 1px 1px rgba(255, 255, 255, 0.8);
+    cursor: pointer; 
+    /* 修复 1: 拆分动画属性, 并将 background 改为 background-color 以支持原生平滑过渡 */
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+    font-size: 15px; user-select: none;
+}
+.glass-icon-btn:hover {
+    transform: translateY(-2px); background-color: rgba(255, 255, 255, 0.8);
+}
+.glass-icon-btn:active {
+    transform: scale(0.92);
+}
+.glass-icon-btn.selected {
+    /* 修复 2: 使用纯色代替无法动画的渐变, 并将色彩调浅, 更加通透 */
+    background-color: rgba(178, 219, 255, 0.4);
+    border-color: rgba(255, 255, 255, 0.5);
+    box-shadow: 0 6px 16px rgba(140, 185, 225, 0.25), inset 0 1px 2px rgba(255, 255, 255, 0.9);
+    transform: translateY(-1px) scale(1.05);
+}
+.icon-panel-wrap {
+    display: flex; gap: 8px; flex-wrap: wrap;
+    overflow: hidden;
+    max-height: 0; opacity: 0;
+    
+    /* 【核心黑科技: 水平防切断】两侧内推16px再外拉16px, 拓宽阴影安全区 */
+    /* 【隐形 Bug 修复】闭合时底部 margin -8px, 悄悄吃掉多余的 flex gap, 让表单更紧凑 */
+    padding: 0 16px; 
+    margin: 0 -16px -8px -16px; 
+    
+    transform: translateY(-8px) translateZ(0); 
+    /* 将 padding 和 margin 一并加入阻尼动画, 实现液态伸缩 */
+    transition: max-height 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), 
+                padding 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
+                margin 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
+                opacity 0.3s cubic-bezier(0.22, 1, 0.36, 1), 
+                transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    pointer-events: none;
+    will-change: max-height, opacity, transform, padding, margin;
+}
+
+.icon-panel-wrap.show {
+    max-height: 100px; /* 放宽限高 */
+    
+    /* 【核心黑科技: 垂直缓冲带】展开时上下撑开, 容纳 Hover 的弹跳 (-2px) 和大阴影 (16px) */
+    padding: 12px 16px 20px 16px;
+    
+    /* 精准负外边距抵消: 完美抵消 padding 带来的占位, 确保原本的精美排版不走样 */
+    margin: -8px -16px -16px -16px; 
+    
+    opacity: 1;
+    transform: translateY(0) translateZ(0);
+    pointer-events: auto;
+}
+
+.alpha-modal-overlay {
+    position: fixed; inset: 0; background: rgba(15, 23, 42, 0.25);
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; visibility: hidden; pointer-events: none;
+    transition: opacity 0.3s var(--ease), visibility 0s 0.3s;
+    z-index: 10005; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    
+    /*赋予外层容器 GPU 加速前置声明, 让它全权负责透明度计算 */
+    will-change: opacity;
+}
+.alpha-modal-overlay.open {
+    opacity: 1; visibility: visible; pointer-events: auto;
+    transition: opacity 0.3s var(--ease), visibility 0s 0s;
+}
+.alpha-modal-overlay .modal-inner {
+    transform: scale(0.85) translateY(20px) translateZ(0); 
+    
+    will-change: transform;
+    
+    transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.alpha-modal-overlay.open .modal-inner {
+    transform: scale(1) translateY(0) translateZ(0); 
+}
+
+#customDialog { z-index: 99999 !important; }
+.modal-scroll-zone::-webkit-scrollbar { width: 4px; }
+.modal-scroll-zone::-webkit-scrollbar-thumb { background: rgba(15,23,42,0.1); border-radius: var(--radius-sm); }
+
+.alpha-modal-overlay.blur-suspended {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+.alpha-modal-overlay.blur-suspended .modal-inner {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    /* 稍微加深底色, 掩盖失去模糊后背后透视的杂乱感 */
+    background: rgba(245, 248, 250, 0.98) !important; 
+}
+
+/* ===========================
+   全局景深导航引擎 & 菜单样式
+=========================== */
+.logo-area { width: 100%; text-align: left; margin-bottom: 24px; position: relative; z-index: 1000 !important; }
+.logo-trigger {
+    display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; margin-left: -12px; margin-bottom: 4px;
+    border-radius: var(--radius-element); cursor: pointer; 
+    transition: background 0.3s cubic-bezier(0.22, 1, 0.36, 1); 
+    user-select: none;
+}
+.logo-trigger:hover, .logo-trigger.active { background: rgba(15, 23, 42, 0.08); } 
+.logo-text { font-size: 32px; font-weight: 800; letter-spacing: -0.5px; color: var(--text); line-height: 1;}
+
+.logo-arrow { color: var(--sub); opacity: 0.6; transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.3s; display: block; margin-top: 4px; }
+.logo-trigger.active .logo-arrow { opacity: 1; color: var(--sub); transform: rotate(180deg); }
+
+/* 原汁原味的 TaskFlow 选项卡样式 */
+.alpha-dropdown {
+    position: absolute; top: 56px; left: -4px; min-width: 220px;
+    background: rgba(255, 255, 255, 0.25); 
+    backdrop-filter: blur(64px) saturate(250%); -webkit-backdrop-filter: blur(64px) saturate(250%);
+    border: 1px solid rgba(255, 255, 255, 0.85);
+    border-radius: var(--radius-element);
+    padding: 8px;
+    box-shadow: 0 32px 64px rgba(15, 23, 42, 0.15), inset 0 1px 0 rgba(255,255,255,0.9);
+    transform-origin: top left;
+    transition: opacity 0.3s cubic-bezier(0.22, 1, 0.36, 1), transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1), visibility 0s 0s;
+    z-index: 9999;
+    will-change: transform, opacity;
+}
+.alpha-dropdown.hidden {
+    display: block !important;
+    opacity: 0; 
+    transform: scale(0.85) translateY(-16px); 
+    visibility: hidden; pointer-events: none;
+    transition: opacity 0.25s cubic-bezier(0.22, 1, 0.36, 1), transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), visibility 0s 0.25s;
+}
+
+.dropdown-item {
+    display: flex; align-items: center; gap: 14px; padding: 12px 14px;
+    border-radius: var(--radius-sm); color: #1e293b; 
+    font-size: 16px; font-weight: 700; 
+    text-decoration: none; cursor: pointer; 
+    width: 100%; box-sizing: border-box; 
+    transition: background 0.2s cubic-bezier(0.22, 1, 0.36, 1), padding 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.dropdown-item:hover { 
+    background: rgba(15, 23, 42, 0.08); 
+    padding-left: 20px; 
+    padding-right: 8px; 
+}
+.dropdown-item.active { color: #64748b; cursor: default; }
+.dropdown-item.active:hover { background: transparent; padding-left: 14px; padding-right: 12px; }
+
+.dp-icon { font-size: 20px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1)); } 
+.dropdown-divider { height: 1px; background: rgba(15,23,42,0.08); margin: 8px 12px; }
+.dp-badge { margin-left: auto; font-size: 12px; background: rgba(15,23,42,0.06); padding: 4px 8px; border-radius: var(--radius-sm); color: #64748b; font-weight: 800;}
+
+/* ===========================
+   全局景深模糊机制 (0% 突兀感 & 硬件加速防卡顿版)
+=========================== */
+
+/* 1. 基础动画过渡 (保持不变) */
+.sidebar, #setupPanel {
+    transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease !important;
+}
+
+.sidebar > *:not(.logo-area), 
+.main, 
+.logo-area .subtitle,
+.glass-resizer-bar,
+.setup-layout > *:not(#setupPanel),
+#timerPanel {
+    transition: opacity 0.3s ease, filter 0.3s ease, -webkit-filter 0.3s ease; 
+}
+
+/* 2. 核心分离: 确保 open 和 closing 状态都拥有最高层级, 防止下沉 */
+body.alpha-menu-open .sidebar,
+body.alpha-menu-closing .sidebar,
+body.alpha-menu-open #setupPanel,
+body.alpha-menu-closing #setupPanel {
+    z-index: 999 !important; 
+    backdrop-filter: none !important; 
+    -webkit-backdrop-filter: none !important;
+    background: transparent !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
+}
+
+/* 3. 性能跃升: 视觉模糊【仅】绑定 open 状态 */
+body.alpha-menu-open .sidebar > *:not(.logo-area),
+body.alpha-menu-open #setupPanel > *:not(.logo-area) {
+    opacity: 0.3 !important; 
+    /* 💡 从 20px 降至 12px: 视觉依旧有深邃毛玻璃感, 但极大地解放了渲染管线 */
+    filter: blur(12px) saturate(120%) !important;
+    -webkit-filter: blur(12px) saturate(120%) !important;
+    pointer-events: none;
+    
+    /* 💡 TaskTimer 救星: 强制将这些会被模糊的节点提拔至独立 GPU 复合层 */
+    will-change: filter, opacity; 
+    transform: translateZ(0);
+}
+
+/* 4. 右侧面板透明度与防重绘雪崩 */
+body.alpha-menu-open .main,
+body.alpha-menu-open .glass-resizer-bar,
+body.alpha-menu-open .setup-layout > *:not(#setupPanel),
+body.alpha-menu-open #timerPanel,
+body.alpha-menu-open .timer-circle-wrap {
+    opacity: 0.15;
+    pointer-events: none;
+    
+    /* 💡 TaskTimer 救星: 防止高频刷新的数字导致右侧透明度矩阵重新计算 */
+    will-change: opacity;
+    transform: translateZ(0);
+}
+
+/* 彻底隐藏副标题 */
+body.alpha-menu-open .logo-area .subtitle {
+    opacity: 0 !important; 
+    pointer-events: none;
+}
+
+/* 拔除背景材质 (保持不变) */
+body.alpha-menu-open .panel,
+body.alpha-menu-open .task-card,
+body.alpha-menu-open .side-card,
+body.alpha-menu-open .chart-wrap,
+body.alpha-menu-open .view-toggle,
+body.alpha-menu-open .timer-circle-wrap {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+/* 5. 全局通透遮罩优化 */
+.nav-click-catcher { 
+    position: fixed; inset: 0; z-index: 998; 
+    background: rgba(15, 23, 42, 0.05) !important;
+    /* 💡 同步降低半径, 拯救高频刷新页面的性能 */
+    backdrop-filter: blur(12px) saturate(120%);
+    -webkit-backdrop-filter: blur(12px) saturate(120%);
+    opacity: 0; visibility: hidden;
+    
+    /* 💡 提前预热, 让浏览器知道它即将改变透明度和材质 */
+    will-change: opacity, backdrop-filter; 
+    transform: translateZ(0); 
+    transition: opacity 0.3s cubic-bezier(0.22, 1, 0.36, 1), visibility 0s 0.3s;
+}
+body.alpha-menu-open .nav-click-catcher { 
+    opacity: 1; visibility: visible;
+    transition: opacity 0.3s cubic-bezier(0.22, 1, 0.36, 1), visibility 0s 0s;
+}
+
+/* 6. 确保标题区域无敌层 (保持不变) */
+.logo-area { position: relative; z-index: 1000 !important; }
+
+/* 7. 时钟专属渲染 (保持不变) */
+#clockFace, #digitalClock, #currentDate {
+    transition: filter 0.3s ease, opacity 0.3s ease, background 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+}
+body.alpha-menu-open #clockFace,
+body.alpha-menu-open #digitalClock,
+body.alpha-menu-open #currentDate {
+    position: relative;
+    z-index: 1001 !important; 
+    filter: blur(8px) brightness(0.95) !important; 
+    opacity: 0.75 !important; 
+    pointer-events: none !important;
+    will-change: filter, opacity; /* 💡 顺手也给时钟加上硬件加速 */
+    transform: translateZ(0);
+}
+body.alpha-menu-open #clockFace {
+    background: transparent !important;
+    box-shadow: none !important;
+    border-color: transparent !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+/* 升级: “📁 管理表单”中的删除按钮高亮放大特效 */
+.pop-del-list-action {
+    cursor: pointer; font-size: 12px; font-weight: 700; 
+    color: var(--monet-danger); background: rgba(227, 96, 93, 0.1); 
+    padding: 4px 10px; border-radius: var(--radius-sm); 
+    transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+.pop-del-list-action:hover {
+    background: rgba(227, 96, 93, 0.18); 
+    color: #e3605d;
+    transform: scale(1.1); /* 同款悬浮放大 */
+}
+.pop-del-list-action:active {
+    transform: scale(0.92); /* 同款按压回弹 */
+    background: rgba(227, 96, 93, 0.25); 
+}
+
+/* ===========================
+   修复: 表单/分组容器底部留白过大问题
+=========================== */
+.hub-card-wrap:last-child .task-card,
+.task-card:last-child {
+    margin-bottom: 0 !important;
+}
+
+/* 2. 微调表单分组容器的底部内边距, 使其与顶部和两侧的间距保持视觉统一 */
+.list-section-panel {
+    padding-bottom: 23px !important; 
+    border-radius: calc(var(--radius-panel)) !important; /* 新增: 修复表单外层圆角大小不统一的 Bug */
+}
+
+#scheduleList .list-section-panel:last-child {
+    /* 强行抹除最后一个分组 (即整个列表最底部) 的额外留白 */
+    margin-bottom: 4px !important;
+    padding-bottom: 0 !important;
+}
+
+.faded-slash {
+    color: #cbd5e1;
+    font-weight: 400;
+    margin: 0 2px;
+    display: inline-block;
+    user-select: none;
+    pointer-events: none;
+}
+
+#popListContainer > div {
+    /* 补全平滑过渡, 并开启 GPU 硬件加速 */
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.25s ease, box-shadow 0.25s ease !important;
+    border-radius: var(--radius-element) !important;
+    cursor: pointer;
+    background-color: rgba(255, 255, 255, 0.5); /* 默认半透白玻璃底色 */
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    padding: 8px 12px; /* 确保卡片有一定的内边距 */
+}
+
+/* ================== TaskHub 高级管理与筛选引擎 ================== */
+.toolbar {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+}
+.toolbar-left {
+    display: flex;
+    align-items: center;
+    justify-content: space-between; /* 核心修复：直接将管理组固定在左, 滑块优雅推至最右 */
+    width: 100%; /* 撑满工具栏通栏 */
+}
+.manage-group {
+    display: flex;
+    align-items: center;
+}
+.manage-actions-wrap {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    opacity: 0;
+    width: 0;            
+    margin-left: 0;      
+    overflow: visible;   
+    white-space: nowrap; 
+    pointer-events: none;
+    transform: translateX(-16px) scale(0.95);
+    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    will-change: transform, opacity, width, margin-left;
+}
+.manage-actions-wrap button {
+    flex-shrink: 0;      
+}
+body.manage-mode-active .manage-actions-wrap {
+    opacity: 1;
+    width: 230px;        
+    margin-left: 16px;   
+    transform: translateX(0) scale(1);
+    pointer-events: auto;
+}
+
+/* ================== TaskFlow 同款：复选框平滑阻尼引擎 ================== */
+.task-checkbox-wrap {
+    width: 0;
+    flex: 0 0 0px; /* 核心黑科技: 用弹性基准代替 margin 暴力推挤 */
+    opacity: 0;
+    /* 修复：初始状态加入 translateY(2px), 保障纵向过渡平滑不突兀 */
+    transform: scale(0.5) translateX(-10px) translateY(2px); 
+    margin-right: 0;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: width 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), 
+                flex 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), 
+                opacity 0.3s var(--ease), 
+                transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), 
+                margin 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    will-change: width, opacity, transform, flex, margin;
+}
+
+/* 像素级对齐补丁：确保原生/圆角 input 绝不被弹性布局压扁 */
+.task-checkbox-wrap .batch-check,
+.task-checkbox-wrap .round-checkbox {
+    flex-shrink: 0 !important;
+    width: 24px !important;
+    height: 24px !important;
+}
+
+/* 展开态：完美推开右侧元素, 释放完美的 16px 黄金间距 */
+body.manage-mode-active .task-checkbox-wrap,
+.show-checkbox .task-checkbox-wrap,
+.batch-active .task-checkbox-wrap {
+    width: 26px;
+    flex: 0 0 26px;
+    opacity: 1;
+    /* 修复核心：在打开状态的最终形态上叠加 translateY(2px), 使其与小字号/低行高的标题栏绝对齐平 */
+    transform: scale(1) translateX(0) translateY(2px); 
+    margin-right: 16px;
+    pointer-events: auto;
+}
+
+/* 完美对标 TaskFlow 原版写法的 Grid 滑块系统 */
+.view-toggle {
+    position: relative; 
+    display: inline-grid; 
+    grid-template-columns: repeat(4, 1fr); 
+    height: 55px; 
+    width: 320px; 
+    background: rgba(255, 255, 255, 0.45); 
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: 16px; 
+    padding: 6px; 
+    box-shadow: inset 0 2px 6px rgba(15, 23, 42, 0.05);
+    backdrop-filter: blur(16px) saturate(180%); 
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    float: right;      /* 专治普通 Block 容器 */
+    margin-left: auto; /* 专治 Flex 容器 */
+}
+
+.view-toggle input[type="radio"] { 
+    display: none; 
+}
+
+.view-toggle label {
+    position: relative; 
+    z-index: 2; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    font-size: 15px; 
+    font-weight: 700; 
+    color: #64748b;
+    cursor: pointer; 
+    transition: color 0.3s ease; 
+}
+
+.view-toggle input[type="radio"]:checked + label { 
+    color: #0f172a; 
+}
+
+.toggle-slider {
+    position: absolute;
+    top: 6px;
+    bottom: 6px;
+    left: 6px;
+    width: calc((100% - 12px) / 4); /* 配合 Grid, 这里的宽度计算将严丝合缝 */
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06), inset 0 1px 2px rgba(255, 255, 255, 0.9);
+    transition: transform 0.36s cubic-bezier(0.25, 0.95, 0.35, 1);
+    z-index: 1;
+    pointer-events: none;
+}
+
+/* ==========================================
+   2. 方向感应动画激活器
+   ========================================== */
+.toggle-slider.is-sliding-right {
+    animation: liquidGlassSlideRight .42s forwards;
+}
+
+.toggle-slider.is-sliding-left {
+    animation: liquidGlassSlideLeft .42s forwards;
+}
+
+/* ==========================================
+   3. 动画帧精细化调校（核心去抖与补偿）
+   ========================================== */
+
+/* 👉 右滑动画：适度衰减过激的横向拉伸 */
+@keyframes liquidGlassSlideRight {
+    0% {
+        scale: 1 1;
+        border-radius: calc(var(--radius-element) - 6px);
+        filter: brightness(1) saturate(1);
+    }
+    
+    /* 阶段 1：极度克制的微弱拉伸, 摒弃夸张形变 */
+    25% {
+        scale: 1.03 0.98; 
+        border-radius: 20px;
+        filter: brightness(1.02) saturate(1.02);
+        box-shadow: 
+            0 6px 14px rgba(15, 23, 42, .09), 
+            inset 0 2px 4px rgba(255, 255, 255, .97);
+    }
+    
+    /* 阶段 2：单向收敛, 彻底剔除原本 scale < 1 的反向缓冲 */
+    65% {
+        scale: 1.008 0.992; 
+        border-radius: 19px;
+    }
+    
+    /* 阶段 3：静止贴合, 无缝融入边界 */
+    100% {
+        scale: 1 1;
+        border-radius: calc(var(--radius-element) - 6px);
+        filter: brightness(1) saturate(1);
+    }
+}
+
+/* 👈 左滑动画：显著增强形变阻尼感 */
+@keyframes liquidGlassSlideLeft {
+    0% {
+        scale: 1 1;
+        border-radius: calc(var(--radius-element) - 6px);
+        filter: brightness(1) saturate(1);
+    }
+    18% {
+        scale: 1.14 0.92; /* 水平拉伸由 1.11 提升至 1.14 (增强) */
+        border-radius: 23px;
+        filter: brightness(1.06) saturate(1.10);
+        box-shadow: 0 12px 26px rgba(15,23,42,.14), inset 0 3.5px 5.5px rgba(255,255,255,.98);
+    }
+    46% {
+        scale: 1.07 0.96; /* 强化滑行阶段的视觉残留 */
+        border-radius: 21px;
+    }
+    72% {
+        scale: 0.990 1.010; /* 略微明显的果冻回弹 */
+        border-radius: 17.5px;
+    }
+    100% {
+        scale: 1 1;
+        border-radius: calc(var(--radius-element) - 6px);
+        filter: brightness(1) saturate(1);
+    }
+}
+
+#viewAll:checked ~ .toggle-slider { transform: translateX(0); }
+#viewDay:checked ~ .toggle-slider { transform: translateX(100%); }
+#viewWeek:checked ~ .toggle-slider { transform: translateX(200%); }
+#viewMonth:checked ~ .toggle-slider { transform: translateX(300%); }
+
+/* =======================================
+   开关
+======================================= */
+.alpha-switch {
+    position: relative;
+    display: inline-block;
+    width: 36px;         /* 【修改点】整体缩窄 */     
+    height: 22px;        /* 【修改点】整体变矮 */
+    border-radius: 99px;
+    background-color: rgba(255, 255, 255, 0.18); 
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    box-shadow: inset 0 2px 4px rgba(15, 23, 42, 0.04);
+    backdrop-filter: blur(10px) saturate(160%);
+    -webkit-backdrop-filter: blur(10px) saturate(160%);
+    flex-shrink: 0;      
+    cursor: pointer;
+}
+
+/* 轨道动画：速率翻倍至 0.5s */
+input:checked + .alpha-switch {
+    animation: alpha-bg-on .32s cubic-bezier(.22,1,.36,1) forwards;
+}
+
+input:not(:checked) + .alpha-switch {
+    animation: alpha-bg-off .32s cubic-bezier(.22,1,.36,1) forwards;
+}
+
+/* 滑块 Knob：等比缩小，维持完美圆角 */
+.alpha-switch::after {
+    content:'';
+    position:absolute;
+
+    left:3px;
+    top:50%;
+
+    width:16px;
+    height:16px;
+
+    border-radius:999px;
+    background:#fff;
+
+    box-shadow:
+        0 2px 6px rgba(15,23,42,.12);
+
+    transform:
+        translate(0,-50%);
+}
+
+/* 开启与关闭：触发 0.5s 高速物理形变 */
+input:checked + .alpha-switch::after {
+    animation: alpha-slide-on .32s forwards;
+}
+
+input:not(:checked) + .alpha-switch::after {
+    animation: alpha-slide-off .32s forwards;
+}
+
+/* =======================================
+   衬底变色引擎：维持 1/2 处渐变融合逻辑
+======================================= */
+@keyframes alpha-bg-on {
+    0%, 50% {
+        background-color: rgba(255, 255, 255, 0.18);
+        border-color: rgba(255, 255, 255, 0.35);
+        box-shadow: inset 0 2px 4px rgba(15, 23, 42, 0.04);
+    }
+    100% {
+        background-color: rgba(169, 215, 255, 0.55);
+        border-color: rgba(255, 255, 255, 0.6);
+        box-shadow: 0 4px 12px rgba(140, 185, 225, 0.15), inset 0 1px 2px rgba(255, 255, 255, 0.4);
+    }
+}
+
+@keyframes alpha-bg-off {
+    0%, 50% {
+        background-color: rgba(169, 215, 255, 0.55);
+        border-color: rgba(255, 255, 255, 0.6);
+        box-shadow: 0 4px 12px rgba(140, 185, 225, 0.15), inset 0 1px 2px rgba(255, 255, 255, 0.4);
+    }
+    100% {
+        background-color: rgba(255, 255, 255, 0.18);
+        border-color: rgba(255, 255, 255, 0.35);
+        box-shadow: inset 0 2px 4px rgba(15, 23, 42, 0.04);
+    }
+}
+
+/* =======================================
+   动效骨架 (根据新尺寸重算形变体积与行程)
+======================================= */
+@keyframes alpha-slide-on {
+    0% {
+        width: 16px;
+        height: 16px;
+        transform:translate(0,-50%);
+        animation-timing-function: cubic-bezier(0.25, 1.00, 0.75, 1.00);
+    }
+    5% { 
+        /* Anticipation (蓄力)：略微变宽 */
+        width: 18px;
+        height: 14px;
+        transform:translate(-.5px,-50%);
+        animation-timing-function: cubic-bezier(0.25, 0.00, 0.75, 0.00);
+    }
+    50% { 
+        /* Motion (冲刺)：高速形变为药丸状 */
+        width: 24px;
+        height: 10px;
+        transform:translate(3px,-50%); /* 完美居中 */
+        animation-timing-function: cubic-bezier(0.25, 1.00, 0.75, 1.00);
+    }
+    80% { 
+        /* Overshoot (撞击右壁)：瞬间纵向挤压 */
+        width: 14px;
+        height: 18px;
+        transform:translate(15px,-50%);
+        animation-timing-function: ease-out; /* 引导 80%->100% 恰好耗时 0.1s 的极速回弹 */
+    }
+    100% { 
+        /* Settle (归位)：恢复完美圆形 */
+        width: 16px;
+        height: 16px;
+        transform:translate(14px,-50%); /* 【重算行程】完美停止在 14px 处 */
+    }
+}
+
+@keyframes alpha-slide-off {
+    0% {
+        width: 16px;
+        height: 16px;
+        transform:translate(14px,-50%);
+        animation-timing-function: cubic-bezier(0.25, 1.00, 0.75, 1.00);
+    }
+    5% { 
+        /* Anticipation (向右蓄力) */
+        width: 18px;
+        height: 14px;
+        transform:translate(14.5px,-50%);
+        animation-timing-function: cubic-bezier(0.25, 0.00, 0.75, 0.00);
+    }
+    50% { 
+        /* Motion (向左冲刺药丸态) */
+        width: 24px;
+        height: 10px;
+        transform:translate(3px,-50%);
+        animation-timing-function: cubic-bezier(0.25, 1.00, 0.75, 1.00);
+    }
+    80% { 
+        /* Overshoot (撞击左壁) */
+        width: 14px;
+        height: 18px;
+        transform:translate(-1px,-50%);
+        animation-timing-function: ease-out;
+    }
+    100% {
+        width: 16px;
+        height: 16px;
+        transform:translate(0,-50%);
+    }
+}
+
+/* ================== 全局页面切换动效 V2 ================== */
+@keyframes alphaPageIn {
+    0% { opacity: 0; transform: translateX(60px); }
+    100% { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes alphaPageOut {
+    0% { opacity: 1; transform: translateX(0); }
+    100% { opacity: 0; transform: translateX(-60px); }
+}
+
+/* 1. 进场直接绑定给 .app 容器，无需 JS 介入 */
+.app {
+    /* backwards 属性是神来之笔：它强制让浏览器在第 0 帧就维持 0% 的状态（透明且偏右），彻底消灭闪烁 */
+    animation: alphaPageIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+/* 2. 退场专用类 */
+.page-transition-leave {
+    animation: alphaPageOut 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards !important;
+    pointer-events: none;
+    /* 强制降低退出时的层级，确保退场滑动时绝不会从 alphaDropdownMenu 上方压过去 */
+    position: relative;
+    z-index: 1; 
+}
+
+/* ================== 全局 Alpha Tooltip (极致液态毛玻璃增强版) ================== */
+#alphaTooltip {
+    position: fixed;
+    top: 0;
+    left: 0;
+    padding: 6px 12px;
+    
+    /* 1. 材质重塑：大幅降低白色浓度 (从 0.65 降至 0.35)，让底层画面透过来 */
+    background: rgba(255, 255, 255, 0.65);
+    
+    /* 2. 景深增强：提升模糊半径至 24px，并拉高 200% 的色彩饱和度，形成“丁达尔折射” */
+    backdrop-filter: blur(24px) saturate(200%);
+    -webkit-backdrop-filter: blur(24px) saturate(200%);
+    
+    /* 3. 物理切边：四周使用半透明边框，但顶部保留高亮，模拟顶光打在玻璃边缘 */
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-top-color: rgba(255, 255, 255, 0.85); 
+    
+    /* 4. 体积光影：外侧加深悬浮投影，内部注入两层发光感（边缘锐利折射 + 内部柔和泛光） */
+    box-shadow: 
+        0 8px 24px rgba(15, 23, 42, 0.12),         /* 更具浮空感的外阴影 */
+        inset 0 1px 1px rgba(255, 255, 255, 0.9),  /* 顶部边缘的极限高光 */
+        inset 0 0 12px rgba(255, 255, 255, 0.4);   /* 玻璃内部的均匀泛光厚度 */
+        
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+    color: var(--text, #0f172a);
+    font-weight: 500;
+    pointer-events: none;
+    z-index: 10000;
+    opacity: 0;
+    transform: translateY(6px) scale(0.94);
+    transition: opacity 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), 
+                transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    will-change: transform, opacity, left, top;
+    white-space: nowrap;
+}
+
+#alphaTooltip.visible {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
+</style>
+</head>
+
+<body>
+<div class="alpha-ambient-bg">
+    <div class="sunbeam"></div>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+</div>
+<div class="app">
+    <aside class="panel sidebar">
+        
+        <div class="logo-area">
+            <div class="logo-trigger" id="logoTrigger" onclick="toggleAlphaMenu(event)">
+                <div class="logo-text">🌏 TaskHub</div>
+                <svg class="logo-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+            
+            <div id="alphaDropdownMenu" class="alpha-dropdown hidden">
+                <a href="./Home.html" class="dropdown-item">
+                    <span class="dp-icon">🏠</span> 主页
+                </a>
+                <div class="dropdown-divider"></div>
+                <a href="./TaskTimer.html" class="dropdown-item">
+                    <span class="dp-icon">⏳</span> TaskTimer
+                </a>
+                <a href="./TaskFlow.html" class="dropdown-item">
+                    <span class="dp-icon">🗃️</span> TaskFlow
+                </a>
+                <div class="dropdown-divider"></div>
+                <div class="dropdown-item active">
+                    <span class="dp-icon">🌏</span> TaskHub <span class="dp-badge">当前</span>
+                </div>
+            </div>
+            <div class="subtitle">{ } Project ALPHA™ | 规划与分配</div>
+        </div>
+
+        <div class="clock-container" id="clockFace">
+            <div class="clock-center"></div>
+            <div class="hand hour-hand" id="hourHand"></div>
+            <div class="hand minute-hand" id="minuteHand"></div>
+            <div class="hand second-hand" id="secondHand"></div>
+        </div>
+
+        <div class="digital-clock" id="digitalClock">00:00:00</div>
+        <div class="current-date" id="currentDate">--月--日 星期--</div>
+    </aside>
+
+    <div class="glass-resizer-bar" id="glassResizer"></div>
+
+    <div class="main">
+        
+        <section class="panel">
+            <div class="section-title">创建任务</div>
+            
+            <div class="form-grid">
+                <div class="field full-width">
+                    <label>任务名称</label>
+                    <input type="text" id="taskName" placeholder="例如: 数学练习册">
+                </div>
+                
+                <div class="field full-width">
+                    <label>学科</label>
+                    <div class="subject-box" id="subjectBox">
+                        <label class="subject-item"><input type="checkbox" value="语文"><span>语文</span></label>
+                        <label class="subject-item"><input type="checkbox" value="数学"><span>数学</span></label>
+                        <label class="subject-item"><input type="checkbox" value="英语"><span>英语</span></label>
+                        <label class="subject-item"><input type="checkbox" value="物理"><span>物理</span></label>
+                        <label class="subject-item"><input type="checkbox" value="化学"><span>化学</span></label>
+                        <label class="subject-item"><input type="checkbox" value="历史"><span>历史</span></label>
+                        <label class="subject-item"><input type="checkbox" value="跨学科"><span>跨学科</span></label>
+                        <label class="subject-item"><input type="checkbox" value="道法"><span>道法</span></label>
+                        <label class="subject-item"><input type="checkbox" value="其他"><span>其他</span></label>
+                    <input type="text" id="customCategory" placeholder="自定义其他学科 (用「+」隔开) " style="margin-top:12px;">
+                    </div>
+                </div>
+
+                <div class="field full-width">
+                    <label>重要级</label>
+                    <div class="subject-box">
+                        <label class="subject-item"><input type="radio" name="priority" value="High"><span>🔴 高</span></label>
+                        <label class="subject-item"><input type="radio" name="priority" value="Medium"><span>🟡 中</span></label>
+                        <label class="subject-item"><input type="radio" name="priority" value="Low"><span>🟢 低</span></label>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label>预计开始</label>
+                    <div class="input-wrap" id="startTimeWrap">
+                        <input type="text" id="startTime" data-input placeholder="-- : --">
+                        <span class="picker-icon" data-toggle>🕒</span>
+                    </div>
+                </div>
+                <div class="field">
+                    <label>预计结束</label>
+                    <div class="input-wrap" id="endTimeWrap">
+                        <input type="text" id="endTime" data-input placeholder="-- : --">
+                        <span class="picker-icon" data-toggle>🕒</span>
+                    </div>
+                </div>
+
+                <div class="field full-width">
+                    <label>备注</label>
+                    <textarea id="taskRemark" class="textarea-resizable" rows="4" placeholder="补充任务细节或要求..."></textarea>
+                </div>
+            </div>
+
+            <div style="margin-top: 36px; position: relative; z-index: 1;">
+                <button class="primary" id="addBtn">添加</button>
+                <button class="secondary hidden" id="cancelEditBtn" onclick="cancelEdit()" style="margin-left: 10px;">取消编辑</button>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="section-title">我的一天</div>
+            
+                <div class="toolbar">
+                    <div class="toolbar-left">
+                        <div class="manage-group">
+                            <button class="primary" id="manageBtn" onclick="toggleManageMode()">管理</button>
+                            <div id="manageActions" class="manage-actions-wrap">
+                                <button class="secondary" id="selectAllBtn" onclick="selectAllTasks()">全选</button>
+                                <button class="danger" onclick="deleteSelectedTasks()">批量删除</button>
+                            </div>
+                        </div>
+                        
+                        <div style="display: flex; align-items: center; gap: 24px;">
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px; font-weight: 700; color: #64748b; user-select: none;">
+                                <input type="checkbox" id="showCompletedTasks" checked onchange="renderSchedules()" style="display: none;">
+                                <div class="alpha-switch"></div>
+                                显示已完成
+                            </label>
+
+                            <div class="view-toggle">
+                                <input type="radio" name="viewType" id="viewAll" value="all" checked>
+                                <label for="viewAll">全部</label>
+                                <input type="radio" name="viewType" id="viewDay" value="day">
+                                <label for="viewDay">当天</label>
+                                <input type="radio" name="viewType" id="viewWeek" value="week">
+                                <label for="viewWeek">本周</label>
+                                <input type="radio" name="viewType" id="viewMonth" value="month">
+                                <label for="viewMonth">本月</label>
+                                <div class="toggle-slider"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            
+            <div id="scheduleList"></div>
+        </section>
+
+    </div>
+</div>
+
+<audio id="audioDone" src="https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3" preload="auto"></audio>
+
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+<script>
+// ================= 全局毛玻璃弹窗引擎 =================
+window.dialogConfirmCallback = null;
+
+// ================= 赋予单选框“再次点击取消”的交互 =================
+const priorityRadios = document.querySelectorAll('input[name="priority"]');
+priorityRadios.forEach(radio => {
+    radio.addEventListener('click', function(e) {
+        // 如果当前已经被标记为选中状态, 则取消选中
+        if (this.dataset.wasChecked === 'true') {
+            this.checked = false;
+            this.dataset.wasChecked = 'false';
+        } else {
+            // 清除其他单选框的标记, 并标记当前为选中
+            priorityRadios.forEach(r => r.dataset.wasChecked = 'false');
+            this.dataset.wasChecked = 'true';
+        }
+    });
+});
+
+function customAlert(msg, title = "提示", icon = "💡") {
+    document.getElementById('dialogIcon').textContent = icon;
+    document.getElementById('dialogTitle').textContent = title;
+    document.getElementById('dialogMessage').innerHTML = msg;
+    document.getElementById('dialogCancelBtn').style.display = 'none';
+    const confirmBtn = document.getElementById('dialogConfirmBtn');
+    confirmBtn.textContent = "我知道了"; confirmBtn.className = "primary";
+    
+    // 核心修复: 弹出警报时, 立刻挂起底层的毛玻璃, 彻底释放 GPU
+    const listModal = document.getElementById('alphaListModalOverlay');
+    if (listModal && listModal.classList.contains('open')) listModal.classList.add('blur-suspended');
+
+    window.dialogConfirmCallback = () => { 
+        document.getElementById('customDialog').classList.add('hidden');
+        // 核心修复: 关掉警报后, 恢复底层毛玻璃
+        if (listModal) listModal.classList.remove('blur-suspended');
+    };
+    
+    const dialog = document.getElementById('customDialog');
+    void dialog.offsetWidth; 
+    requestAnimationFrame(() => { dialog.classList.remove('hidden'); });
+}
+
+function customConfirm(msg, onConfirm, title = "请确认", isDanger = false, icon = "⚠️") {
+    document.getElementById('dialogIcon').textContent = icon;
+    document.getElementById('dialogTitle').textContent = title;
+    document.getElementById('dialogMessage').innerHTML = msg;
+    document.getElementById('dialogCancelBtn').style.display = 'block';
+    document.getElementById('dialogCancelBtn').textContent = "取消";
+    const confirmBtn = document.getElementById('dialogConfirmBtn');
+    confirmBtn.textContent = "确定"; confirmBtn.className = isDanger ? "danger" : "primary";
+    
+    // 核心修复: 挂起底层毛玻璃
+    const listModal = document.getElementById('alphaListModalOverlay');
+    if (listModal && listModal.classList.contains('open')) listModal.classList.add('blur-suspended');
+
+    window.dialogConfirmCallback = () => { 
+        document.getElementById('customDialog').classList.add('hidden'); 
+        if (listModal) listModal.classList.remove('blur-suspended');
+        onConfirm(); 
+    };
+    
+    const dialog = document.getElementById('customDialog');
+    void dialog.offsetWidth; 
+    requestAnimationFrame(() => { dialog.classList.remove('hidden'); });
+}
+// ================= 1. Liquid Glass 拟态时钟 (极速版) =================
+const hourHand = document.getElementById('hourHand');
+const minuteHand = document.getElementById('minuteHand');
+const secondHand = document.getElementById('secondHand');
+const clockFace = document.getElementById('clockFace');
+
+// 性能飞升: 将高频修改的 DOM 节点提取到全局缓存
+const digitalClockEl = document.getElementById('digitalClock');
+const currentDateEl = document.getElementById('currentDate');
+let lastDateString = ""; // 用于缓存上一次的日期文本, 拦截无效重排
+
+for (let i = 0; i < 60; i++) {
+    const tick = document.createElement('div');
+    tick.className = `tick ${i % 5 === 0 ? 'major' : ''}`;
+    tick.style.transform = `rotate(${i * 6}deg) translateY(-106px)`;
+    clockFace.appendChild(tick);
+}
+
+function updateClock() {
+    const now = new Date();
+    const h = now.getHours(); const m = now.getMinutes(); const s = now.getSeconds();
+
+    secondHand.style.transition = s === 0 ? 'none' : 'transform 0.05s cubic-bezier(0.4, 2.08, 0.55, 0.44)';
+    secondHand.style.transform = `rotate(${s * 6}deg)`;
+    minuteHand.style.transform = `rotate(${m * 6 + s * 0.1}deg)`;
+    hourHand.style.transform = `rotate(${(h % 12) * 30 + m * 0.5}deg)`;
+
+    digitalClockEl.textContent = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    
+    // 性能飞升: 仅仅在日期真正发生跨越时, 才去触发页面文本渲染
+    const currentDayStr = `${now.getFullYear()}<span class="faded-slash">/</span>${now.getMonth()+1}<span class="faded-slash">/</span>${now.getDate()}`;
+
+    if (currentDayStr !== lastDateString) {
+        const days = ['日','一','二','三','四','五','六'];
+        // 【关键修改】必须将 textContent 改为 innerHTML, 否则 span 标签会被当成纯文本显示
+        currentDateEl.innerHTML = `${currentDayStr}&nbsp;&nbsp;星期${days[now.getDay()]}`;
+        lastDateString = currentDayStr;
+    }
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ================= 调度引擎与数据流 =================
+const TASKHUB_KEY = 'taskhub_data';
+const TASKFLOW_KEY = 'taskflow_data';
+
+// ================= 智能学科匹配引擎 =================
+const subjectKeywordMap = {
+    语文: ["语文","作文","阅读","古诗","文言文","默写","字词"],
+    数学: ["数学","几何","函数","方程","代数","计算","算术","数练", "数学校本", "中学生世界"],
+    英语: ["英语","单词","听力","阅读","语法","完形","写作"],
+    物理: ["物理","电路","力学","电磁","光学","声学"],
+    化学: ["化学","方程式","实验","酸碱","摩尔"],
+    历史: ["历史","古代史","近代史","世界史"],
+    跨学科: ["跨学科","细胞","遗传","解剖"], // 已适配 TaskHub 的 value
+    道法: ["道法","道德与法治","政治","法律"],
+    其他: ["准备","整理","整理书包","休息","洗澡","洗漱","厕所","如厕","上厕所","收拾","AI","发呆","放松"] // 已适配 TaskHub 的 value
+};
+
+function autoCategory() {
+    const text = document.getElementById('taskName').value.trim();
+    // 每次输入前, 先清空当前的学科勾选状态
+    document.querySelectorAll(".subject-item input[type='checkbox']").forEach(cb => cb.checked = false);
+    
+    if (!text) return; // 如果输入框被清空, 则不进行匹配
+    
+    // 遍历字典进行匹配
+    Object.entries(subjectKeywordMap).forEach(([subject, keywords]) => {
+        const matched = keywords.some(keyword => text.includes(keyword));
+        if (matched) {
+            document.querySelectorAll(".subject-item input[type='checkbox']").forEach(cb => {
+                if (cb.value === subject) cb.checked = true;
+            });
+        }
+    });
+}
+
+// 实时监听“任务名称”输入框的输入事件
+document.getElementById('taskName').addEventListener('input', autoCategory);
+
+let schedules = [];
+let editingIndex = -1; // 修复添加按钮直接报未定义错误
+
+try {
+    schedules = JSON.parse(localStorage.getItem(TASKHUB_KEY) || '[]');
+    if (!Array.isArray(schedules)) schedules = [];
+    // 关键清洗: 过滤掉不完整或已损坏的残留测试数据, 防止 map 崩溃
+    schedules = schedules.filter(t => t && t.id && Array.isArray(t.subject));
+} catch (e) {
+    schedules = [];
+}
+
+// ================= 重要性色彩自适应 =================
+function getPriorityStyle(priority) {
+    if (!priority) priority = ''; // 防御空值
+    
+    // 基础毛玻璃属性
+    const glassBase = "border: 1px solid rgba(255,255,255,0.7); backdrop-filter: blur(12px) saturate(140%); -webkit-backdrop-filter: blur(12px) saturate(140%); box-shadow: 0 2px 4px rgba(0,0,0,0.03), inset 0 1px 2px rgba(255,255,255,0.8);";
+    
+    if (priority === 'High' || priority.includes('高')) {
+        return `background-color: rgba(255, 194, 194, 0.35); color: #9C3B3B; ${glassBase}`;
+    } else if (priority === 'Medium' || priority.includes('中')) {
+        return `background-color: rgba(255, 231, 160, 0.35); color: #946C00; ${glassBase}`;
+    } else if (priority === 'Low' || priority.includes('低')) {
+        return `background-color: rgba(184, 230, 201, 0.35); color: #267346; ${glassBase}`;
+    }
+    
+    // 默认回退样式
+    return `background-color: rgba(255, 255, 255, 0.35); color: #334155; ${glassBase}`;
+}
+
+// ================= 智能焦点流转引擎 (Enter 切换下一项) =================
+const inputFlow = ["taskName", "customCategory", "startTime", "endTime", "taskRemark"];
+
+function focusNextElement(currentId) {
+    const currentIndex = inputFlow.indexOf(currentId);
+    if (currentIndex > -1 && currentIndex < inputFlow.length - 1) {
+        const nextId = inputFlow[currentIndex + 1];
+        const nextEl = document.getElementById(nextId);
+        if (nextEl) nextEl.focus();
+    } else if (currentIndex === inputFlow.length - 1) {
+        // 最后一个输入框, 触发添加操作
+        document.getElementById('addBtn').click();
+    }
+}
+
+function setupAutoNext() {
+    inputFlow.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener("keydown", e => {
+            if (e.key === "Enter") {
+                // 如果是备注框且没按 Ctrl/Cmd, 则允许原生换行
+                if (id === "taskRemark" && !e.ctrlKey && !e.metaKey) {
+                    return; 
+                }
+                e.preventDefault();
+                focusNextElement(id);
+            }
+        });
+    });
+}
+setupAutoNext();
+
+function saveSchedules() {
+    const dataStr = JSON.stringify(schedules);
+    localStorage.setItem(TASKHUB_KEY, dataStr);
+    window.__alphaLastTaskHubSign = dataStr; // 关键: 提前更新全局心跳指纹, 阻止后台引擎产生二次刷新反射!
+    renderSchedules();
+}
+
+function getTodayString() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+}
+
+// 核心同步逻辑: 从 TaskHub 同步到 TaskFlow 数据库
+function syncToTaskFlow(task) {
+    let tfData = {};
+    try { tfData = JSON.parse(localStorage.getItem(TASKFLOW_KEY) || "{}"); } catch(e) {}
+    
+    const dateStr = getTodayString();
+    if (!tfData[dateStr]) tfData[dateStr] = [];
+    
+    // 计算耗时 (简单计算, 跨天逻辑简略)
+    let durationMins = 30; // 默认值
+    if (task.start && task.end) {
+        let [sh, sm] = task.start.split(':').map(Number);
+        let [eh, em] = task.end.split(':').map(Number);
+        durationMins = (eh * 60 + em) - (sh * 60 + sm);
+        if (durationMins <= 0) durationMins += 1440; 
+    }
+
+    tfData[dateStr].push({
+        id: task.id,
+        createdAt: Date.now(),
+        date: dateStr,
+        name: task.name,
+        category: task.subject,
+        duration: durationMins,
+        start: task.start,
+        end: task.end,
+        remark: "通过 TaskHub 规划完成同步"
+    });
+
+    localStorage.setItem(TASKFLOW_KEY, JSON.stringify(tfData));
+}
+
+function getSubjectColor(subject) {
+    const map = { 语文:"#efc7c7", 数学:"#9dd2ff", 英语:"#d2ede4", 物理:"#d3c5f6", 化学:"#9ccbd4", 历史:"#f9ccae", 跨学科:"#c5be97", 道法:"#ecc7d9" };
+    return map[subject] || "#e2e3ea";
+}
+
+// ================= 3. UI 渲染与表单操作 =================
+function renderSchedules() {
+    const list = document.getElementById('scheduleList');
+    
+    // 1. 读取当前滑块视图状态
+    const viewTypeEl = document.querySelector('input[name="viewType"]:checked');
+    const viewType = viewTypeEl ? viewTypeEl.value : 'all';
+    
+    // 2. 智能筛选引擎 (按任务完成状态 + 真实截止日期)
+    const showCompleted = document.getElementById('showCompletedTasks') ? document.getElementById('showCompletedTasks').checked : true;
+    
+    let displaySchedules = schedules.filter(task => {
+        // 规则 1：状态过滤
+        if (!showCompleted && task.isCompleted) {
+            return false;
+        }
+
+        // 规则 2：视图过滤 (全部视图直接放行)
+        if (viewType === 'all') return true;
+
+        // 获取该任务所属表单的真实截止日期
+        let deadlineStr = null;
+        if (typeof window.getTaskDeadline === 'function') {
+            deadlineStr = window.getTaskDeadline(task.id);
+        }
+
+        // 如果该任务没有挂载截止日期, 只在 "全部" 视图中显示, 其它视图一律屏蔽
+        if (!deadlineStr) return false;
+
+        // 安全解析日期字符串 (避免 new Date('2026-07-05') 引起的 UTC 时区偏移问题)
+        const parts = deadlineStr.split('-');
+        if (parts.length !== 3) return false;
+        const taskDate = new Date(parts[0], parts[1] - 1, parts[2]);
+        const now = new Date();
+
+        if (viewType === 'day') {
+            return taskDate.getFullYear() === now.getFullYear() && 
+                   taskDate.getMonth() === now.getMonth() && 
+                   taskDate.getDate() === now.getDate();
+        }
+        
+        if (viewType === 'week') {
+            const day = now.getDay() || 7;
+            const startOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day + 1);
+            startOfWeek.setHours(0, 0, 0, 0);
+            const endOfWeek = new Date(startOfWeek.getTime() + 6 * 86400000);
+            endOfWeek.setHours(23, 59, 59, 999);
+            return taskDate >= startOfWeek && taskDate <= endOfWeek;
+        }
+        
+        if (viewType === 'month') {
+            return taskDate.getFullYear() === now.getFullYear() && 
+                   taskDate.getMonth() === now.getMonth();
+        }
+        
+        return true;
+    });
+
+    if (displaySchedules.length === 0) {
+        list.innerHTML = `
+            <div class="empty-state" style="animation: alphaCardIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;">
+                <div class="icon">🫧</div>
+                <div class="title">今日规划为空</div>
+                <div class="desc">开始制定你的学习计划吧</div>
+            </div>
+        `;
+        return;
+    }
+
+    // 3. 原有的排序逻辑, 改用 displaySchedules
+    displaySchedules.sort((a,b) => {
+        if (a.isCompleted !== b.isCompleted) return a.isCompleted ? 1 : -1;
+        return (a.start || "").localeCompare(b.start || "");
+    });
+
+    let htmlContent = "";
+
+    // 4. 原有的循环渲染逻辑, 改用 displaySchedules.forEach
+    displaySchedules.forEach((task, index) => {
+        let cardClass = task.isCompleted ? 'task-card completed' : 'task-card';
+        let priorityDisplay = task.priority === 'High' ? '🔴' : (task.priority === 'Low' ? '🟢' : '🟡');
+        
+        let subjectsHtml =
+        task.subject.map(s=>{
+            const hex=getSubjectColor(s);
+            return `
+        <div class="glass-tag"
+        style="
+        background:linear-gradient(135deg,${hex}80,${hex}20);
+        box-shadow:
+        0 6px 12px ${hex}60,
+        inset 0 1.5px 2px rgba(255,255,255,.95),
+        inset 0 -1.5px 3px ${hex}40;
+        ">
+        ${s}
+        </div>`;
+        }).join("");
+
+        // 核心挂载: 为 hub-card-wrap 和 task-card 增加 width: 100% 防止宽度塌缩
+        htmlContent += `
+            <div class="hub-card-wrap" style="animation-delay: ${index * 0.05}s; width: 100%; box-sizing: border-box;">
+                <div class="${cardClass}" id="card-${task.id}" style="display: flex; justify-content: space-between; align-items: stretch; gap: 24px; min-height: 144px; position: relative; width: 100%; box-sizing: border-box;">
+                    
+                    <div style="display: flex; flex-direction: column; min-width:0;justify-content: center; gap: 14px; flex: 1; padding-right: 90px; min-width: 0;">
+                        <div style="display: flex; align-items: center;">
+                            <div class="task-checkbox-wrap">
+                                <input type="checkbox" class="batch-check round-checkbox" value="${task.id}">
+                            </div>
+                            
+                            <div class="strike-container ${task.isCompleted ? 'done' : ''}" id="strike-container-${task.id}">
+                                <span>${task.name}</span>
+                                <div class="strike-line ${task.isCompleted ? 'done' : ''}" id="strike-line-${task.id}"></div>
+                            </div>
+                        </div>
+                        
+                        <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 10px; font-size: 14px; color: var(--monet-sub); font-weight: 600;">
+                            <span>🕒 ${task.start && task.end ? `<strong style="color: var(--monet-text); font-size: 15px;">${task.start}</strong> ~ <strong style="color: var(--monet-text); font-size: 15px;">${task.end}</strong>` : "待定"}</span>
+                            <span style="color: #e2e8f0;">|</span>
+                            <span>📌 ${priorityDisplay}</span>
+                            ${task.remark ? `<span style="color: #e2e8f0;">|</span><span style="color:#64748b;">📎 ${task.remark}</span>` : ""}
+                        </div>
+
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            ${subjectsHtml}
+                        </div>
+                    </div>
+
+                    <button class="secondary btn-compact" style="position: absolute; top: var(--spacing-card); right: var(--spacing-card);" onclick="editTask('${task.id}')" ${task.isCompleted ? 'disabled style="opacity:0.5;"' : ''}>编辑</button>
+                    <button class="danger btn-compact" style="position: absolute; bottom: var(--spacing-card); right: var(--spacing-card);" onclick="deleteTask('${task.id}')">删除</button>
+                </div>
+            </div>
+        `;
+    });
+
+    // 一次性渲染进 DOM, 释放浏览器性能
+    list.innerHTML = htmlContent;
+
+    // 为所有任务绑定拖拽事件 (支持双向划线) 
+    schedules.forEach(task => {
+        bindStrikeEvents(task.id);
+    });
+}
+
+// ================= 视图滑块动画与事件调度 =================
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('input[name="viewType"]').forEach((radio, index) => {
+        radio.addEventListener('change', (e) => {
+            const slider = document.querySelector('.toggle-slider');
+            const currentIndex = parseInt(slider.dataset.currentIndex || 0);
+            
+            // 剥离旧动画残留, 瞬间重排触发
+            slider.classList.remove('is-sliding-right', 'is-sliding-left');
+            void slider.offsetWidth; 
+            
+            // 注入基于 iOS 惯性的方向阻尼液态动画
+            if (index > currentIndex) {
+                slider.classList.add('is-sliding-right');
+            } else if (index < currentIndex) {
+                slider.classList.add('is-sliding-left');
+            }
+            
+            slider.dataset.currentIndex = index;
+            renderSchedules(); // 联动渲染引擎
+        });
+    });
+});
+
+// ================= 4. 拖拽划线完成核心逻辑 =================
+function markTaskStatus(taskId, status) {
+    const taskIndex = schedules.findIndex(t => t.id === taskId);
+    if (taskIndex > -1) {
+        const container = document.getElementById(`strike-container-${taskId}`);
+        const strikeLine = document.getElementById(`strike-line-${taskId}`);
+        
+        schedules[taskIndex].isCompleted = status;
+
+        if (status) {
+            // 标记为完成
+            if (strikeLine) { strikeLine.style.width = ''; strikeLine.classList.add('done'); }
+            if (container) container.classList.add('done');
+            try { document.getElementById('audioDone').play(); } catch(e){}
+            
+            // 1. 同步至 TaskFlow 数据库
+            if (typeof syncToTaskFlow === 'function') syncToTaskFlow(schedules[taskIndex]);
+            
+            // 2. 广播给 TaskTimer：发送强制结束指令
+            localStorage.setItem('tasktimer_sync_action', JSON.stringify({ action: 'FORCE_STOP', taskId: taskId, timestamp: Date.now() }));
+        } else {
+            // 恢复为未完成 (反向擦除) 
+            if (strikeLine) { strikeLine.style.width = '0px'; strikeLine.classList.remove('done'); }
+            if (container) container.classList.remove('done');
+            
+            // 1. 核心反向联动：从 TaskFlow 撤销记录
+            removeFromTaskFlow(taskId); 
+            
+            // 2. 广播给 TaskTimer：发送恢复指令 (预留)
+            localStorage.setItem('tasktimer_sync_action', JSON.stringify({ action: 'RESTORE', taskId: taskId, timestamp: Date.now() }));
+        }
+        
+        setTimeout(() => { saveSchedules(); }, 500); 
+    }
+}
+
+function bindStrikeEvents(taskId) {
+    const container = document.getElementById(`strike-container-${taskId}`);
+    const strikeLine = document.getElementById(`strike-line-${taskId}`);
+    if(!container || !strikeLine) return;
+
+    container.addEventListener('pointerdown', (e) => {
+        e.preventDefault(); 
+        
+        const taskIndex = schedules.findIndex(t => t.id === taskId);
+        // 判断当前任务是否已经是完成状态
+        const isDone = taskIndex > -1 && schedules[taskIndex].isCompleted;
+        
+        let startX = e.clientX;
+        let containerWidth = container.offsetWidth;
+        strikeLine.style.transition = 'none';
+        
+        // 动态处理初始动画起点与线条颜色
+        if (isDone) {
+            strikeLine.classList.remove('done');
+            strikeLine.style.width = containerWidth + 'px';
+            strikeLine.style.background = '#64748b'; 
+            // 修复：强行抹除脱离 .done 类后的默认红色阴影
+            strikeLine.style.boxShadow = 'none'; 
+        } else {
+            strikeLine.style.width = '0px';
+            strikeLine.style.background = '#e3605d'; 
+            // 恢复 CSS 控制的红色阴影
+            strikeLine.style.boxShadow = ''; 
+        }
+
+        const onPointerMove = (moveEvent) => {
+            let deltaX = moveEvent.clientX - startX;
+            if (!isDone && deltaX > 0) {
+                // 未完成状态下: 从左往右划掉
+                strikeLine.style.width = Math.min(deltaX, containerWidth) + 'px';
+            } else if (isDone && deltaX < 0) {
+                // 已完成状态下: 从右往左擦除
+                strikeLine.style.width = Math.max(0, containerWidth + deltaX) + 'px';
+            }
+        };
+
+        const onPointerUp = (upEvent) => {
+            document.removeEventListener('pointermove', onPointerMove);
+            document.removeEventListener('pointerup', onPointerUp);
+            document.removeEventListener('pointercancel', onPointerUp);
+
+            let finalWidth = parseFloat(strikeLine.style.width) || 0;
+            
+            if (!isDone) {
+                // 判断从左向右是否划过了一半
+                if (finalWidth > containerWidth * 0.5) {
+                    markTaskStatus(taskId, true); 
+                } else {
+                    strikeLine.style.transition = 'width 0.2s ease-out';
+                    strikeLine.style.width = '0px'; // 没划够一半, 弹回原点
+                }
+            } else {
+                // 判断从右向左是否擦除过了一半
+                if (finalWidth < containerWidth * 0.5) {
+                    strikeLine.style.background = '';
+                    // 修复：擦除成功, 清空内联无阴影设定, 让红色阴影回归
+                    strikeLine.style.boxShadow = ''; 
+                    markTaskStatus(taskId, false); 
+                } else {
+                    // 没擦除够一半, 线条重新铺满弹回
+                    strikeLine.style.transition = 'width 0.2s ease-out';
+                    strikeLine.style.width = '100%';
+                    setTimeout(() => {
+                        strikeLine.style.width = '';
+                        strikeLine.style.background = '';
+                        // 修复：弹回完成态, 清除所有内联干扰, 完全交由 .done 类控制
+                        strikeLine.style.boxShadow = ''; 
+                        strikeLine.classList.add('done');
+                    }, 200); 
+                }
+            }
+        };
+
+        document.addEventListener('pointermove', onPointerMove);
+        document.addEventListener('pointerup', onPointerUp);
+        document.addEventListener('pointercancel', onPointerUp);
+    });
+}
+
+// ================= 5. 表单与批处理逻辑 =================
+document.getElementById('addBtn').addEventListener('click', () => {
+    const name = document.getElementById('taskName').value.trim();
+    const start = document.getElementById('startTime').value;
+    const end = document.getElementById('endTime').value;
+    const remark = document.getElementById('taskRemark').value.trim();
+    
+    const subjectChecks = Array.from(document.querySelectorAll('.subject-item input[type="checkbox"]:checked')).map(cb => cb.value);
+    const subject = subjectChecks.length ? subjectChecks : ['未分类'];
+    
+    const priorityEl = document.querySelector('input[name="priority"]:checked');
+    const priority = priorityEl ? priorityEl.value : 'Medium';
+
+    if (!name) { customAlert("请填写任务名称", "信息不完整", "📝"); return; }
+
+    const taskObj = { 
+        id: editingIndex > -1 ? schedules[editingIndex].id : String(Date.now()), 
+        name, start, end, subject, priority, remark, isCompleted: false 
+    };
+
+    if (editingIndex > -1) { schedules[editingIndex] = taskObj; } 
+    else { schedules.push(taskObj); }
+    
+    saveSchedules(); cancelEdit();
+});
+
+function editTask(id) {
+    editingIndex = schedules.findIndex(t => t.id === id);
+    if(editingIndex === -1) return;
+    const task = schedules[editingIndex];
+    
+    document.getElementById('taskName').value = task.name;
+    document.getElementById('taskRemark').value = task.remark || '';
+    document.getElementById('taskRemark').dispatchEvent(new Event('input', { bubbles: true }));
+    
+    if(fpStart && task.start) fpStart.setDate(task.start, false);
+    if(fpEnd && task.end) fpEnd.setDate(task.end, false);
+    
+    task.subject.forEach(sub => {
+        let cb = document.querySelector(`input[type="checkbox"][value="${sub}"]`);
+        if(cb) cb.checked = true;
+    });
+
+    document.querySelectorAll('input[name="priority"]').forEach(el => { el.checked = (el.value === task.priority); });
+    
+    document.getElementById('addBtn').textContent = "保存修改";
+    document.getElementById('cancelEditBtn').classList.remove("hidden");
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function cancelEdit() {
+    editingIndex = -1;
+    document.getElementById('taskName').value = '';
+    document.getElementById('taskRemark').value = '';
+    document.getElementById('taskRemark').dispatchEvent(new Event('input', { bubbles: true }));
+    document.getElementById('customCategory').value = ''; // 清空自定义学科
+    if(fpStart) fpStart.clear(); 
+    if(fpEnd) fpEnd.clear();
+    
+    // 修复 1: 全面清空学科勾选状态
+    document.querySelectorAll('.subject-item input[type="checkbox"]').forEach(cb => cb.checked = false);
+    
+    // 修复 1: 重置重要级为默认的“中”
+    document.querySelectorAll('input[name="priority"]').forEach(el => { 
+        el.checked = (el.value === ''); 
+        el.dataset.wasChecked = (el.value === 'Medium') ? 'true' : 'false';
+    });
+
+    document.getElementById('addBtn').textContent = "添加";
+    document.getElementById('cancelEditBtn').classList.add("hidden");
+}
+
+// ================= 核心修复 2: TaskHub 原生专属删除与反向联动机制 =================
+function removeFromTaskFlow(taskId) {
+    try {
+        let tfData = JSON.parse(localStorage.getItem(TASKFLOW_KEY) || "{}");
+        let hasChanged = false;
+        // 遍历所有日期, 找到那个被删除的同源 ID, 一并斩断
+        for (let date in tfData) {
+            const originalLength = tfData[date].length;
+            tfData[date] = tfData[date].filter(t => String(t.id) !== String(taskId));
+            if (tfData[date].length !== originalLength) hasChanged = true;
+        }
+        if (hasChanged) {
+            localStorage.setItem(TASKFLOW_KEY, JSON.stringify(tfData));
+        }
+    } catch(e) { console.error("底层数据同步删除失败", e); }
+}
+
+function deleteTask(id) {
+    customConfirm("确定删除记录吗?此操作无法恢复", () => {
+        schedules = schedules.filter(t => String(t.id) !== String(id));
+        saveSchedules();
+        removeFromTaskFlow(id); // 反向联动: 删掉 TaskFlow 中的对应记录
+    }, "删除任务", true, "🗑️");
+}
+
+// ================= 8. 管理模式增强：全选与状态联动 =================
+
+// 新增：动态感应“全选/反选”按钮的文字状态
+function updateSelectAllBtnState() {
+    const checkboxes = document.querySelectorAll(".batch-check");
+    const btn = document.getElementById("selectAllBtn");
+    if (!btn) return;
+    if (checkboxes.length === 0) {
+        btn.textContent = "全选";
+        return;
+    }
+    const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+    btn.textContent = allChecked ? "反选" : "全选";
+}
+
+// 修复：加入状态联动，让全选更聪明
+function selectAllTasks() {
+    const boxes = document.querySelectorAll(".batch-check");
+    if (boxes.length === 0) return;
+    const allChecked = Array.from(boxes).every(v => v.checked);
+    boxes.forEach(v => v.checked = !allChecked);
+    updateSelectAllBtnState(); 
+}
+
+// 核心修复：操作正确的 schedules 数组，并引入操作后优雅的收起动画
+function deleteSelectedTasks() {
+    const checked = document.querySelectorAll(".batch-check:checked");
+    if (!checked.length) { 
+        customAlert("请先勾选需要删除的任务", "未选择", "☑️"); 
+        return; 
+    }
+    
+    customConfirm(`确定批量删除这 ${checked.length} 个任务吗？此操作无法恢复`, () => {
+        checked.forEach(cb => {
+            const id = cb.value;
+            // 修复 1：正确挂载到 TaskHub 的主状态管理器 schedules
+            schedules = schedules.filter(t => String(t.id) !== String(id));
+            removeFromTaskFlow(id); // 严格遵守数据单向汇聚，反向拔除 TaskFlow 记录
+        });
+        
+        // 修复 2：触发原生存储与 Liquid Glass 毛玻璃重绘引擎
+        saveSchedules(); 
+        
+        // 修复 3：删完后优雅收起液态管理面板，回归极简列表
+        if (isManageMode) toggleManageMode(); 
+    }, "批量删除确认", true, "🗑️");
+}
+
+// 绑定全局事件拦截：单点复选框时，实时更新全选按钮的文字
+document.addEventListener('change', function(e) {
+    if (e.target && e.target.classList.contains('batch-check')) {
+        updateSelectAllBtnState();
+    }
+});
+
+// 1. 核心高度计算器 (支持 0 毫秒无缝衔接 macOS 阻尼动画)
+function adjustTextareaHeight(el) {
+    if (el.dataset.userResized === 'true') return;
+    
+    // 获取边框厚度用于补偿
+    const borderSize = el.offsetHeight - el.clientHeight;
+    
+    // 记住当前的像素高度
+    const currentHeight = el.style.height || window.getComputedStyle(el).height;
+
+    // 暂时剥夺动画权限, 并设为 auto 逼出文字的真实物理高度
+    el.style.transition = 'none';
+    el.style.height = 'auto';
+    
+    // 计算终极目标高度
+    let targetHeight = el.scrollHeight + borderSize;
+    
+    // 保底高度同步提升至 126px
+    if (targetHeight < 126) targetHeight = 126;
+
+    // 瞬间恢复原高度, 并强迫浏览器执行“重新排版 (Reflow)”
+    el.style.height = currentHeight;
+    void el.offsetHeight; 
+
+    // 重新开启丝滑过渡, 并推向新高度
+    el.style.transition = '';
+    el.style.height = targetHeight + 'px';
+}
+
+// ================= 6. Flatpickr 时间选择器 (Wrap 对齐) =================
+function forceTimeFormat(instance, val) {
+    if (!val) return false;
+    let raw = val.replace(/\D/g, "");
+    if (raw.length < 3) return false;
+    let h = null, m = null;
+    if (raw.length === 3) { h = raw.slice(0, 1); m = raw.slice(1, 3); } 
+    else if (raw.length >= 4) { h = raw.slice(0, 2); m = raw.slice(2, 4); }
+    if (h !== null && m !== null) {
+        let hi = parseInt(h, 10), mi = parseInt(m, 10);
+        if (hi <= 23 && mi <= 59) {
+            let formatted = `${String(hi).padStart(2, "0")}:${String(mi).padStart(2, "0")}`;
+            instance.input.value = formatted;
+            instance.setDate(formatted, true);
+            return true;
+        }
+    }
+    return false;
+}
+
+const timeConfig = { 
+    wrap: true, clickOpens: false, position: "auto left", enableTime: true, 
+    noCalendar: true, dateFormat: "H:i", time_24hr: true, disableMobile: true, allowInput: true, minuteIncrement: 1,
+    onReady: function(selectedDates, dateStr, instance) {
+        
+        // 1. 终极防击穿事件拦截器
+        const flatpickrEnterHook = function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                e.stopImmediatePropagation(); // 彻底阻断 Flatpickr 内部干预
+                
+                // 💡 核心修复: 只有在键盘真正【按下】(keydown) 阶段才执行跳转, 彻底没收【弹起】(keyup) 阶段的穿透残影
+                if (e.type === 'keydown') {
+                    if (e.target.value) {
+                        forceTimeFormat(instance, e.target.value);
+                    }
+                    instance.close();
+                    
+                    // 丝滑转移焦点至下一个控件
+                    setTimeout(() => focusNextElement(e.target.id), 60);
+                }
+            } else if (e.key !== 'Tab') {
+                // 依然保持对 "1222 -> 12:02" 篡改 bug 的绝对封杀
+                e.stopImmediatePropagation();
+            }
+        };
+
+        // 确保在事件捕获阶段优先拿到绝对控制权
+        ['input', 'keyup', 'keydown'].forEach(evt => {
+            instance.input.addEventListener(evt, flatpickrEnterHook, true);
+        });
+
+        instance.input.addEventListener('blur', function(e) { 
+            forceTimeFormat(instance, this.value); 
+        }, true);
+    }
+};
+const fpStart = flatpickr("#startTimeWrap", timeConfig);
+const fpEnd = flatpickr("#endTimeWrap", timeConfig);
+
+// ================= 7. 液态玻璃悬浮球拖拽逻辑 =================
+window.addEventListener('DOMContentLoaded', () => {
+    const sphere = document.getElementById('glassSphere');
+    const modal = document.getElementById('sphereModal');
+    if (!sphere || !modal) return;
+
+    let sphereStartX, sphereStartY, initialLeft, initialTop;
+    let isSphereDragging = false;
+
+    sphere.addEventListener('pointerdown', (e) => {
+        isSphereDragging = false;
+        sphereStartX = e.clientX;
+        sphereStartY = e.clientY;
+        
+        const rect = sphere.getBoundingClientRect();
+        initialLeft = rect.left;
+        initialTop = rect.top;
+        
+        sphere.setPointerCapture(e.pointerId);
+        
+        const onSphereMove = (moveEvent) => {
+            const deltaX = moveEvent.clientX - sphereStartX;
+            const deltaY = moveEvent.clientY - sphereStartY;
+            
+            if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) {
+                isSphereDragging = true;
+                sphere.style.right = 'auto'; 
+                sphere.style.bottom = 'auto';
+                
+                let newLeft = Math.max(0, Math.min(initialLeft + deltaX, window.innerWidth - 64));
+                let newTop = Math.max(0, Math.min(initialTop + deltaY, window.innerHeight - 64));
+                
+                sphere.style.left = newLeft + 'px';
+                sphere.style.top = newTop + 'px';
+            }
+        };
+        
+        const onSphereUp = (upEvent) => {
+            sphere.removeEventListener('pointermove', onSphereMove);
+            sphere.removeEventListener('pointerup', onSphereUp);
+            sphere.releasePointerCapture(e.pointerId);
+            
+            if (!isSphereDragging) {
+                modal.classList.remove('hidden');
+            }
+        };
+        
+        sphere.addEventListener('pointermove', onSphereMove);
+        sphere.addEventListener('pointerup', onSphereUp);
+    });
+});
+
+// ================= 鼠标滚轮调节时间 =================
+document.addEventListener('wheel', function(e) {
+    if (e.target.classList.contains('flatpickr-hour') || e.target.classList.contains('flatpickr-minute')) {
+        e.preventDefault();
+        
+        // 修复：向下滚(deltaY > 0)增加时间(变晚)；向上滚(deltaY < 0)减少时间(变早)
+        const step = e.deltaY > 0 ? 1 : -1; 
+        
+        let max = e.target.classList.contains('flatpickr-hour') ? 23 : 59;
+        let val = parseInt(e.target.value, 10);
+        if (isNaN(val)) val = 0;
+        
+        val += step;
+        if (val > max) val = 0;
+        if (val < 0) val = max;
+        
+        e.target.value = String(val).padStart(2, '0');
+        e.target.dispatchEvent(new Event('input', { bubbles: true })); 
+    }
+}, { passive: false });
+
+(function() {
+    // =================================================================
+    // Dynamic Engine
+    // =================================================================
+
+    let lists = [];
+    try {
+        lists = JSON.parse(localStorage.getItem("taskhub_lists") || "[]");
+        if (!Array.isArray(lists)) lists = []; // 极致防御: 确保它绝对是个数组
+    } catch (e) {
+        lists = [];
+    }
+
+    /* 暴露给全局的日期查询器 */
+    window.getTaskDeadline = function(taskId) {
+        const mapping = JSON.parse(localStorage.getItem('alpha_task_mapping') || '{}');
+        const listIds = mapping[taskId] || ['default'];
+        
+        for (let listId of listIds) {
+            const list = lists.find(l => l.id === listId);
+            if (list && list.deadline && list.deadline !== '无截止日期') {
+                return list.deadline; // 格式通常为 "2026-07-05"
+            }
+        }
+        return null;
+    };
+    
+    if (!lists.some(l => l.id === 'default')) {
+        lists.unshift({ id: 'default', name: '默认', deadline: '无截止日期', icon: '📁' });
+    }
+    // 数据清洗: 为旧数据自动打上默认图标
+    lists.forEach(l => { if (!l.icon) l.icon = '📁'; });
+    
+    function saveLists() { localStorage.setItem("taskhub_lists", JSON.stringify(lists)); }
+
+    window.selectedListIds = ['default'];
+    window.editingTaskId = null;
+    window.pendingListIds = null;
+
+    function normalizeSmartDate(rawVal) {
+        let s = rawVal.trim().replace(/[\.\s\/]/g, '-');
+        if (!s || s === "无截止日期") return "无截止日期";
+        if (/^\d+$/.test(s)) {
+            if (s.length === 8) return `${s.substring(0,4)}-${s.substring(4,6)}-${s.substring(6,8)}`;
+            if (s.length === 7) return `${s.substring(0,4)}-${s.substring(4,5).padStart(2,'0')}-${s.substring(5,7).padStart(2,'0')}`;
+            if (s.length === 6) return `${s.substring(0,4)}-${s.substring(4,5).padStart(2,'0')}-${s.substring(5,6).padStart(2,'0')}`;
+        }
+        let parts = s.split('-');
+        if (parts.length === 3 && parts[0].length === 4) {
+            return `${parts[0]}-${String(parseInt(parts[1],10)||1).padStart(2,'0')}-${String(parseInt(parts[2],10)||1).padStart(2,'0')}`;
+        }
+        return s;
+    }
+
+    // 新增严密的日期合法性判定函数
+    function isValidDate(dateString) {
+        if (!dateString || dateString === "无截止日期") return true;
+        const parts = dateString.split('-');
+        if (parts.length !== 3) return false;
+        const y = parseInt(parts[0], 10), m = parseInt(parts[1], 10), d = parseInt(parts[2], 10);
+        if (y < 2000 || y > 2100 || m < 1 || m > 12) return false;
+        const daysInMonth = [31, ((y % 4 === 0 && y % 100 !== 0) || y % 400 === 0) ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+        return d > 0 && d <= daysInMonth[m - 1];
+    }
+
+    function updateTriggerButtonText() {
+        const textEl = document.getElementById('listSelectorText');
+        if (!textEl) return;
+        const names = lists.filter(l => window.selectedListIds.includes(l.id)).map(l => l.name);
+        if (names.length === 0) {
+            window.selectedListIds = ['default'];
+            textEl.textContent = "默认";
+        } else if (names.length === 1) {
+            textEl.textContent = names[0];
+        } else {
+            textEl.textContent = `已选 ${names.length} 个表单`;
+        }
+    }
+
+    function injectAlphaModalDOM() {
+        // 单例模式: 如果 DOM 已存在, 直接返回, 绝不重复创建
+        if (document.getElementById('alphaListModalOverlay')) return;
+
+        window.selectedPopIcon = '📁';
+        const icons = ['📁', '📌', '💡', '🔥', '🌟', '🎯', '📚', '🚀'];
+        const iconsHtml = icons.map(ico => 
+            `<div class="glass-icon-btn ${ico === '📁' ? 'selected' : ''}" data-ico="${ico}">${ico}</div>`
+        ).join('');
+
+        window.selectPopIcon = function(el, ico) {
+            document.querySelectorAll('.glass-icon-btn').forEach(btn => btn.classList.remove('selected'));
+            el.classList.add('selected');
+            window.selectedPopIcon = ico;
+        };
+
+        const modalDiv = document.createElement('div');
+        modalDiv.id = 'alphaListModalOverlay';
+        modalDiv.className = 'alpha-modal-overlay';
+        
+        modalDiv.innerHTML = `
+            <div class="modal-inner" style="width: 420px; max-width: 95%; background: rgba(255,255,255,0.85); backdrop-filter: blur(40px); -webkit-backdrop-filter: blur(40px); border-radius: var(--radius-panel); border: 1px solid rgba(255,255,255,0.8); box-shadow: 0 24px 64px rgba(15,23,42,0.1), inset 0 1px 0 #fff; padding: var(--spacing-main); display: flex; flex-direction: column; gap: var(--spacing-card);">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h3 style="margin: 0; color: #0f172a; font-size: 20px; font-weight: 700; display: flex; align-items: center; gap: 6px;">📁 管理表单</h3>
+                    <span id="closeAlphaModalX" 
+                        style="cursor: pointer; font-size: 14px; color: var(--sub); font-weight: 600; width: 28px; height: 28px; background: rgba(15,23,42,0.06); border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: background 0.2s;"
+                        onmouseover="this.style.background='rgba(15,23,42,0.15)'" 
+                        onmouseout="this.style.background='rgba(15,23,42,0.06)'">✕</span>
+                </div>
+                
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <div style="font-size: 14px; font-weight: 700; color: #334155;">创建表单</div>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" id="popListTitle" class="pop-input-fx" placeholder="表单名称" style="flex: 1.5; height: 44px; border-radius: var(--radius-element); padding: 0 16px; font-size: 14px; outline: none; color: var(--text);">
+                        <input type="text" id="popListDeadline" class="pop-input-fx" placeholder="截止日期" style="flex: 1; height: 44px; border-radius: var(--radius-element); padding: 0 16px; font-size: 14px; outline: none; color: var(--text);">
+                    </div>
+                    
+                    <div id="iconPanelWrap" class="icon-panel-wrap">
+                        ${iconsHtml}
+                    </div>
+                    
+                    <button id="popAddBtn" class="primary" style="height: 44px; border-radius: var(--radius-element); font-size: 15px !important; margin: 0;">添加并选中</button>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <div style="font-size: 14px; font-weight: 700; color: #334155;">选择…</div>
+                    <div id="popListContainer" class="modal-scroll-zone" style="display: flex; flex-direction: column; gap: 8px; max-height: 200px; overflow-y: auto; padding-right: 4px;"></div>
+                </div>
+
+                <button id="popConfirmCloseBtn" class="primary" style="width: 100%; margin: 0; height: 52px; border-radius: var(--radius-element); font-size: 16px !important; font-weight: 700 !important;">确定</button>
+            </div>`;
+        document.body.appendChild(modalDiv);
+        
+        const titleInput = document.getElementById('popListTitle');
+        const dateInput = document.getElementById('popListDeadline');
+        const iconPanel = document.getElementById('iconPanelWrap');
+        const popAddBtn = document.getElementById('popAddBtn');
+
+        // 图标面板交互
+        iconPanel.addEventListener('pointerdown', (e) => {
+            const btn = e.target.closest('.glass-icon-btn');
+            if (btn) {
+                e.preventDefault(); 
+                window.selectPopIcon(btn, btn.getAttribute('data-ico'));
+            }
+        });
+
+        // 纯净关闭逻辑
+        const closeAlphaModal = () => {
+            const overlay = document.getElementById('alphaListModalOverlay');
+            if (overlay) overlay.classList.remove('open');
+        };
+
+        document.getElementById('closeAlphaModalX').onclick = closeAlphaModal;
+        document.getElementById('popConfirmCloseBtn').onclick = closeAlphaModal;
+
+        // 截止日期格式化处理
+        const popDeadline = document.getElementById('popListDeadline');
+        popDeadline.addEventListener('blur', () => {
+            if (popDeadline.value.trim() === '') popDeadline.value = '无截止日期';
+            popDeadline.value = normalizeSmartDate(popDeadline.value);
+        });
+
+        // 面板交互控制
+        const checkIconPanel = () => { iconPanel.classList.add('show'); };
+        titleInput.addEventListener('input', checkIconPanel);
+        titleInput.addEventListener('focus', checkIconPanel);
+        titleInput.addEventListener('blur', () => { iconPanel.classList.remove('show'); });
+        dateInput.addEventListener('focus', () => { iconPanel.classList.remove('show'); });
+
+        titleInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') { e.preventDefault(); dateInput.focus(); }
+        });
+
+        dateInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') { e.preventDefault(); popAddBtn.click(); }
+        });
+
+        popAddBtn.onclick = function(e) {
+            e.preventDefault();
+            const title = titleInput.value.trim();
+            if (!title) { customAlert("请填写新表单的名称!", "名称为空", "⚠️"); return; }
+            
+            const rawDate = dateInput.value.trim();
+            const finalDate = rawDate ? normalizeSmartDate(rawDate) : "无截止日期";
+            
+            if (finalDate !== "无截止日期" && !isValidDate(finalDate)) {
+                customAlert(`您输入的日期不合法, <br>请重新输入有效的年月日格式`, "日期无效", "📅");
+                return;
+            }
+
+            const newId = 'list_' + Date.now();
+            lists.push({ id: newId, name: title, deadline: finalDate, icon: window.selectedPopIcon });
+            
+            if(!window.selectedListIds.includes(newId)) window.selectedListIds.push(newId);
+            saveLists();
+            
+            titleInput.value = ""; dateInput.value = "";
+            window.selectPopIcon(document.querySelector('.glass-icon-btn'), '📁');
+            renderModalListItems();
+        };
+    }
+
+    function renderModalListItems() {
+        const container = document.getElementById('popListContainer');
+        if (!container) return;
+        
+        // 优化点 ②: 清理并维持极其纯净的动态行样式, 剔除任何可能引起悬停阴影的潜在线路, 保持扁平化液态玻璃底色
+        container.innerHTML = lists.map(list => {
+            const isChecked = window.selectedListIds.includes(list.id);
+            return `
+                <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.7); border: 1px solid rgba(15,23,42,0.06); padding: 10px 12px; border-radius: var(--radius-sm); transition: background-color 0.2s ease;">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; flex: 1; font-weight: 500; font-size: 14px; color: #1e293b; user-select:none;">
+                        <input type="checkbox" class="list-pop-cb" value="${list.id}" ${isChecked ? 'checked' : ''}>
+                        <span style="display: flex; align-items: center; gap: 6px;">
+                            <span style="font-size: 15px;">${list.icon || '📁'}</span>
+                            ${list.name}
+                        </span>
+                        <span style="font-size: 12px; color: var(--sub);">${list.deadline !== '无截止日期' ? list.deadline : ''}</span>
+                    </label>
+                    ${list.id !== 'default' ?
+                    `<span class="pop-del-list-action" data-id="${list.id}" style="cursor: pointer; font-size: 12px; font-weight: 700; color: var(--monet-danger); background: rgba(227, 96, 93, 0.1); padding: 4px 10px; border-radius: 8px; transition: background 0.2s;">删除</span>` : ''}
+                </div>`;
+        }).join('');
+
+        container.querySelectorAll('.list-pop-cb').forEach(cb => {
+            cb.onchange = function() {
+                if (this.checked) { if (!window.selectedListIds.includes(this.value)) window.selectedListIds.push(this.value); }
+                else { window.selectedListIds = window.selectedListIds.filter(id => id !== this.value); }
+                if(window.selectedListIds.length === 0) window.selectedListIds = ['default'];
+                updateTriggerButtonText();
+            };
+        });
+
+        container.querySelectorAll('.pop-del-list-action').forEach(btn => {
+            btn.onclick = function(e) {
+                e.preventDefault();
+                const targetId = this.getAttribute('data-id');
+                customConfirm("确定删除此表单?内含任务将退回默认面板", () => {
+                    let mapping = {};
+                    try {
+                        mapping = JSON.parse(localStorage.getItem('alpha_task_mapping') || '{}');
+                        if (!mapping || typeof mapping !== 'object') mapping = {};
+                    } catch(e) { 
+                        mapping = {}; 
+                    }
+                    for(let tId in mapping) {
+                        mapping[tId] = mapping[tId].filter(id => id !== targetId);
+                        if(mapping[tId].length === 0) mapping[tId] = ['default'];
+                    }
+                    localStorage.setItem('alpha_task_mapping', JSON.stringify(mapping));
+                    lists = lists.filter(l => l.id !== targetId);
+                    window.selectedListIds = window.selectedListIds.filter(id => id !== targetId);
+                    saveLists(); renderModalListItems(); updateTriggerButtonText();
+                    if (typeof renderSchedules === 'function') renderSchedules();
+                }, "删除表单", true, "🗑️");
+            };
+        });
+    }
+
+    function assembleTriggerButtonDOM() {
+        const taskNameInput = document.getElementById('taskName');
+        if (taskNameInput && taskNameInput.parentElement && !document.getElementById('listSelectorTrigger')) {
+            const fieldDiv = document.createElement('div');
+            fieldDiv.className = 'field';
+            fieldDiv.innerHTML = `
+                <label>添加到表单</label>
+                <div id="listSelectorTrigger" class="list-trigger-container">
+                    <span id="listSelectorText" style="font-size: 14px; font-weight: 600; color: var(--text);">默认</span>
+                    <span class="list-trigger-action-btn">管理 / 切换 ➔</span>
+                </div>
+            `;
+            taskNameInput.parentElement.insertAdjacentElement('beforebegin', fieldDiv);
+            
+            document.getElementById('listSelectorTrigger').onclick = (e) => {
+                e.preventDefault(); injectAlphaModalDOM(); renderModalListItems();
+                const overlay = document.getElementById('alphaListModalOverlay');
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        overlay.classList.add('open');
+                    });
+                });
+            };
+        }
+    }
+    
+    document.addEventListener('click', (e) => {
+        const btn = e.target.closest('button');
+        if (!btn) return;
+        if (btn.id === 'addBtn') {
+            const name = document.getElementById('taskName').value.trim();
+            if (name) window.pendingListIds = [...window.selectedListIds];
+        }
+        if (btn.getAttribute('onclick')?.includes('editTask')) {
+            const match = btn.getAttribute('onclick').match(/['"]([^'"]+)['"]/);
+            if (match) {
+                const mapping = JSON.parse(localStorage.getItem('alpha_task_mapping') || '{}');
+                window.selectedListIds = mapping[match[1]] || ['default'];
+                window.editingTaskId = match[1];
+                updateTriggerButtonText();
+            }
+        }
+        if (btn.getAttribute('onclick')?.includes('deleteTask')) {
+            const match = btn.getAttribute('onclick').match(/['"]([^'"]+)['"]/);
+            if (match) {
+                const mapping = JSON.parse(localStorage.getItem('alpha_task_mapping') || '{}');
+                delete mapping[match[1]];
+                localStorage.setItem('alpha_task_mapping', JSON.stringify(mapping));
+            }
+        }
+    }, true);
+
+    const container = document.getElementById('scheduleList') || document.getElementById('taskList');
+    let isGrouping = false;
+
+    if (container) {
+        const observer = new MutationObserver(() => {
+            // 1. 如果正在进行分组操作, 直接跳过以防死循环
+            if (isGrouping) return;
+
+            // 2. 容器未挂载时跳过 (移除阻碍后台刷新的拦截逻辑, 彻底修复表单删除后卡片挤压的Bug)
+            if (!container.isConnected) return;
+
+            // 3. 获取所有原生任务卡片
+            const rawCards = Array.from(container.children).filter(el => 
+                el.classList.contains('task-card') || el.id?.startsWith('strike-container') || el.querySelector('.task-card')
+            );
+            
+            // 核心修复: 遇到空状态 (长度为 0) 时直接退出, 绝不提前断开监听器!
+            // 这样就保证了无论你怎么刷新、怎么清空, 监听器都会永远存活!
+            if (rawCards.length === 0) return;
+
+            // 只有确认真的有任务需要装入文件夹时, 才断开监听器进行 DOM 替换
+            observer.disconnect();
+            isGrouping = true;
+
+            const mapping = JSON.parse(localStorage.getItem('alpha_task_mapping') || '{}');
+            let mappingUpdated = false;
+            
+            rawCards.forEach(card => {
+                const match = card.innerHTML.match(/(?:deleteTask|editTask|markTaskStatus)\(['"]?([a-zA-Z0-9_\-]+)['"]?/);
+                if (match && match[1]) {
+                    const tId = match[1];
+                    if (!mapping[tId]) {
+                        mapping[tId] = window.pendingListIds || ['default'];
+                        mappingUpdated = true;
+                    } else if (window.editingTaskId === tId && window.pendingListIds) {
+                        mapping[tId] = window.pendingListIds;
+                        mappingUpdated = true;
+                    }
+                }
+            });
+
+            if (mappingUpdated) {
+                localStorage.setItem('alpha_task_mapping', JSON.stringify(mapping));
+                window.pendingListIds = null;
+                window.editingTaskId = null;
+                window.selectedListIds = ['default'];
+                updateTriggerButtonText();
+            }
+
+            container.innerHTML = "";
+            
+            const fragment = document.createDocumentFragment();
+
+            lists.forEach(list => {
+                const listCards = rawCards.filter(card => {
+                    const match = card.innerHTML.match(/(?:deleteTask|editTask|markTaskStatus)\(['"]?([a-zA-Z0-9_\-]+)['"]?/);
+                    if (match && match[1]) return (mapping[match[1]] || ['default']).includes(list.id);
+                    return false;
+                });
+                if (listCards.length === 0) return;
+
+                const listPanel = document.createElement('div');
+                listPanel.className = 'list-section-panel';
+                // 默认状态下保持 32pxPanel 级呼吸间距
+                listPanel.style.cssText = `margin-bottom: 32px;`;
+                
+                // ==========================================
+                // 修复 Bug ②: “默认”表单深度解耦, 免除视觉衬底
+                // ==========================================
+                const isDefault = list.id === 'default';
+                const hoverBgStyle = isDefault ? '' : `onmouseover="this.style.background='rgba(15, 23, 42, 0.05)'" onmouseout="this.style.background='transparent'"`;
+                const cursorStyle = isDefault ? 'default' : 'text';
+
+                listPanel.innerHTML = `
+                    <div class="list-group-header" style="
+                        display: flex; align-items: center; justify-content: space-between;
+                        padding: 0;
+                        cursor: pointer; 
+                        margin-bottom: 16px;
+                    ">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div class="list-title-clickable" style="
+                                display: flex; align-items: center; gap: 8px; 
+                                font-size: 16px; font-weight: 800; color: #0f172a; 
+                                padding: 6px 8px; margin-left: -2px; 
+                                border-radius: 8px;
+                                transition: background 0.2s ease;
+                                cursor: ${cursorStyle};
+                            " ${hoverBgStyle}>
+                                <span style="font-size: 18px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1)); pointer-events: none;">${list.icon || '📁'}</span>
+                                <span style="pointer-events: none;">${list.name}</span>
+                            </div>
+                            
+                            ${list.deadline !== '无截止日期' ? `
+                            <div class="list-date-clickable" style="
+                                font-size: 13px; font-weight: 700; color: var(--sub); 
+                                padding: 4px 12px; border-radius: 999px;
+                                background: rgba(15, 23, 42, 0.05); cursor: pointer;
+                                transition: background 0.2s ease;
+                            " onmouseover="this.style.background='rgba(15, 23, 42, 0.08)'" onmouseout="this.style.background='rgba(15, 23, 42, 0.05)'">
+                                ${list.deadline}
+                            </div>` : ''}
+                        </div>
+                        
+                        <div class="collapse-icon-wrap" style="
+                            display: flex; align-items: center; justify-content: center;
+                            position: relative; 
+                            width: 32px; height: 32px; border-radius: 50%;
+                            background: rgba(255, 255, 255, 0.55);
+                            backdrop-filter: blur(16px) saturate(180%); -webkit-backdrop-filter: blur(16px) saturate(180%);
+                            border: 1px solid rgba(255, 255, 255, 0.9);
+                            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05), inset 0 1px 2px rgba(255, 255, 255, 1);
+                            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+                            transform: translateZ(0); 
+                        " onmouseover="this.style.transform='scale(1.08) translateZ(0)'; this.style.background='rgba(255, 255, 255, 0.8)';" onmouseout="this.style.transform='scale(1) translateZ(0)'; this.style.background='rgba(255, 255, 255, 0.55)';">
+                            <div class="collapse-icon" style="
+                                color: #64748b; 
+                                width: 18px; height: 18px;
+                                transform-origin: center center;
+                                transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+                                transform: rotate(0deg);
+                            ">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: block;"><path d="m6 9 6 6 6-6"/></svg>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="list-divider" style="border-top: 2px dashed rgba(15, 23, 42, 0.1); margin-bottom: 24px; transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease;"></div>
+                    
+                    <div class="list-cards-wrapper" style="
+                        display: grid; grid-template-rows: 1fr; 
+                        transition: grid-template-rows 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.4s ease, margin 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+                    ">
+                        <div style="overflow: hidden; padding: 16px 24px 56px 24px; margin: -16px -24px -56px -24px;">
+                            <div class="list-cards-container" style="
+                                display: flex; flex-direction: column; gap: 24px; padding-bottom: 4px; padding-top: 2px;
+                                transform-origin: top center; transform: scaleY(1);
+                                transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+                            "></div>
+                        </div>
+                    </div>
+                `;
+
+                // 核心控制引擎: 注入带回弹的阻尼折叠逻辑
+                const groupHeader = listPanel.querySelector('.list-group-header');
+                const cardsWrapper = listPanel.querySelector('.list-cards-wrapper');
+                const cardsContainer = listPanel.querySelector('.list-cards-container');
+                const collapseIcon = listPanel.querySelector('.collapse-icon');
+                const collapseWrap = listPanel.querySelector('.collapse-icon-wrap');
+                const divider = listPanel.querySelector('.list-divider');
+                
+                let isCollapsed = false;
+                groupHeader.addEventListener('click', (e) => {
+                    // 事件阻断: 防误触
+                    if (e.target.closest('.list-title-clickable') || e.target.closest('.list-date-clickable') || e.target.closest('.collapse-icon-wrap')) {
+                        if (!e.target.closest('.collapse-icon-wrap')) return; 
+                    }
+                    
+                    isCollapsed = !isCollapsed;
+                    if (isCollapsed) {
+                        cardsWrapper.style.gridTemplateRows = '0fr';
+                        cardsWrapper.style.opacity = '0';
+                        cardsWrapper.style.marginTop = '-16px';
+                        cardsContainer.style.transform = 'scaleY(0.95)'; 
+                        collapseIcon.style.transform = 'rotate(-90deg)'; 
+                        collapseWrap.style.boxShadow = 'inset 0 1px 4px rgba(0,0,0,0.05)'; 
+                        
+                        // ==========================================
+                        // 修复 Bug ①: 收起时同步抽干多余空间留白
+                        // ==========================================
+                        divider.style.opacity = '0';
+                        divider.style.marginBottom = '0px';
+                        listPanel.style.setProperty('margin-bottom', '16px', 'important');
+                    } else {
+                        cardsWrapper.style.gridTemplateRows = '1fr';
+                        cardsWrapper.style.opacity = '1';
+                        cardsWrapper.style.marginTop = '0';
+                        cardsContainer.style.transform = 'scaleY(1)'; 
+                        collapseIcon.style.transform = 'rotate(0deg)'; 
+                        collapseWrap.style.boxShadow = '0 4px 12px rgba(15, 23, 42, 0.05), inset 0 1px 2px rgba(255, 255, 255, 1)'; 
+                        
+                        // 展开时瞬间解压, 恢复Panel级呼吸感知高度
+                        divider.style.opacity = '1';
+                        divider.style.marginBottom = '24px';
+                        listPanel.style.setProperty('margin-bottom', '32px');
+                    }
+                });
+
+                groupHeader.onclick = (e) => {
+                    if (e.target.closest('.list-title-clickable') || e.target.closest('.list-date-clickable')) return;
+                    if (!e.target.closest('.collapse-icon-wrap')) groupHeader.click();
+                };
+                
+                const cardBox = listPanel.querySelector('.list-cards-container');
+                listCards.forEach(c => {
+                    if (c.parentNode) { 
+                        const clonedCard = c.cloneNode(true);
+                        const originNodes = c.querySelectorAll("*");
+                        const cloneNodes = clonedCard.querySelectorAll("*");
+                        cloneNodes.forEach((child, index) => {
+                            if (originNodes[index].onclick) child.onclick = originNodes[index].onclick;
+                            if (originNodes[index].onchange) child.onchange = originNodes[index].onchange;
+                            if (originNodes[index].type === 'checkbox') child.checked = originNodes[index].checked;
+                        });
+                        cardBox.appendChild(clonedCard);
+                    } else {
+                        cardBox.appendChild(c);
+                    }
+                });
+
+                listPanel.querySelector('.list-title-clickable').onclick = () => {
+                    if (list.id === 'default') return;
+                    // 修复 Bug ④: 将内联样式的圆角升级为符合规范的 var(--radius-element) 16px 大圆角
+                    customConfirm(
+                        `<div class="field" style="text-align: left;">
+                            <label style="font-weight:700;">新表单名称</label>
+                            <input type="text" id="editLTitle" value="${list.name}" class="pop-input-fx" style="height:44px; padding:0 12px; border-radius: var(--radius-element); width: 100%; box-sizing: border-box; outline: none; margin-top: 8px;">
+                        </div>`, 
+                        () => {
+                            const n = document.getElementById('editLTitle').value.trim();
+                            if(n && n !== list.name) { 
+                                list.name = n; 
+                                saveLists(); 
+                                listPanel.querySelector('.list-title-clickable span:nth-child(2)').textContent = n; 
+                                updateTriggerButtonText(); 
+                            }
+                        }, 
+                        "重命名", false, "✍️"
+                    );
+                    document.getElementById('customDialog').style.zIndex = '99999';
+                };
+                
+                const dateClickableEl = listPanel.querySelector('.list-date-clickable');
+                if (dateClickableEl) {
+                    dateClickableEl.onclick = () => {
+                        // 修复 Bug ④: 同步将调整日期框的内联圆角升级为 var(--radius-element)
+                        customConfirm(
+                            `<div class="field" style="text-align: left;">
+                                <label style="font-weight:700;">截止日期 (格式不限)</label>
+                                <input type="text" id="editLDate" value="${list.deadline==='无截止日期'?'':list.deadline}" placeholder="如 20260628" class="pop-input-fx" style="height:44px; padding:0 12px; border-radius: var(--radius-element); width: 100%; box-sizing: border-box; outline: none; margin-top: 8px;">
+                            </div>`, 
+                            () => {
+                                const newDate = normalizeSmartDate(document.getElementById('editLDate').value) || "无截止日期"; 
+                                if (newDate !== list.deadline) {
+                                    list.deadline = newDate;
+                                    saveLists(); 
+                                    dateClickableEl.textContent = list.deadline;
+                                }
+                            }, 
+                            "调整日期", false, "📅"
+                        );
+                        document.getElementById('customDialog').style.zIndex = '99999';
+                        document.getElementById('editLDate').addEventListener('blur', function(){ this.value = normalizeSmartDate(this.value); });
+                    };
+                }
+
+                fragment.appendChild(listPanel);
+            });
+            
+            container.appendChild(fragment);
+            
+            if (typeof initializeTouchSwipe === 'function') setTimeout(initializeTouchSwipe, 50);
+            setTimeout(() => { isGrouping = false; }, 50);
+            observer.observe(container, { childList: true });
+        });
+
+        observer.observe(container, { childList: true });
+    }
+
+    function init() {
+        assembleTriggerButtonDOM();
+        updateTriggerButtonText();
+        if (typeof renderSchedules === 'function') renderSchedules();
+    }
+    
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+    else init();
+
+})();
+
+(function() {
+    const resizer = document.getElementById('glassResizer');
+    const layout = document.querySelector('.app');
+    if (!resizer || !layout) return;
+
+    resizer.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        resizer.setPointerCapture(e.pointerId);
+        resizer.classList.add('dragging');
+        
+        // 挂载类: 瞬间释放重绘管线压力, 杜绝掉帧
+        layout.classList.add('resizing-active');
+
+        const startX = e.clientX;
+        const sidebar = document.querySelector('.sidebar');
+        const startLeftWidth = sidebar.offsetWidth;
+
+        // 获取整体容器最大物理宽度
+        const maxLayoutWidth = layout.offsetWidth;
+
+        const onPointerMove = (moveEvent) => {
+            const deltaX = moveEvent.clientX - startX;
+            let newLeftWidth = startLeftWidth + deltaX;
+
+            // 专属防碎边界限制: 左侧侧边栏最窄 290px, 最宽不超过容器整体的 45%
+            if (newLeftWidth < 290) newLeftWidth = 290;
+            if (newLeftWidth > (maxLayoutWidth * 0.45)) newLeftWidth = maxLayoutWidth * 0.45;
+
+            // 顺应刷新率将改变写入 CSS 变量
+            requestAnimationFrame(() => {
+                layout.style.setProperty('--left-width', `${newLeftWidth}px`);
+            });
+        };
+
+        const onPointerUp = (upEvent) => {
+            resizer.removeEventListener('pointermove', onPointerMove);
+            resizer.removeEventListener('pointerup', onPointerUp);
+            resizer.releasePointerCapture(e.pointerId);
+            
+            resizer.classList.remove('dragging');
+            layout.classList.remove('resizing-active'); // 拖拽完毕, 瞬间恢复极致画质
+        };
+
+        resizer.addEventListener('pointermove', onPointerMove);
+        resizer.addEventListener('pointerup', onPointerUp);
+    });
+})();
+
+(function() {
+    // 核心修复 2: 将物理指纹挂载到 window 全局, 允许内部 saveSchedules 函数安全覆写
+    window.__alphaLastTaskHubSign = localStorage.getItem('taskhub_data');
+
+    function alphaAutoSyncEngine() {
+        const currentSign = localStorage.getItem('taskhub_data');
+        
+        // 核心设计: 比对物理指纹, 只有当【其他页面】改变数据时, 才执行内存重洗与DOM重绘
+        if (currentSign !== window.__alphaLastTaskHubSign) {
+            window.__alphaLastTaskHubSign = currentSign; 
+            
+            try {
+                // 1. 强行重洗内存中的全局 schedules 数组
+                let parsed = JSON.parse(currentSign || '[]');
+                if (Array.isArray(parsed)) {
+                    schedules = parsed.filter(t => t && t.id && Array.isArray(t.subject));
+                }
+                
+                // 2. 跨空喊话: 命令任务墙与你的 MutationObserver 表单分组引擎联合重绘
+                if (typeof renderSchedules === 'function') {
+                    renderSchedules();
+                }
+            } catch (err) {
+                console.error("Project ALPHA 跨标签心跳掉帧, 已自动拦截安全降级", err);
+            }
+        }
+    }
+
+    // 轨道 1: 同源广播监听
+    window.addEventListener('storage', (e) => {
+        if (e.key === 'taskhub_data') alphaAutoSyncEngine();
+    });
+
+    // 轨道 2: 视窗焦点唤醒
+    window.addEventListener('focus', alphaAutoSyncEngine);
+    
+    // 轨道 3: 高性能心跳校验 (兜底本地 file:// 协议不广播的死角) 
+    setInterval(alphaAutoSyncEngine, 800);
+})();
+
+// ================= 全局景深导航逻辑 (性能与状态分离版) =================
+let alphaMenuTimeout; // 全局定时器拦截连触
+
+function toggleAlphaMenu(e) {
+    e.stopPropagation();
+    const menu = document.getElementById('alphaDropdownMenu');
+    const trigger = document.getElementById('logoTrigger');
+    
+    // 如果还没创建捕获层, 则动态插入一个 (保留这个层仅作视觉模糊的载体)
+    if (!document.getElementById('navClickCatcher')) {
+        const catcher = document.createElement('div');
+        catcher.id = 'navClickCatcher';
+        catcher.className = 'nav-click-catcher';
+        document.body.appendChild(catcher);
+    }
+    
+    if (menu.classList.contains('hidden')) {
+        clearTimeout(alphaMenuTimeout); 
+        menu.classList.remove('hidden');
+        if (trigger) trigger.classList.add('active');
+        
+        // 确保清除残留的关闭状态, 瞬间挂载开启状态
+        document.body.classList.remove('alpha-menu-closing');
+        document.body.classList.add('alpha-menu-open'); 
+        
+        // ✅ 核心修复: 延迟开启全局点击监听, 捕获所有漏网之鱼
+        setTimeout(() => {
+            document.addEventListener('click', handleAlphaMenuOutsideClick);
+        }, 0);
+    } else {
+        closeAlphaMenu();
+    }
+}
+
+// ✅ 新增: 全局点击智能判定引擎
+function handleAlphaMenuOutsideClick(e) {
+    const menu = document.getElementById('alphaDropdownMenu');
+    const trigger = document.getElementById('logoTrigger');
+    
+    // 1. 如果点击的是触发器本身, 防范冗余触发 (由 toggleAlphaMenu 统一接管) 
+    if (trigger && trigger.contains(e.target)) return;
+    
+    // 2. 如果点击区域在下拉菜单内部
+    if (menu && menu.contains(e.target)) {
+        // 如果精准点击了具体的菜单项 (如当前 active 项) , 则执行关闭
+        // 如果只是点到了菜单里的纯白缝隙, 则维持打开状态 (严格遵循 macOS 原生菜单行为) 
+        if (e.target.closest('.dropdown-item')) {
+            closeAlphaMenu();
+        }
+        return;
+    }
+    
+    // 3. 点击菜单外部的任何区域 (包含 sidebar 空白、右侧大面积虚化区等) , 统统关闭
+    closeAlphaMenu();
+}
+
+function closeAlphaMenu() {
+    const menu = document.getElementById('alphaDropdownMenu');
+    const trigger = document.getElementById('logoTrigger');
+    
+    if (menu && !menu.classList.contains('hidden')) {
+        menu.classList.add('hidden');
+        if (trigger) trigger.classList.remove('active');
+        
+        document.body.classList.remove('alpha-menu-open'); 
+        document.body.classList.add('alpha-menu-closing'); 
+        
+        // ✅ 核心修复: 退场时立刻卸载全局监听, 保证性能绝不侧漏
+        document.removeEventListener('click', handleAlphaMenuOutsideClick);
+        
+        clearTimeout(alphaMenuTimeout);
+        alphaMenuTimeout = setTimeout(() => {
+            // 300ms 后, 下拉框动画彻底退场, 撤掉保护伞, 完美落地
+            document.body.classList.remove('alpha-menu-closing'); 
+        }, 300);
+    }
+}
+
+// ================== 智能文本框引擎 ==================
+
+// 核心高度计算重绘器
+function adjustTextareaHeight(el) {
+    if (el.dataset.userResized === 'true') return;
+    
+    // 精准补偿 border-box 的边框厚度
+    const borderSize = el.offsetHeight - el.clientHeight;
+    const currentHeight = el.style.height || window.getComputedStyle(el).height;
+
+    // 欺骗重排: 临时取消动画, 归零逼出真实内容高度
+    el.style.transition = 'none';
+    el.style.height = 'auto';
+    
+    let targetHeight = el.scrollHeight + borderSize;
+    if (targetHeight < 126) targetHeight = 126; // 咬死 126px 黄金底线
+
+    // 强迫浏览器 Reflow 重新排版
+    el.style.height = currentHeight;
+    void el.offsetHeight; 
+
+    // 恢复阻尼动画, 推向理想高度
+    el.style.transition = '';
+    el.style.height = targetHeight + 'px';
+}
+
+// 关键补丁: 注入全局事件委托雷达, 让任何 textarea 都能实时响应打字
+document.addEventListener('input', (e) => {
+    if (e.target.tagName === 'TEXTAREA') {
+        adjustTextareaHeight(e.target);
+    }
+});
+
+let isManageMode = false;
+
+function toggleManageMode() {
+    isManageMode = !isManageMode;
+    const btn = document.getElementById('manageBtn');
+    const selectAllBtn = document.getElementById('selectAllBtn'); // 获取全选按钮
+    
+    if (isManageMode) {
+        document.body.classList.add('manage-mode-active');
+        btn.textContent = "完成";
+        btn.classList.remove('primary');
+        btn.classList.add('secondary');
+        
+        // 每次展开时, 确保文字复位
+        if (selectAllBtn) selectAllBtn.textContent = "全选"; 
+    } else {
+        document.body.classList.remove('manage-mode-active');
+        btn.textContent = "管理";
+        btn.classList.remove('secondary');
+        btn.classList.add('primary');
+        
+        // 取消管理时, 自动清空所有已勾选的复选框
+        document.querySelectorAll(".batch-check").forEach(cb => cb.checked = false);
+        // 收起时, 重置全选按钮文字
+        if (selectAllBtn) selectAllBtn.textContent = "全选"; 
+    }
+}
+
+// ================= 全局页面切换动效拦截引擎 V2 =================
+window.addEventListener('DOMContentLoaded', () => {
+    const appContainer = document.querySelector('.app');
+    
+    // 核心修复 2：进场动画播放完毕后，立刻卸载动画属性
+    if (appContainer) {
+        appContainer.addEventListener('animationend', (e) => {
+            if (e.animationName === 'alphaPageIn') {
+                // 瞬间摧毁残留的 animation 属性
+                // 这将解除强制生成的“层叠上下文”，让 .app 内部和外部的 fixed 定位、z-index 以及 Blur 遮罩完美恢复原状！
+                appContainer.style.animation = 'none';
+            }
+        });
+    }
+
+    // 拦截全局下拉菜单中带有 href 且指向内部页面的 <a> 标签
+    document.querySelectorAll('a[href^="./"]').forEach(link => {
+        link.addEventListener('click', (e) => {
+            const targetUrl = link.getAttribute('href');
+            
+            const currentPath = window.location.pathname.split('/').pop() || 'index.html';
+            const targetPath = targetUrl.replace('./', '');
+            if (currentPath === targetPath) return; 
+
+            e.preventDefault();
+            
+            if (appContainer) {
+                // 挂载退场动画
+                appContainer.classList.add('page-transition-leave');
+                
+                // 等待 400ms 后物理跳转
+                setTimeout(() => {
+                    window.location.href = targetUrl;
+                }, 400);
+            } else {
+                window.location.href = targetUrl;
+            }
+        });
+    });
+});
+
+// ================= 全局毛玻璃 Tooltip 劫持引擎 =================
+window.addEventListener('DOMContentLoaded', () => {
+    // 1. 创建全局唯一的 Tooltip 玻璃面板
+    const tooltipNode = document.createElement('div');
+    tooltipNode.id = 'alphaTooltip';
+    document.body.appendChild(tooltipNode);
+
+    // 2. 利用事件委托，监听全局的鼠标悬停（支持 JS 动态生成的元素）
+    document.addEventListener('mouseover', (e) => {
+        // 寻找当前鼠标下带有 title 或 data-tooltip 的最近元素
+        const target = e.target.closest('[title], [data-tooltip]');
+        if (!target) return;
+
+        // 核心：瞬间没收原生 title，防止浏览器自带的生硬黑框弹出来
+        if (target.hasAttribute('title')) {
+            target.setAttribute('data-tooltip', target.getAttribute('title'));
+            target.removeAttribute('title'); 
+        }
+
+        const tipText = target.getAttribute('data-tooltip');
+        if (tipText) {
+            tooltipNode.textContent = tipText;
+            tooltipNode.classList.add('visible');
+            updateTooltipPosition(e); // 立刻计算一次位置，防止动画乱飞
+        }
+    });
+
+    // 3. 鼠标移动时，玻璃板柔性跟随
+    document.addEventListener('mousemove', (e) => {
+        if (tooltipNode.classList.contains('visible')) {
+            updateTooltipPosition(e);
+        }
+    });
+
+    // 4. 离开时褪去
+    document.addEventListener('mouseout', (e) => {
+        const target = e.target.closest('[data-tooltip]');
+        if (target) {
+            tooltipNode.classList.remove('visible');
+        }
+    });
+
+    // 5. 点击时主动隐藏（防遮挡视线优化）
+    document.addEventListener('mousedown', () => {
+        tooltipNode.classList.remove('visible');
+    });
+
+    // 💡 定位计算函数（附带屏幕边缘防溢出系统）
+    function updateTooltipPosition(e) {
+        const offsetX = 14; // 距离鼠标的横向距离
+        const offsetY = 18; // 距离鼠标的纵向距离
+        
+        let x = e.clientX + offsetX;
+        let y = e.clientY + offsetY;
+
+        // 右侧边界碰撞检测：如果超出版面，就翻转到鼠标左侧
+        if (x + tooltipNode.offsetWidth > window.innerWidth) {
+            x = e.clientX - tooltipNode.offsetWidth - 8;
+        }
+        
+        // 底部边界碰撞检测：如果超出底部，就翻转到鼠标上方
+        if (y + tooltipNode.offsetHeight > window.innerHeight) {
+            y = e.clientY - tooltipNode.offsetHeight - 8;
+        }
+
+        tooltipNode.style.left = `${x}px`;
+        tooltipNode.style.top = `${y}px`;
+    }
+});
+</script>
+<div id="glassSphere" class="glass-sphere">
+    <span class="sphere-icon">💡</span>
+</div>
+
+<div id="sphereModal" class="sphere-modal hidden">
+    <div class="modal-content">
+        <h3 style="margin-bottom: 12px; color: #0f172a; font-size: 20px;">使用提示</h3>
+        <div style="color: #64748b; font-size: 15px; line-height: 1.8; margin-bottom: 24px;">
+            欢迎使用 TaskHub: <br>
+            • <b>划去任务</b>: 按住任务标题向右拖拽, 即可完成任务并自动归档至 TaskFlow 数据库<br>
+            • <b>修改规划</b>: 点击任务卡片上的“编辑”按钮即可重新调整时间
+        </div>
+        <button class="primary" style="width: 100% !important;" onclick="document.getElementById('sphereModal').classList.add('hidden')">我知道了</button>
+    </div>
+</div>
+<div id="customDialog" class="sphere-modal hidden">
+    <div class="modal-content" style="width: 360px; text-align: center;">
+        <div id="dialogIcon" style="font-size: 48px; margin-bottom: 16px; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.1));">⚠️</div>
+        <h3 id="dialogTitle" style="margin-bottom: 12px; color: #0f172a; font-size: 20px;">提示</h3>
+        <div id="dialogMessage" style="color: #64748b; font-size: 15px; line-height: 1.6; margin-bottom: 24px;"></div>
+        <div style="display: flex; gap: 12px; justify-content: center;">
+            <button class="secondary" id="dialogCancelBtn" style="flex: 1;" onclick="document.getElementById('customDialog').classList.add('hidden')">取消</button>
+            <button class="primary" id="dialogConfirmBtn" style="flex: 1;" onclick="if(window.dialogConfirmCallback) window.dialogConfirmCallback()">确定</button>
+        </div>
+    </div>
+</div>
+</body>
+</html>

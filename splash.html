@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>启动 | Tasks</title>
+    <style>
+        /* ================== 全局与色彩体系 ================== */
+        :root {
+            --text: #0f172a; 
+            --sub: #64748b;
+            --monet-blue: #9DD2FF;
+            
+            --glass: rgba(255, 255, 255, 0.45);
+            --glass-border: rgba(255, 255, 255, 0.85);
+            
+            --shadow-xl: 0 40px 80px rgba(15,23,42,.12);
+            
+            /* [数学几何微调] 落实外半径 = 内半径 + 间距 的同心视觉共振 */
+            --splash-padding: 24px;                 /* 强制锁定四周留白全部为 24px */
+            --radius-card: 32px;                    /* 内部 Card 保持规范的 24px 圆角 */
+            --radius-panel: 48px; 
+            --radius-inside: 16px;
+            
+            --ease-spring: cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        * {
+            margin: 0; padding: 0; box-sizing: border-box;
+        }
+
+        body {
+            width: 100vw; 
+            height: 100vh;
+            background-color: transparent; 
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", sans-serif;
+            color: var(--text);
+            overflow: hidden;
+            user-select: none;
+        }
+
+        /* 外层视窗容器 (Panel 层级) */
+        .splash-window {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background-color: #f2f5f9; 
+            border-radius: var(--radius-panel); /* 应用计算后的 48px 视窗大圆角 */
+            overflow: hidden; 
+            display: flex;
+            align-items: stretch;     /* 配合 stretch 让子卡片完美填充自适应 */
+            justify-content: stretch;
+            padding: var(--splash-padding); /* 注入上下左右绝对均等的 24px 物理间距 */
+            box-shadow: 
+                inset 0 1px 1px rgba(255, 255, 255, 0.9),
+                0 0 0 1px rgba(15, 23, 42, 0.05);
+        }
+
+        /* ================== 环境光场 ================== */
+        .alpha-ambient-bg {
+            position: absolute; inset: 0; z-index: 0;
+            overflow: hidden; pointer-events: none;
+        }
+        
+        .sunbeam {
+            position: absolute; top: -10%; right: -5%; width: 40vw; height: 80vh;
+            background: radial-gradient(ellipse at top right, rgba(255, 245, 225, 0.15) 0%, rgba(255, 235, 200, 0.05) 40%, transparent 65%);
+            transform-origin: top right;
+            animation: sunbeam-pulse 8s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .orb { 
+            position: absolute; border-radius: 50%; 
+            will-change: transform; opacity: 0.85; 
+        }
+        .orb-1 { width: 50vw; height: 50vw; background: radial-gradient(circle, rgba(178, 219, 255, 0.4) 0%, transparent 60%); top: -10%; right: -10%; animation: orb-drift-1 12s infinite alternate cubic-bezier(0.4, 0, 0.2, 1); }
+        .orb-2 { width: 60vw; height: 60vw; background: radial-gradient(circle, rgba(212, 206, 255, 0.45) 0%, transparent 60%); bottom: -15%; left: -15%; animation: orb-drift-2 15s infinite alternate-reverse cubic-bezier(0.4, 0, 0.2, 1); }
+        .orb-3 { width: 40vw; height: 40vw; background: radial-gradient(circle, rgba(255, 204, 194, 0.3) 0%, transparent 60%); top: 30%; left: 20%; animation: orb-drift-3 14s infinite alternate cubic-bezier(0.4, 0, 0.2, 1); }
+
+        @keyframes orb-drift-1 { 0% { transform: translate3d(0, 0, 0) scale(1); } 100% { transform: translate3d(-10vw, 8vh, 0) scale(1.1); } }
+        @keyframes orb-drift-2 { 0% { transform: translate3d(0, 0, 0) scale(1); } 100% { transform: translate3d(8vw, -8vh, 0) scale(0.9); } }
+        @keyframes orb-drift-3 { 0% { transform: translate3d(0, 0, 0) scale(1); } 100% { transform: translate3d(-8vw, -10vh, 0) scale(1.15); } }
+        @keyframes sunbeam-pulse { 0% { transform: rotate(0deg) scale(1); opacity: 0.6; } 100% { transform: rotate(-2deg) scale(1.05); opacity: 1; } }
+        
+        /* ================== Liquid Glass 主卡片 ================== */
+        .splash-card-wrapper {
+            position: relative;
+            z-index: 10;
+            flex: 1;                 /* 撑满外窗容器扣除 padding 后的剩余绝对相等空间 */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .splash-card {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 32px;
+            text-align: center;
+            border-radius: var(--radius-card); 
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0.2) 100%);
+            backdrop-filter: blur(48px) saturate(200%);
+            -webkit-backdrop-filter: blur(48px) saturate(200%);
+            border: 1px solid var(--glass-border);
+            box-shadow: 
+                var(--shadow-xl), 
+                inset 0 2px 6px rgba(255, 255, 255, 0.8), 
+                inset 0 -1px 2px rgba(255, 255, 255, 0.3);
+            opacity: 0;
+            transform: scale(0.96); 
+            animation: card-enter 0.6s var(--ease-spring) forwards;
+        }
+
+        .logo-wrap { 
+            margin-bottom: 8px; 
+            animation: inner-float 4s infinite alternate cubic-bezier(0.45, 0, 0.55, 1);
+        }
+
+        /* ================== 关键帧动效补丁 ================== */
+        @keyframes card-enter {
+            0% { opacity: 0; transform: scale(0.96); filter: blur(4px); }
+            100% { opacity: 1; transform: scale(1); filter: blur(0); }
+        }
+
+        /* 专用于内部元素的呼吸浮动，不引发图层回流 */
+        @keyframes inner-float {
+            0% { transform: translateY(0px); }
+            100% { transform: translateY(-6px); }
+        }
+
+        .logo {
+            font-size: 48px;
+            font-weight: 800;
+            letter-spacing: -1.5px;
+            color: var(--text);
+            text-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
+            line-height: 1.1;
+        }
+
+        .logo span {
+            background: linear-gradient(135deg, #7abaffe6, #98cfffc7);
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 4px 12px #9dd1ff80;
+        }
+
+        .subtitle {
+            font-size: 15px;
+            color: var(--sub);
+            font-weight: 600;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            opacity: 0.8;
+        }
+
+        /* ================== 流光加载轨道 ================== */
+        .loader-container {
+            margin-top: 36px;
+            width: 140px;
+            height: 4px;
+            margin-left: auto;
+            margin-right: auto;
+            border-radius: var(--radius-inside); /* 最内层元素圆角 */
+            background: rgba(15, 23, 42, 0.06);
+            position: relative;
+            overflow: hidden;
+            box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.05), 0 1px 1px rgba(255, 255, 255, 0.9);
+        }
+
+        .loader-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 50%;
+            border-radius: var(--radius-inside);
+            background: linear-gradient(90deg, transparent, var(--monet-blue), transparent);
+            animation: scan 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+        }
+
+        /* ================== 关键帧动画 ================== */
+        @keyframes card-enter {
+            0% { opacity: 0; transform: translateY(32px) scale(0.92); filter: blur(8px); }
+            100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            100% { transform: translateY(-8px); }
+        }
+
+        @keyframes scan {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(200%); }
+        }
+
+        .splash-exit {
+            pointer-events: none;
+            transition: opacity 0.6s var(--ease-spring), transform 0.6s var(--ease-spring), filter 0.6s var(--ease-spring);
+            opacity: 0 !important;
+            transform: scale(1.05) translateY(-16px) !important;
+            filter: blur(12px) !important;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="splash-window">
+        <div class="alpha-ambient-bg">
+            <div class="sunbeam"></div>
+            <div class="orb orb-1"></div>
+            <div class="orb orb-2"></div>
+            <div class="orb orb-3"></div>
+        </div>
+
+        <div class="splash-card-wrapper" id="splashWrapper">
+            <div class="splash-card">
+                <div class="logo-wrap">
+                    <div class="logo">Task<span>s</span></div>
+                </div>
+                <div class="subtitle">加载中</div>
+                
+                <div class="loader-container">
+                    <div class="loader-bar"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DOM 处理逻辑...
+    </script>
+</body>
+</html>
