@@ -598,8 +598,8 @@ button:active { transform: scale(0.96) !important; }
     contain-intrinsic-size: 120px;
 }
 
-#taskList .task-card:last-child {
-    margin-bottom: 6px;
+#hubTaskList .task-card-wrap:last-child .task-card {
+    margin-bottom: 0 !important;
 }
 
 .task-card:hover { 
@@ -652,26 +652,38 @@ button:active { transform: scale(0.96) !important; }
 .badge-unfinished { background: #e2e8f0; color: #1e293b; } 
 .badge-other { background: #f1f5f9; color: #64748b; }
 
+#hubPanel {
+    display: flex;
+    flex-direction: column;
+    
+    /* 强行将它的基础物理高度归零，彻底切断它向 Grid 父级上报内容高度的能力 */
+    height: 0 !important; 
+    
+    /* 它自己没有高度了，只能 100% 乖乖听从父级分配的高度（也就是左侧面板天然撑开的高度） */
+    min-height: 100% !important; 
+}
+
 .hub-scroll-zone {
-    max-height: calc(100vh - 140px);
+    flex: 1; /* 动态撑满剩余空间，抛弃 calc(100vh - 140px) 的硬编码 */
+    min-height: 0; /* 配合 flex: 1，防止内部子元素撑爆容器 */
     overflow-y: auto;
     overflow-x: hidden;
-    padding: 8px 32px 40px 32px !important;
-    margin: -8px -32px -40px -32px !important;
     
-    /* 引入通道渐隐遮罩 */
-    /* 从顶部 0px 开始透明, 平滑过渡到 32px 处变为完全不透明；*/
-    /* 底部同理, 提前 64px 开始逐渐变透明直到边缘, 完美融合负边距 */
+    /* 统一底部与两侧留白均为 32px，确保最后一张卡片边距视觉统一 */
+    padding: 8px 32px 32px 32px !important;
+    margin: -8px -32px -32px -32px !important;
+    
+    /* 修正通道渐隐遮罩：确保透明过渡区间仅限于底部 32px 负边距内，不再向上越界裁切正常的卡片内容 */
     -webkit-mask-image: linear-gradient(to bottom, 
         transparent 0px, 
-        black 32px, 
-        black calc(100% - 64px), 
+        black 16px, 
+        black calc(100% - 32px), 
         transparent 100%
     );
     mask-image: linear-gradient(to bottom, 
         transparent 0px, 
-        black 32px, 
-        black calc(100% - 64px), 
+        black 16px, 
+        black calc(100% - 32px), 
         transparent 100%
     );
 }
@@ -1557,6 +1569,8 @@ let targetSeconds = 0;
 let isRunning = false;
 let isCountdown = false;
 let realStartTime = null; 
+let overtimeInterval = null; 
+let overtimeSeconds = 0;
 
 // ================= DOM 元素获取 =================
 const setupLayout = document.getElementById('setupLayout');
@@ -2145,7 +2159,36 @@ function startTimer() {
                     // 剥离 requestAnimationFrame 依赖, 改用 setTimeout, 确保最小化状态下仍能唤醒主窗口
                     setTimeout(() => topAPI.bringMainToFront(), 10);
                 }
-                customAlert("倒计时结束!可以点击『完成并记录』归档此次专注了", "专注完成", "🎉", stopAlarm);
+                overtimeSeconds = 0;
+                if (overtimeInterval) clearInterval(overtimeInterval);
+
+                const baseMsg = "倒计时结束! 可以点击「完成并记录」归档此次专注了";
+                const overtimeHtml = `
+                    <div style="margin-top: 16px; padding: 12px; background: rgba(227, 96, 93, 0.08); border-radius: var(--radius-element); border: 1px solid rgba(227, 96, 93, 0.3); box-shadow: inset 0 1px 2px rgba(255,255,255,0.5);">
+                        <span id="overtimeDisplay" style="color: var(--monet-text); font-weight: 800; font-size: 16px; font-variant-numeric: tabular-nums;">已超时 0 分 0 秒</span>
+                    </div>
+                `;
+
+                // 传入回调函数：当用户点击"我知道了"，执行 stopAlarm 并停止超时计时
+                customAlert(baseMsg + overtimeHtml, "专注完成", "🎉", () => {
+                    stopAlarm();
+                    if (overtimeInterval) {
+                        clearInterval(overtimeInterval);
+                        overtimeInterval = null;
+                    }
+                });
+
+                // 启动后台超时读秒引擎，直接操控 DOM 节点进行无感刷新
+                overtimeInterval = setInterval(() => {
+                    overtimeSeconds++;
+                    const display = document.getElementById('overtimeDisplay');
+                    if (display) {
+                        const m = Math.floor(overtimeSeconds / 60);
+                        const s = overtimeSeconds % 60;
+                        display.textContent = `已超时 ${m} 分 ${s} 秒`;
+                    }
+                }, 1000);
+                
                 return;
             }
 
@@ -2212,6 +2255,12 @@ safePauseBtn.onclick = () => {
 
 safeCancelBtn.onclick = () => {
     stopAlarm();
+    /* 清空超时计时器 */
+    if (overtimeInterval) {
+        clearInterval(overtimeInterval);
+        overtimeInterval = null;
+    }
+    overtimeSeconds = 0;
     if (window.opener && !window.opener.closed) window.opener.focus();
     if (window.alphaPipWindow) {
         window.alphaPipWindow.close();
@@ -2240,6 +2289,12 @@ safeCancelBtn.onclick = () => {
 safeFinishBtn.onclick = () => {
     stopAlarm();
     cancelFrame(animationFrameId);
+
+    if (overtimeInterval) {
+        clearInterval(overtimeInterval);
+        overtimeInterval = null;
+    }
+    
     if (window.opener && !window.opener.closed) window.opener.focus();
     if (window.alphaPipWindow) {
         window.alphaPipWindow.close();
@@ -2254,7 +2309,7 @@ safeFinishBtn.onclick = () => {
     window.focus();
 
     const realEndTime = new Date();
-    let actualSeconds = isCountdown ? (targetSeconds - secondsElapsed) : secondsElapsed;
+    let actualSeconds = isCountdown ? (targetSeconds - secondsElapsed + overtimeSeconds) : secondsElapsed;
     let actualMinutes = Math.max(1, Math.round(actualSeconds / 60));
 
     const taskData = {
