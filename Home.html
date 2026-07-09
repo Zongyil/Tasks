@@ -73,7 +73,7 @@ body > *:not(script):not(style):not(link):not(.sphere-modal):not(.flatpickr-cale
 @keyframes alphaPageIn {
     0% {
         opacity: 0;
-        /* 关键修改：改成负值 (-120px)！让界面从屏幕顶部优雅降落下来 */
+        /* 关键修改: 改成负值 (-120px), 让界面从屏幕顶部优雅降落下来 */
         transform: translateY(-120px) scale(0.96); 
     }
     100% {
@@ -115,14 +115,14 @@ body > *:not(script):not(style):not(link):not(.sphere-modal):not(.flatpickr-cale
 @media(max-width: 1000px) { .home-layout { grid-template-columns: 1fr; } }
 
 .panel {
-    /* 采用更具液态光泽的渐变半透明，代替单一的纯色 */
+    /* 采用更具液态光泽的渐变半透明, 代替单一的纯色 */
     background: linear-gradient(135deg, hsla(var(--theme-hue), var(--theme-sat), 100%, 0.55) 0%, hsla(var(--theme-hue), var(--theme-sat), 96%, 0.3) 100%);
     border: 1px solid var(--glass-border);
     
     backdrop-filter: blur(48px) saturate(200%); 
     -webkit-backdrop-filter: blur(48px) saturate(200%);
     
-    /* 修复: 移除了不存在的 var(--shadow-lg)，重新构建了多层高光内阴影与柔和外发光 */
+    /* 移除了不存在的 var(--shadow-lg), 重新构建了多层高光内阴影与柔和外发光 */
     box-shadow: 0 24px 48px rgba(15, 23, 42, 0.06), 
                 inset 0 2px 6px rgba(255, 255, 255, 0.6), 
                 inset 0 1px 1px rgba(255, 255, 255, 0.9), 
@@ -130,7 +130,7 @@ body > *:not(script):not(style):not(link):not(.sphere-modal):not(.flatpickr-cale
                 
     border-radius: var(--radius-panel); 
     padding: 32px;
-    transition: all 0.8s ease; 
+    transition: all 0.8s ease; will-change: backdrop-filter, transform;
     display: flex; 
     flex-direction: column; 
     gap: 20px;
@@ -156,11 +156,11 @@ textarea, textarea#todoInput, input[type="text"] {
     transition: all 0.3s var(--ease);
 }
 
-/* ================== ⚔️ 核心隔离区: 精准控制两层描边 ================== */
+/* ================== 隔离 精准控制两层描边 ================== */
 
-/* 1 左侧“方法指南”文本框: 让它独自继承完美的2层白色光学描边, 作为动画过渡起点 */
+/* 左侧“方法指南”文本框: 让它独自继承完美的2层白色光学描边, 作为动画过渡起点 */
 textarea#todoInput {
-    /* 修复核心: 剥除 flex-grow, 防止过度拉伸吃掉低于剩余空间的回弹动画 */
+    /* 剥除 flex-grow, 防止过度拉伸吃掉低于剩余空间的回弹动画 */
     flex: 0 0 auto; 
     /* 新增: 让下外边距自动吸收父级的剩余高度, 彻底解放文本框自身的物理高度限制 */
     margin-bottom: auto; 
@@ -173,7 +173,7 @@ textarea#todoInput {
     background: rgba(255, 255, 255, 0.6);
     overflow-y: hidden; 
 
-    /* 修复: 彻底剥除 4px 的白色软包常驻外圈, 仅保留内阴影, 把双圈效果留给 focus 状态 */
+    /* 彻底剥除 4px 的白色软包常驻外圈, 仅保留内阴影, 把双圈效果留给 focus 状态 */
     border: 1px solid rgba(255, 255, 255, 0.9) !important;
     box-shadow: 0 0 0 0 transparent, inset 0 2px 5px rgba(15, 23, 42, 0.05), inset 0 -1px 1.5px rgba(255, 255, 255, 0.65) !important;
 }
@@ -212,13 +212,13 @@ button, upload-label {
     position: relative; overflow: hidden; display: inline-flex; height: 52px; border: none;
     align-items: center; justify-content: center; padding: 0 24px;
     border-radius: var(--radius-element); cursor: pointer; font-size: 16px !important; font-weight: 700 !important; 
-    /* 极致顺滑的过渡：使用弹性阻尼曲线，保留 transform 硬件加速 */
+    /* 极致顺滑的过渡: 使用弹性阻尼曲线, 保留 transform 硬件加速 */
     transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), background 0.3s ease, box-shadow 0.3s ease; 
     outline: none; letter-spacing: 0.5px;
     will-change: transform, box-shadow; 
 }
 
-/* 废弃原先粗暴的 ::before 伪元素高光，改用更优雅的多重 background */
+/* 废弃原先粗暴的 ::before 伪元素高光, 改用更优雅的多重 background */
 button::before { display: none; }
 button:active { transform: scale(0.96) !important; }
 
@@ -232,14 +232,14 @@ button:active { transform: scale(0.96) !important; }
         linear-gradient(135deg, hsla(var(--theme-hue), 71%, 88%, 0.75) 0%, hsla(var(--theme-hue), 80%, 72%, 0.45) 100%);
     color: #0f172a; 
     
-    /* 彻底移除 border，用 box-shadow 模拟边框以获得更完美的折射发光效果 */
+    /* 彻底移除 border, 用 box-shadow 模拟边框以获得更完美的折射发光效果 */
     border: none;
     
     box-shadow: 
         0 6px 16px hsla(var(--theme-hue), 70%, 68%, 0.2), 
         inset 0 1.5px 2px rgba(255, 255, 255, 0.95), 
         inset -1px -1px 2px rgba(255, 255, 255, 0.3), 
-        /* 💡 高透冰莹边缘：映射为浅白底透出当前主题色 */
+        /* 💡 高透冰莹边缘: 映射为浅白底透出当前主题色 */
         0 0 0 1px hsla(var(--theme-hue), 92%, 97%, 0.85); 
         
     backdrop-filter: blur(16px) saturate(180%); 
@@ -263,17 +263,17 @@ button:active { transform: scale(0.96) !important; }
 .primary:active {
     background: 
         radial-gradient(circle at 85% 15%, rgba(255, 250, 240, 0.2) 0%, transparent 40%),
-        /* 💡 自适应降维：点击时渐变色稍稍加深，模拟手指按压遮光效果 */
+        /* 💡 自适应降维: 点击时渐变色稍稍加深, 模拟手指按压遮光效果 */
         linear-gradient(135deg, hsla(var(--theme-hue), 80%, 76%, 0.75) 0%, hsla(var(--theme-hue), 80%, 70%, 0.35) 100%);
     
-    /* 🪄 极客级物理交互：微量下沉回弹，配合 0.98 的阻尼微缩，立刻释放物理实体按压质感 */
+    /* 🪄 极客级物理交互: 微量下沉回弹, 配合 0.98 的阻尼微缩, 立刻释放物理实体按压质感 */
     transform: translateY(0px) scale(0.98); 
     
     box-shadow: 
         0 2px 6px hsla(var(--theme-hue), 70%, 68%, 0.1), 
         inset 0 3px 6px rgba(15, 23, 42, 0.08), 
         inset 0 1px 1px rgba(255, 255, 255, 0.5),
-        /* 💡 按下时高透边缘折射环跟随同步变暗，完美贴合物理深陷阴影 */
+        /* 💡 按下时高透边缘折射环跟随同步变暗, 完美贴合物理深陷阴影 */
         0 0 0 1px hsla(var(--theme-hue), 80%, 78%, 0.6);
 }
 
@@ -289,7 +289,7 @@ button:active { transform: scale(0.96) !important; }
         0 6px 16px rgba(15, 23, 42, 0.04), 
         inset 0 1.5px 2px rgba(255, 255, 255, 0.95), 
         inset -1px -1px 2px rgba(255, 255, 255, 0.3), 
-        /* 💡 将死白改为带有淡淡冷灰/冷蓝的珍珠白，消除锐利感 */
+        /* 💡 将死白改为带有淡淡冷灰/冷蓝的珍珠白, 消除锐利感 */
         0 0 0 1px rgba(241, 245, 249, 0.85);
     backdrop-filter: blur(16px) saturate(180%); 
     -webkit-backdrop-filter: blur(16px) saturate(180%);
@@ -330,7 +330,7 @@ button:active { transform: scale(0.96) !important; }
         0 6px 16px rgba(239, 68, 68, 0.2), 
         inset 0 1.5px 2px rgba(255, 255, 255, 0.5), 
         inset -1px -1px 2px rgba(0, 0, 0, 0.08),
-        /* 💡 将白边改为高透珊瑚红：红玻璃的边缘就应该是透亮的红色 */
+        /* 💡 将白边改为高透珊瑚红: 红玻璃的边缘就应该是透亮的红色 */
         0 0 0 1px rgba(255, 199, 199, 0.75); 
     backdrop-filter: blur(16px) saturate(180%); 
     -webkit-backdrop-filter: blur(16px) saturate(180%);
@@ -345,7 +345,7 @@ button:active { transform: scale(0.96) !important; }
         0 10px 24px rgba(239, 68, 68, 0.3), 
         inset 0 2px 3px rgba(255, 255, 255, 0.75), 
         inset -1px -1px 2px rgba(0, 0, 0, 0.12),
-        /* 💡 修复：将刺眼的亮红边，改为带有一丝微粉的珍珠白 */
+        /* 将刺眼的亮红边, 改为带有一丝微粉的珍珠白 */
         0 0 0 1.5px rgba(255, 240, 240, 0.9); 
 }
 
@@ -377,13 +377,13 @@ button:active { transform: scale(0.96) !important; }
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    /* 延长过渡时间配合阻尼曲线，让动画更具韧性 */
+    /* 延长过渡时间配合阻尼曲线, 让动画更具韧性 */
     transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
     z-index: 1000;
     overflow: hidden;
 }
 
-/* 🎯 修复核心 1：增加容器悬浮时的放大率与主题光晕 */
+/* 增加容器悬浮时的放大率与主题光晕 */
 .alpha-avatar-hook:hover {
     transform: translateY(-6px) scale(1.2);
     box-shadow: 0 16px 32px rgba(15,23,42,0.15), 
@@ -392,7 +392,7 @@ button:active { transform: scale(0.96) !important; }
     background: rgba(255, 255, 255, 0.85);
 }
 
-/* 🎯 新增：极客级物理交互按压反馈 */
+/* 极客级物理交互按压反馈 */
 .alpha-avatar-hook:active {
     transform: translateY(-2px) scale(0.95);
     box-shadow: 0 4px 12px rgba(15,23,42,0.1), inset 0 2px 4px rgba(255,255,255,0.4);
@@ -404,7 +404,7 @@ button:active { transform: scale(0.96) !important; }
     transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-/* 🎯 修复核心 2：内部 Emoji 在容器悬浮时的微缩放与俏皮旋转 */
+/* 内部 Emoji 在容器悬浮时的微缩放与俏皮旋转 */
 .alpha-avatar-hook:hover .avatar-emoji {
     transform: scale(1.15) rotate(5deg);
 }
@@ -418,7 +418,7 @@ button:active { transform: scale(0.96) !important; }
     transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-/* 🎯 修复核心 3：头像图片在悬浮时的视差透视感 */
+/* 头像图片在悬浮时的视差透视感 */
 .alpha-avatar-hook:hover img {
     transform: scale(1.15) rotate(3deg);
 }
@@ -442,7 +442,7 @@ button:active { transform: scale(0.96) !important; }
 }
 
 .flatpickr-calendar {
-    /* 彻底锁定绝对定位与顶级图层，防止计算坐标时发生弹跳 (滚哪里去了) */
+    /* 彻底锁定绝对定位与顶级图层, 防止计算坐标时发生弹跳 (滚哪里去了) */
     position: absolute !important; 
     z-index: 99999 !important;
     display: block !important; 
@@ -453,11 +453,11 @@ button:active { transform: scale(0.96) !important; }
     opacity: 0 !important; 
     visibility: hidden !important;
     
-    /* 开启 3D 硬件加速 (translateZ)，强制 GPU 单独渲染此图层，防止隐形 (只见阴影) */
+    /* 开启 3D 硬件加速 (translateZ), 强制 GPU 单独渲染此图层, 防止隐形 (只见阴影) */
     transform: translateY(12px) scale(0.95) translateZ(0) !important;
     pointer-events: none !important;
 
-    /* 移除容易导致图层崩溃的 will-change，回归纯粹的阻尼过渡 */
+    /* 移除容易导致图层崩溃的 will-change, 回归纯粹的阻尼过渡 */
     transition: opacity 0.3s cubic-bezier(0.22, 1, 0.36, 1), 
                 transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), 
                 visibility 0s 0.3s !important;
@@ -482,7 +482,7 @@ button:active { transform: scale(0.96) !important; }
     
     background: rgba(255, 255, 255, 0.35) !important;
     
-    /* 补全背面隐藏属性，彻底防止毛玻璃在动画过程中的闪烁与透视错误 */
+    /* 补全背面隐藏属性, 彻底防止毛玻璃在动画过程中的闪烁与透视错误 */
     backface-visibility: hidden !important;
     -webkit-backface-visibility: hidden !important;
     
@@ -533,9 +533,10 @@ button:active { transform: scale(0.96) !important; }
     text-decoration: none;
     display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
     transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); 
+    will-change: transform;
     cursor: pointer;
     
-    /* 修复: 补齐缺失的毛玻璃滤镜，使其拥有真实的物理透视感 */
+    /* 补齐缺失的毛玻璃滤镜, 使其拥有真实的物理透视感 */
     backdrop-filter: blur(24px) saturate(180%);
     -webkit-backdrop-filter: blur(24px) saturate(180%);
     
@@ -559,7 +560,7 @@ button:active { transform: scale(0.96) !important; }
     gap: 12px; 
     max-height: 240px; 
     overflow-y: auto; 
-    overflow-x: hidden; /* 🎯 核心修复: 彻底封杀由弹性动画引发的横向滚动条闪现 */
+    overflow-x: hidden; /* 隐藏横向滚动条 */
     padding-right: 8px; 
 
     /* 光学渐隐遮罩 (Scroll Edge Masking) */
@@ -641,7 +642,7 @@ button:active { transform: scale(0.96) !important; }
     box-shadow: 0 24px 64px rgba(15, 23, 42, 0.15), 
                 inset 0 2px 6px hsla(var(--theme-hue, 210), var(--theme-sat, 20%), 100%, 0.6);
     
-    will-change: transform, opacity;
+    will-change: transform, opacity, backdrop-filter;
     transform: translateY(0) scale(1) translateZ(0); 
     opacity: 1;
     
@@ -657,7 +658,7 @@ button:active { transform: scale(0.96) !important; }
                 opacity 0.3s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* ================== 全局 Alpha Tooltip (极致动画修复版) ================== */
+/* ================== 全局 Alpha Tooltip ================== */
 #alphaTooltip {
     position: fixed;
     top: 0;
@@ -698,8 +699,8 @@ button:active { transform: scale(0.96) !important; }
     visibility: visible;
     transform: translateY(0) scale(1);
 
-    /* 🛠️ 核心修复 (进场动画)：visibility 延迟 0s 立刻生效（瞬间可见），
-       此时 opacity 和 transform 再完美播放 0.25s 动画！ */
+    /* visibility 延迟 0s 立刻生效（瞬间可见）, 
+       此时 opacity 和 transform 再播放 0.25s 动画 */
     transition: opacity 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), 
                 transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
                 visibility 0s linear 0s;
@@ -709,7 +710,7 @@ button:active { transform: scale(0.96) !important; }
 <body>
 
 <div class="hero-wallpaper" id="heroWallpaper">
-    <button class="pip-btn" onclick="document.getElementById('wpInput').click()">🌄 更换壁纸</button>
+    <button class="pip-btn" onclick="DOM.wpInput.click()">🌄 更换壁纸</button>
     <input type="file" id="wpInput" hidden accept="image/*">
 </div>
 
@@ -771,7 +772,7 @@ button:active { transform: scale(0.96) !important; }
         <div id="dialogMessage" style="color: #64748b; font-size: 15px; line-height: 1.6; margin-bottom: 24px;"></div>
         <div style="display: flex; gap: 12px; justify-content: center;">
             <!-- 改用 secondary 类, 移除硬编码限制, 使其自动继承 52px 高度 -->
-            <button class="secondary" id="dialogCancelBtn" style="flex: 1; display: none;" onclick="document.getElementById('customDialog').classList.add('hidden')">取消</button>
+            <button class="secondary" id="dialogCancelBtn" style="flex: 1; display: none;" onclick="DOM.dialog.classList.add('hidden')">取消</button>
             
             <!-- 剥除 style 里的 height: 44px 和 font-size 限制 -->
             <button class="primary" id="dialogConfirmBtn" style="flex: 1;" onclick="if(window.dialogConfirmCallback) window.dialogConfirmCallback()">确定</button>
@@ -782,25 +783,48 @@ button:active { transform: scale(0.96) !important; }
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 
 <script>
+// DOM 引用缓存 (减少重复查询) 
+const DOM = {
+    get dialog()         { return this._dialog      || (this._dialog      = document.getElementById('customDialog')); },
+    get dialogIcon()     { return this._dialogIcon  || (this._dialogIcon  = document.getElementById('dialogIcon')); },
+    get dialogTitle()    { return this._dialogTitle || (this._dialogTitle = document.getElementById('dialogTitle')); },
+    get dialogMessage()  { return this._dialogMsg   || (this._dialogMsg   = document.getElementById('dialogMessage')); },
+    get dialogCancelBtn(){ return this._dialogCancel || (this._dialogCancel= document.getElementById('dialogCancelBtn')); },
+    get dialogConfirmBtn(){ return this._dialogConfirm||(this._dialogConfirm= document.getElementById('dialogConfirmBtn')); },
+    get todoInput()      { return this._todoInput    || (this._todoInput   = document.getElementById('todoInput')); },
+    get alarmList()      { return this._alarmList    || (this._alarmList   = document.getElementById('alarmList')); },
+    get alarmTime()      { return this._alarmTime    || (this._alarmTime   = document.getElementById('alarmTime')); },
+    get alarmName()      { return this._alarmName    || (this._alarmName   = document.getElementById('alarmName')); },
+    get ringtoneBtn()    { return this._ringtoneBtn  || (this._ringtoneBtn = document.getElementById('ringtoneBtn')); },
+    get ringtoneInput()  { return this._ringtoneInput|| (this._ringtoneInput= document.getElementById('ringtoneInput')); },
+    get wpInput()        { return this._wpInput      || (this._wpInput     = document.getElementById('wpInput')); },
+    get heroWallpaper()  { return this._heroWallpaper|| (this._heroWallpaper= document.getElementById('heroWallpaper')); },
+    get userAvatarPreview(){ return this._userAvatar  || (this._userAvatar  = document.getElementById('userAvatarPreview')); },
+    _dialog: null, _dialogIcon: null, _dialogTitle: null, _dialogMsg: null,
+    _dialogCancel: null, _dialogConfirm: null, _todoInput: null, _alarmList: null,
+    _alarmTime: null, _alarmName: null, _ringtoneBtn: null, _ringtoneInput: null,
+    _wpInput: null, _heroWallpaper: null, _userAvatar: null
+};
+
 // ================== 全局弹窗引擎 ==================
 window.dialogConfirmCallback = null;
 function customAlert(msg, title = "提示", icon = "💡", onClose = null) {
-    document.getElementById('dialogIcon').textContent = icon;
-    document.getElementById('dialogTitle').textContent = title;
-    document.getElementById('dialogMessage').innerHTML = msg;
-    document.getElementById('dialogCancelBtn').style.display = 'none';
-    const confirmBtn = document.getElementById('dialogConfirmBtn');
+    DOM.dialogIcon.textContent = icon;
+    DOM.dialogTitle.textContent = title;
+    DOM.dialogMessage.innerHTML = msg;
+    DOM.dialogCancelBtn.style.display = 'none';
+    const confirmBtn = DOM.dialogConfirmBtn;
     confirmBtn.textContent = "我知道了";
     window.dialogConfirmCallback = () => {
-        document.getElementById('customDialog').classList.add('hidden');
+        DOM.dialog.classList.add('hidden');
         if (onClose) onClose(); 
     };
-    document.getElementById('customDialog').classList.remove('hidden');
+    DOM.dialog.classList.remove('hidden');
 }
 
 // ================== Material You 自动萃取引擎 ==================
-const wpInput = document.getElementById('wpInput');
-const heroWallpaper = document.getElementById('heroWallpaper');
+const wpInput = DOM.wpInput;
+const heroWallpaper = DOM.heroWallpaper;
 
 const savedWp = localStorage.getItem('alpha_wallpaper');
 if (savedWp) {
@@ -846,38 +870,41 @@ function extractColorFromBase64(base64) {
 }
 
 function extractThemeColor(img) {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    canvas.width = 100; canvas.height = 100;
-    ctx.drawImage(img, 0, 0, 100, 100);
-    const data = ctx.getImageData(0, 0, 100, 100).data;
-    let r = 0, g = 0, b = 0, count = 0;
-    for (let i = 0; i < data.length; i += 4) {
-        if (data[i] > 240 && data[i+1] > 240 && data[i+2] > 240) continue; 
-        if (data[i] < 20 && data[i+1] < 20 && data[i+2] < 20) continue; 
-        r += data[i]; g += data[i+1]; b += data[i+2]; count++;
-    }
-    if (count === 0) return;
-    r = Math.floor(r/count); g = Math.floor(g/count); b = Math.floor(b/count);
-    
-    r /= 255; g /= 255; b /= 255;
-    const max = Math.max(r, g, b), min = Math.min(r, g, b);
-    let h, s, l = (max + min) / 2;
-    if (max === min) { h = s = 0; }
-    else {
-        const d = max - min;
-        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-        switch (max) {
-            case r: h = (g - b) / d + (g < b ? 6 : 0); break;
-            case g: h = (b - r) / d + 2; break;
-            case b: h = (r - g) / d + 4; break;
+    // 🎯 将像素级运算延迟到下一帧, 避免阻塞页面初始渲染
+    requestAnimationFrame(() => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = 100; canvas.height = 100;
+        ctx.drawImage(img, 0, 0, 100, 100);
+        const data = ctx.getImageData(0, 0, 100, 100).data;
+        let r = 0, g = 0, b = 0, count = 0;
+        for (let i = 0; i < data.length; i += 4) {
+            if (data[i] > 240 && data[i+1] > 240 && data[i+2] > 240) continue;
+            if (data[i] < 20 && data[i+1] < 20 && data[i+2] < 20) continue;
+            r += data[i]; g += data[i+1]; b += data[i+2]; count++;
         }
-        h /= 6;
-    }
-    document.documentElement.style.setProperty('--theme-hue', Math.round(h * 360));
+        if (count === 0) return;
+        r = Math.floor(r/count); g = Math.floor(g/count); b = Math.floor(b/count);
+
+        r /= 255; g /= 255; b /= 255;
+        const max = Math.max(r, g, b), min = Math.min(r, g, b);
+        let h, s, l = (max + min) / 2;
+        if (max === min) { h = s = 0; }
+        else {
+            const d = max - min;
+            s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+            switch (max) {
+                case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+                case g: h = (b - r) / d + 2; break;
+                case b: h = (r - g) / d + 4; break;
+            }
+            h /= 6;
+        }
+        document.documentElement.style.setProperty('--theme-hue', Math.round(h * 360));
+    });
 }
 
-// ================= 🎯 核心修复: 强制时间格式化与焦点引擎 =================
+// ================= 强制时间格式化与焦点引擎 =================
 function forceTimeFormat(instance, val) {
     if (!val || !instance) return false;
     let raw = val.replace(/\D/g, ""); 
@@ -904,14 +931,14 @@ function forceTimeFormat(instance, val) {
     return false;
 }
 
-const alarmTimeInput = document.getElementById('alarmTime');
-const alarmNameInput = document.getElementById('alarmName');
+const alarmTimeInput = DOM.alarmTime;
+const alarmNameInput = DOM.alarmName;
 
 // 终极独立事件拦截器 (Capture Phase + Immediate Stop)
 const flatpickrEnterHook = function(e) {
     if (e.key === 'Enter') {
         e.preventDefault();
-        e.stopImmediatePropagation(); // 核心修复: 彻底阻断同层级 Flatpickr 内部的回车监听器
+        e.stopImmediatePropagation(); // 阻断同层级 Flatpickr 内部的回车监听器
         
         if (forceTimeFormat(fpInstance, e.target.value) || e.target.value) {
             fpInstance.close();
@@ -919,7 +946,7 @@ const flatpickrEnterHook = function(e) {
             setTimeout(() => alarmNameInput.focus(), 60);
         }
     } else if (e.key !== 'Tab') {
-        // 核心修复: 只要不是 Tab 键, 任何输入 (如 1222) 在到达 Flatpickr 前被直接就地拦截没收
+        // 只要不是 Tab 键, 任何输入 (如 1222) 在到达 Flatpickr 前被直接就地拦截没收
         e.stopImmediatePropagation();
     }
 };
@@ -933,9 +960,6 @@ const fpInstance = flatpickr("#alarmTimeWrap", {
     clickOpens: false, 
     allowInput: true,
     minuteIncrement: 1,
-    
-    // 这里原本的 appendTo: document.getElementById(...) 已被彻底删除！
-    // 让其自由挂载到 body，重获全局 Liquid Glass 质感
     
     onReady: function(selectedDates, dateStr, instance) {
         // 确保我们在事件捕获阶段 (true) 优先拿到控制权
@@ -962,7 +986,8 @@ const defaultRingtoneUrl = "https://assets.mixkit.co/active_storage/sfx/2013/201
 const alarmAudio = new Audio(defaultRingtoneUrl);
 const savedRingtone = localStorage.getItem('alpha_home_ringtone');
 const savedRingtoneName = localStorage.getItem('alpha_home_ringtone_name');
-const ringtoneBtn = document.getElementById('ringtoneBtn');
+const ringtoneBtn = DOM.ringtoneBtn;
+const ringtoneInput = DOM.ringtoneInput;
 
 // 页面加载时恢复文件名
 if (savedRingtone) {
@@ -991,12 +1016,12 @@ ringtoneBtn.addEventListener('click', (e) => {
         // 单击触发: 等待 250ms, 如果没有第二次点击, 再唤起文件选择框
         ringtoneClickTimer = setTimeout(() => {
             ringtoneClickTimer = null;
-            document.getElementById('ringtoneInput').click();
+            ringtoneInput.click();
         }, 250);
     }
 });
 
-document.getElementById('ringtoneInput').addEventListener('change', (e) => {
+ringtoneInput.addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (file) {
         const reader = new FileReader();
@@ -1029,7 +1054,7 @@ function getTargetDateStr(keyword) {
 }
 
 function parseToDo() {
-    const text = document.getElementById('todoInput').value.trim();
+    const text = DOM.todoInput.value.trim();
     if (!text) { customAlert("请先粘贴 To Do 列表文本!", "内容为空", "📋"); return; }
 
     let lines = text.split('\n').filter(l => l.trim() !== '');
@@ -1098,11 +1123,11 @@ function parseToDo() {
     localStorage.setItem('taskhub_data', JSON.stringify(hubData));
     localStorage.setItem('taskflow_data', JSON.stringify(flowData));
     
-    document.getElementById('todoInput').value = '';
+    DOM.todoInput.value = '';
     customAlert(`✅ 解析完成!<br><br>新增待办计划 (Hub): <b>${addedHub}</b> 项<br>新增已完结记录 (Flow): <b>${addedFlow}</b> 项`, "导入成功", "🎉");
 }
 
-document.getElementById('todoInput').addEventListener('keydown', function(e) {
+DOM.todoInput.addEventListener('keydown', function(e) {
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
         e.preventDefault();
         parseToDo();
@@ -1113,7 +1138,7 @@ document.getElementById('todoInput').addEventListener('keydown', function(e) {
 let alarms = JSON.parse(localStorage.getItem('alpha_alarms') || '[]');
 
 function renderAlarms() {
-    const list = document.getElementById('alarmList');
+    const list = DOM.alarmList;
     list.innerHTML = '';
     alarms.sort((a, b) => a.time.localeCompare(b.time));
     alarms.forEach((al) => {
@@ -1127,7 +1152,7 @@ function renderAlarms() {
 }
 
 function addAlarm() {
-    // 🎯 修复 Bug: 传入正确的 fpInstance 对象, 而不是 DOM 节点
+    // 传入正确的 fpInstance 对象, 而不是 DOM 节点
     forceTimeFormat(fpInstance, alarmTimeInput.value);
     
     const time = alarmTimeInput.value;
@@ -1187,14 +1212,21 @@ setInterval(() => {
 
 renderAlarms();
 
-// ================== 智能文本框伸缩 ==================
+// ================== 智能文本框伸缩 (rAF 防抖优化版) ==================
 let ghostTextarea = null;
+const pendingAdjustments = new Set();
 
-// 1. 核心高度计算器
-function adjustTextareaHeight(el) {
+function flushTextareaAdjustments() {
+    // 批量处理所有待调整的 textarea
+    for (const el of pendingAdjustments) {
+        applyTextareaHeight(el);
+    }
+    pendingAdjustments.clear();
+}
+
+function applyTextareaHeight(el) {
     if (el.dataset.userResized === 'true') return;
 
-    // A. 初始化全局幽灵节点 (仅执行一次) 
     if (!ghostTextarea) {
         ghostTextarea = document.createElement('textarea');
         ghostTextarea.style.cssText = `
@@ -1207,7 +1239,6 @@ function adjustTextareaHeight(el) {
         document.body.appendChild(ghostTextarea);
     }
 
-    // B. 将真实文本框的核心尺寸样式同步给替身
     const computedStyle = window.getComputedStyle(el);
     ghostTextarea.style.width = computedStyle.width;
     ghostTextarea.style.font = computedStyle.font;
@@ -1216,50 +1247,48 @@ function adjustTextareaHeight(el) {
     ghostTextarea.style.border = computedStyle.border;
     ghostTextarea.style.wordWrap = 'break-word';
 
-    // C. 让替身接管当前输入的内容, 并收缩计算出真正的包含换行后的高度
     ghostTextarea.value = el.value;
-    ghostTextarea.style.height = '0px'; 
+    ghostTextarea.style.height = '0px';
     let targetHeight = ghostTextarea.scrollHeight;
 
-    // D. 边界校验: 必须与你 CSS 中的 min-height 和 max-height 严格对齐
     if (targetHeight < 200) targetHeight = 200;
     const maxHeight = 380;
 
-    // E. 性能优化: 如果高度根本没变, 直接终止, 不做任何 DOM 操作
     if (el.dataset.lastTargetHeight === String(targetHeight)) return;
     el.dataset.lastTargetHeight = String(targetHeight);
 
-    // F. 丝滑赋值: 真实文本框接收算好的高度, 并对 overflow 进行生命周期管理
     if (targetHeight >= maxHeight) {
         el.style.height = maxHeight + 'px';
-        
-        // 向上生长触顶时: 延迟 400ms 开启滚动条, 保护向外的回弹动画不被打断
         setTimeout(() => {
             if (parseInt(el.style.height) >= maxHeight) {
                 el.style.overflowY = 'auto';
             }
-        }, 400); 
-        
+        }, 400);
     } else {
-        // 向下收缩时: 核心修复区
         if (el.style.overflowY === 'auto') {
-            el.style.overflowY = 'hidden'; // 立刻剥夺滚动条, 防止 Overshoot 激出滚动条
-            void el.offsetHeight;          // 🎯 强制刷新渲染管线, 割裂前后帧, 确保动画引擎不吞帧！
+            el.style.overflowY = 'hidden';
+            void el.offsetHeight;
         }
-        
         el.style.height = targetHeight + 'px';
-        el.style.overflowY = 'hidden'; 
+        el.style.overflowY = 'hidden';
     }
 }
 
-// 2. 采用【全局事件委托】, 完美兼容动态生成的弹窗和元素
+// 🎯 使用 rAF 防抖: 同一帧内的多次 input 合并为一次布局计算
+function scheduleTextareaAdjust(el) {
+    pendingAdjustments.add(el);
+    if (pendingAdjustments.size === 1) {
+        requestAnimationFrame(flushTextareaAdjustments);
+    }
+}
+
 document.addEventListener('input', (e) => {
     if (e.target.tagName === 'TEXTAREA') {
-        adjustTextareaHeight(e.target);
+        scheduleTextareaAdjust(e.target);
     }
 });
 
-// 3. 极简拖拽雷达 (判定用户是否手动拉伸了文本框)
+// 拖拽雷达 (保持不变)
 document.addEventListener('mousedown', (e) => {
     if (e.target.tagName === 'TEXTAREA' && window.getComputedStyle(e.target).resize !== 'none') {
         e.target.dataset.startH = e.target.offsetHeight;
@@ -1274,7 +1303,6 @@ document.addEventListener('mouseup', (e) => {
 });
 
 // ================== 账户头像 ==================
-// ================== 账户头像 (ALPHA 生态双向同步 - 黄金流对齐版) ==================
 const DEPRECATED_AVATAR_KEY = 'alpha_user_avatar';
 const UNIFIED_ACCOUNT_KEY = 'alpha_account_data';
 
@@ -1282,7 +1310,7 @@ function syncAvatarToHome() {
     try {
         let avatarBase64 = "";
         
-        // 1. 优先读取统一账户中心的数据
+        // 优先读取统一账户中心的数据
         const accountStr = localStorage.getItem(UNIFIED_ACCOUNT_KEY);
         if (accountStr) {
             const accountData = JSON.parse(accountStr);
@@ -1291,16 +1319,16 @@ function syncAvatarToHome() {
             }
         }
         
-        // 2. 兜底读取旧独立键值
+        // 兜底读取旧独立键值
         if (!avatarBase64) {
             avatarBase64 = localStorage.getItem(DEPRECATED_AVATAR_KEY) || "";
         }
 
         const hookWrap = document.querySelector('.alpha-avatar-hook');
-        const imgEl = document.getElementById('userAvatarPreview');
+        const imgEl = DOM.userAvatarPreview;
         const emojiSpan = hookWrap ? hookWrap.querySelector('.avatar-emoji') : null;
 
-        // 核心修复: 彻底移除外部干涉样式, 不强制赋予 relative, 确保 100% 尊重原网页 CSS 设定
+        // 彻底移除外部干涉样式, 不强制赋予 relative, 确保 100% 尊重原网页 CSS 设定
         if (hookWrap) {
             hookWrap.style.position = '';
             hookWrap.style.overflow = '';
@@ -1344,7 +1372,7 @@ document.addEventListener('wheel', function(e) {
     if (e.target.classList.contains('flatpickr-hour') || e.target.classList.contains('flatpickr-minute')) {
         e.preventDefault();
         
-        // 修复: 向下滚(deltaY > 0)增加时间(变晚)；向上滚(deltaY < 0)减少时间(变早)
+        // 向下滚(deltaY > 0)增加时间(变晚)；向上滚(deltaY < 0)减少时间(变早)
         const step = e.deltaY > 0 ? 1 : -1; 
         
         let max = e.target.classList.contains('flatpickr-hour') ? 23 : 59;
@@ -1360,121 +1388,136 @@ document.addEventListener('wheel', function(e) {
     }
 }, { passive: false });
 
-// ================== “负一屏” (TaskNote) 无缝切入引擎 (视差保护版) ==================
+// ================== "负一屏" (TaskNote) 无缝切入引擎 (rAF 节流版) ==================
 let isTransitioningToNote = false;
+let wheelRafPending = false;
+let lastWheelDeltaY = 0;
 
 window.addEventListener('wheel', (e) => {
-    if (isTransitioningToNote) return;
+    lastWheelDeltaY = e.deltaY;
+    if (!wheelRafPending && !isTransitioningToNote) {
+        wheelRafPending = true;
+        requestAnimationFrame(() => {
+            wheelRafPending = false;
+            if (isTransitioningToNote) return;
 
-    // 探测机制: 检查当前页面是否已经滚动到了绝对底部
-    const isAtBottom = Math.ceil(window.innerHeight + window.scrollY) >= document.body.scrollHeight;
-    
-    // 如果已经在底部，并且用户继续用力向下滚动
-    if (isAtBottom && e.deltaY > 40) {
-        isTransitioningToNote = true;
-        
-        // 关键核心 🪄：选中所有的内容模块，而不是 body！让 body 和壁纸留在原地
-        const pageElements = document.querySelectorAll('body > *:not(script):not(style):not(link):not(.sphere-modal):not(.flatpickr-calendar)');
-        
-        pageElements.forEach(el => {
-            // 强行剥夺 CSS keyframes 的控制权
-            el.style.animation = 'none';
-            void el.offsetHeight; // 强制浏览器刷新状态
-            
-            // 启动 iOS 风格阻尼过渡动画，将所有内容向上推移并渐隐
-            el.style.transition = 'transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.6s ease';
-            el.style.transform = 'translateY(-100vh) scale(0.95)';
-            el.style.opacity = '0';
+            const isAtBottom = Math.ceil(window.innerHeight + window.scrollY) >= document.body.scrollHeight;
+            if (isAtBottom && lastWheelDeltaY > 40) {
+                isTransitioningToNote = true;
+
+                const pageElements = document.querySelectorAll('body > *:not(script):not(style):not(link):not(.sphere-modal):not(.flatpickr-calendar)');
+                pageElements.forEach(el => {
+                    el.style.animation = 'none';
+                    void el.offsetHeight;
+                    el.style.transition = 'transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.6s ease';
+                    el.style.transform = 'translateY(-100vh) scale(0.95)';
+                    el.style.opacity = '0';
+                });
+
+                setTimeout(() => {
+                    window.location.href = 'Focus.html';
+                }, 500);
+            }
         });
-        
-        // 动画过半时执行物理路由跳转
-        setTimeout(() => {
-            window.location.href = 'Focus.html';
-        }, 500);
     }
 }, { passive: true });
 
-// ================= 全局毛玻璃 Tooltip 劫持引擎 =================
+// ================= 全局毛玻璃 Tooltip 劫持引擎 (rAF 性能优化版) =================
 window.addEventListener('DOMContentLoaded', () => {
-    // 1. 创建全局唯一的 Tooltip 玻璃面板
     const tooltipNode = document.createElement('div');
     tooltipNode.id = 'alphaTooltip';
     document.body.appendChild(tooltipNode);
 
-    // 2. 利用事件委托，监听全局的鼠标悬停
-    document.addEventListener('mouseover', (e) => {
-        const target = e.target.closest('[title], [data-tooltip]');
-        if (!target) return;
+    // 🎯 缓存 Tooltip 尺寸, 避免在 rAF 中反复读取 offsetWidth/Height 触发强制重排
+    let tooltipWidth = 0;
+    let tooltipHeight = 0;
+    let pendingX = -9999;
+    let pendingY = -9999;
+    let rafId = null;
+    let tooltipVisible = false;
 
-        // 瞬间没收原生 title
-        if (target.hasAttribute('title')) {
-            target.setAttribute('data-tooltip', target.getAttribute('title'));
-            target.removeAttribute('title'); 
+    // 🎯 仅在内容变更时更新尺寸缓存
+    function cacheTooltipSize() {
+        tooltipWidth = tooltipNode.offsetWidth;
+        tooltipHeight = tooltipNode.offsetHeight;
+    }
+
+    // 🎯 纯计算 + 写入, 统一在 rAF 内完成, 一帧只跑一次
+    function flushTooltipPosition() {
+        rafId = null;
+        if (!tooltipVisible) return;
+
+        const offsetX = 14;
+        const offsetY = 18;
+        let x = pendingX + offsetX;
+        let y = pendingY + offsetY;
+
+        // 右侧碰撞检测
+        if (x + tooltipWidth > window.innerWidth) {
+            x = pendingX - tooltipWidth - 8;
         }
-
-        const tipText = target.getAttribute('data-tooltip');
-        if (tipText) {
-            tooltipNode.textContent = tipText;
-            
-            // 第一步：在保持隐藏的情况下，偷偷把位置计算好并移动过去
-            updateTooltipPosition(e); 
-            
-            // 🛠️ 核心修复：强制浏览器重绘 (Layout Flush)！
-            // 读取 offsetWidth 会强迫浏览器立刻结算上述的坐标与文字变动，
-            // 确保渲染引擎能够精准捕捉到动画的“第 0 帧”，绝不再发生吞帧闪现。
-            void tooltipNode.offsetWidth; 
-            
-            // 第二步：添加 visible 类名，引爆进场阻尼动画！
-            tooltipNode.classList.add('visible');
-        }
-    });
-
-    // 3. 鼠标移动时，玻璃板柔性跟随
-    document.addEventListener('mousemove', (e) => {
-        if (tooltipNode.classList.contains('visible')) {
-            updateTooltipPosition(e);
-        }
-    });
-
-    // 4. 离开时褪去
-    document.addEventListener('mouseout', (e) => {
-        const target = e.target.closest('[data-tooltip]');
-        if (target) {
-            // 🛠️ 核心修复 3：精准边界判定
-            // e.relatedTarget 是鼠标即将进入的下一个元素。
-            // 只有当鼠标真正离开了这个按钮（而不是在按钮内部的 SVG/文字上打转）时，才执行隐藏！
-            if (!e.relatedTarget || !target.contains(e.relatedTarget)) {
-                tooltipNode.classList.remove('visible');
-            }
-        }
-    });
-
-    // 5. 点击时主动隐藏（防遮挡视线优化）
-    document.addEventListener('mousedown', () => {
-        tooltipNode.classList.remove('visible');
-    });
-
-    // 💡 定位计算函数（附带屏幕边缘防溢出系统）
-    function updateTooltipPosition(e) {
-        const offsetX = 14; // 距离鼠标的横向距离
-        const offsetY = 18; // 距离鼠标的纵向距离
-        
-        let x = e.clientX + offsetX;
-        let y = e.clientY + offsetY;
-
-        // 右侧边界碰撞检测：如果超出版面，就翻转到鼠标左侧
-        if (x + tooltipNode.offsetWidth > window.innerWidth) {
-            x = e.clientX - tooltipNode.offsetWidth - 8;
-        }
-        
-        // 底部边界碰撞检测：如果超出底部，就翻转到鼠标上方
-        if (y + tooltipNode.offsetHeight > window.innerHeight) {
-            y = e.clientY - tooltipNode.offsetHeight - 8;
+        // 底部碰撞检测
+        if (y + tooltipHeight > window.innerHeight) {
+            y = pendingY - tooltipHeight - 8;
         }
 
         tooltipNode.style.left = `${x}px`;
         tooltipNode.style.top = `${y}px`;
     }
+
+    document.addEventListener('mouseover', (e) => {
+        const target = e.target.closest('[title], [data-tooltip]');
+        if (!target) return;
+
+        if (target.hasAttribute('title')) {
+            target.setAttribute('data-tooltip', target.getAttribute('title'));
+            target.removeAttribute('title');
+        }
+
+        const tipText = target.getAttribute('data-tooltip');
+        if (tipText) {
+            tooltipNode.textContent = tipText;
+            cacheTooltipSize();           // 内容变更时更新尺寸缓存
+            pendingX = e.clientX;
+            pendingY = e.clientY;
+            void tooltipNode.offsetWidth; // 强制浏览器结算文字变动, 确保动画第 0 帧被捕获
+            tooltipNode.classList.add('visible');
+            tooltipVisible = true;
+        }
+    });
+
+    document.addEventListener('mousemove', (e) => {
+        if (!tooltipVisible) return;
+        pendingX = e.clientX;
+        pendingY = e.clientY;
+        // 🎯 关键优化: 用 rAF 节流, 合并同一帧内的多次 mousemove
+        if (!rafId) {
+            rafId = requestAnimationFrame(flushTooltipPosition);
+        }
+    });
+
+    document.addEventListener('mouseout', (e) => {
+        const target = e.target.closest('[data-tooltip]');
+        if (target) {
+            if (!e.relatedTarget || !target.contains(e.relatedTarget)) {
+                tooltipNode.classList.remove('visible');
+                tooltipVisible = false;
+                if (rafId) {
+                    cancelAnimationFrame(rafId);
+                    rafId = null;
+                }
+            }
+        }
+    });
+
+    document.addEventListener('mousedown', () => {
+        tooltipNode.classList.remove('visible');
+        tooltipVisible = false;
+        if (rafId) {
+            cancelAnimationFrame(rafId);
+            rafId = null;
+        }
+    });
 });
 
 // ================== 首次启动版权提示 ==================
@@ -1487,11 +1530,11 @@ function checkFirstLaunch() {
         <div style="text-align: left; font-size: 15px; line-height: 1.8;">
             <p style="margin-bottom: 12px;"><b>欢迎使用 Tasks!</b></p>
             <p style="margin-bottom: 12px;">
-                本产品基于 <b>GPL-3.0</b> 协议开源，但请知悉其中使用的字体为 
-                <b>OPPO Sans 4.0</b> 系列，版权归广东 OPPO 公司所有。
+                本产品基于 <b>GPL-3.0</b> 协议开源, 但请知悉其中使用的字体为 
+                <b>OPPO Sans 4.0</b> 系列, 版权归广东 OPPO 公司所有
             </p>
             <p style="margin-bottom: 0; color: #64748b; font-size: 14px;">
-                该信息将不再提示，请务必知悉。
+                该信息将不再提示, 请务必知悉
             </p>
         </div>
     `;
@@ -1499,7 +1542,7 @@ function checkFirstLaunch() {
     // 调用 Home.html 中已有的 customAlert
     customAlert(msg, '提示', '📜');
 
-    // 标记已显示，下次不再弹出
+    // 标记已显示, 下次不再弹出
     localStorage.setItem('alpha_welcome_shown', 'true');
 }
 

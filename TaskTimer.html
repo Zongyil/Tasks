@@ -63,7 +63,7 @@ body {
     padding: 32px; 
     color: var(--text);
     color-scheme: light;
-    /* 1. 将底色剥离到 body，作为最安全的托底，防止动画穿帮 */
+    /* 1. 将底色剥离到 body, 作为最安全的托底, 防止动画穿帮 */
     background-color: #f6f8fa; 
     position: relative;
     box-sizing: border-box;
@@ -88,7 +88,7 @@ body {
 /* ================== 环境光优化版 ================== */
 .sunbeam {
     position: absolute; top: -10%; right: -5%; width: 35vw; height: 80vh;
-    /* 移除 filter: blur，直接在渐变中实现柔和过渡 */
+    /* 移除 filter: blur, 直接在渐变中实现柔和过渡 */
     background: radial-gradient(ellipse at top right, rgba(255, 245, 225, 0.12) 0%, rgba(255, 235, 200, 0.05) 40%, transparent 65%);
     transform-origin: top right; will-change: transform, opacity;
     animation: sunbeam-pulse 12s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
@@ -98,7 +98,7 @@ body {
     /* 彻底移除 filter: blur(110px); */
     will-change: transform; opacity: 0.85; 
 }
-/* 渐变的结尾必须是完全透明，自然形成毛边光晕 */
+/* 渐变的结尾必须是完全透明, 自然形成毛边光晕 */
 .orb-1 { width: 60vw; height: 60vw; background: radial-gradient(circle, rgba(178, 219, 255, 0.3) 0%, transparent 60%); top: -15%; right: -15%; animation: orb-drift-1 18s infinite alternate cubic-bezier(0.4, 0, 0.2, 1); }
 .orb-2 { width: 70vw; height: 70vw; background: radial-gradient(circle, rgba(212, 206, 255, 0.4) 0%, transparent 60%); bottom: -20%; left: -20%; animation: orb-drift-2 22s infinite alternate-reverse cubic-bezier(0.4, 0, 0.2, 1); }
 .orb-3 { width: 50vw; height: 50vw; background: radial-gradient(circle, rgba(255, 204, 194, 0.3) 0%, transparent 60%); top: 20%; left: 30%; animation: orb-drift-3 20s infinite alternate cubic-bezier(0.4, 0, 0.2, 1); }
@@ -144,7 +144,7 @@ body::after {
 /* ================== 布局容器 ================== */
 .setup-layout {
     display: grid;
-    /* 核心修复 1: 中间留出 32px 的标准间距作为分割轨道, 删掉阻碍响应式的 !important */
+    /* 中间留出 32px 的标准间距作为分割轨道, 删掉阻碍响应式的 !important */
     grid-template-columns: var(--left-ratio, 1fr) 32px var(--right-ratio, 1fr);
     width: 100%;
     max-width: 1600px; 
@@ -159,7 +159,7 @@ body::after {
 
 @media(max-width: 950px) {
     .setup-layout { 
-        /* 核心修复 2: 加入 !important 强压拖拽生成的行内样式, 窄屏绝对单列 */
+        /* 加入 !important 强压拖拽生成的行内样式, 窄屏绝对单列 */
         grid-template-columns: 1fr !important; 
         gap: var(--spacing-main) !important;
     }
@@ -272,7 +272,7 @@ input:focus, textarea:focus {
     transition-duration: 0.1s; 
 }
 
-/* 选中态 (Checked): 核心修复点! 弃用渐变, 改用高亮单色配合环境光晕 */
+/* 选中态 (Checked): 弃用渐变, 改用高亮单色配合环境光晕 */
 .subject-item input:checked + span { 
     /* 背景极大地透明化, 仅保留淡淡的蓝意 */
     background-color: rgba(157, 210, 255, 0.25) !important; 
@@ -441,13 +441,13 @@ button, upload-label {
     position: relative; overflow: hidden; display: inline-flex; height: 52px; border: none;
     align-items: center; justify-content: center; padding: 0 24px;
     border-radius: var(--radius-element); cursor: pointer; font-size: 16px !important; font-weight: 700 !important; 
-    /* 极致顺滑的过渡：使用弹性阻尼曲线，保留 transform 硬件加速 */
+    /* 极致顺滑的过渡: 使用弹性阻尼曲线, 保留 transform 硬件加速 */
     transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), background 0.3s ease, box-shadow 0.3s ease; 
     outline: none; letter-spacing: 0.5px;
     will-change: transform, box-shadow; 
 }
 
-/* 废弃原先粗暴的 ::before 伪元素高光，改用更优雅的多重 background */
+/* 废弃原先粗暴的 ::before 伪元素高光, 改用更优雅的多重 background */
 button::before { display: none; }
 button:active { transform: scale(0.96) !important; }
 
@@ -463,7 +463,7 @@ button:active { transform: scale(0.96) !important; }
         0 6px 16px rgba(120, 175, 225, 0.2), 
         inset 0 1.5px 2px rgba(255, 255, 255, 0.95), 
         inset -1px -1px 2px rgba(255, 255, 255, 0.3), 
-        /* 💡 将白边改为高透冰蓝色：完美融入基底，边缘像纯净的蓝水晶 */
+        /* 💡 将白边改为高透冰蓝色: 完美融入基底, 边缘像纯净的蓝水晶 */
         0 0 0 1px rgba(217, 237, 254, 0.85); 
     backdrop-filter: blur(16px) saturate(180%); 
     -webkit-backdrop-filter: blur(16px) saturate(180%);
@@ -478,7 +478,7 @@ button:active { transform: scale(0.96) !important; }
         0 12px 24px rgba(120, 175, 225, 0.3), 
         inset 0 2px 3px rgba(255, 255, 255, 1), 
         inset -1px -1px 2px rgba(255, 255, 255, 0.5),
-        /* 💡 修复：将刺眼的蓝色霓虹边，改为带有一点点冷蓝调的“高透霜白色” */
+        /* 将刺眼的蓝色霓虹边, 改为带有一点点冷蓝调的“高透霜白色” */
         0 0 0 1.5px rgba(240, 248, 255, 0.9); 
 }
 
@@ -490,7 +490,7 @@ button:active { transform: scale(0.96) !important; }
         0 2px 6px rgba(120, 175, 225, 0.1), 
         inset 0 3px 6px rgba(15, 23, 42, 0.08), 
         inset 0 1px 1px rgba(255, 255, 255, 0.5),
-        /* 💡 按下时蓝边暗淡，贴合物理阴影 */
+        /* 💡 按下时蓝边暗淡, 贴合物理阴影 */
         0 0 0 1px rgba(145, 205, 255, 0.6);
 }
 
@@ -506,7 +506,7 @@ button:active { transform: scale(0.96) !important; }
         0 6px 16px rgba(15, 23, 42, 0.04), 
         inset 0 1.5px 2px rgba(255, 255, 255, 0.95), 
         inset -1px -1px 2px rgba(255, 255, 255, 0.3), 
-        /* 💡 将死白改为带有淡淡冷灰/冷蓝的珍珠白，消除锐利感 */
+        /* 💡 将死白改为带有淡淡冷灰/冷蓝的珍珠白, 消除锐利感 */
         0 0 0 1px rgba(241, 245, 249, 0.85);
     backdrop-filter: blur(16px) saturate(180%); 
     -webkit-backdrop-filter: blur(16px) saturate(180%);
@@ -547,7 +547,7 @@ button:active { transform: scale(0.96) !important; }
         0 6px 16px rgba(239, 68, 68, 0.2), 
         inset 0 1.5px 2px rgba(255, 255, 255, 0.5), 
         inset -1px -1px 2px rgba(0, 0, 0, 0.08),
-        /* 💡 将白边改为高透珊瑚红：红玻璃的边缘就应该是透亮的红色 */
+        /* 💡 将白边改为高透珊瑚红: 红玻璃的边缘就应该是透亮的红色 */
         0 0 0 1px rgba(255, 199, 199, 0.75); 
     backdrop-filter: blur(16px) saturate(180%); 
     -webkit-backdrop-filter: blur(16px) saturate(180%);
@@ -562,7 +562,7 @@ button:active { transform: scale(0.96) !important; }
         0 10px 24px rgba(239, 68, 68, 0.3), 
         inset 0 2px 3px rgba(255, 255, 255, 0.75), 
         inset -1px -1px 2px rgba(0, 0, 0, 0.12),
-        /* 💡 修复：将刺眼的亮红边，改为带有一丝微粉的珍珠白 */
+        /* 将刺眼的亮红边, 改为带有一丝微粉的珍珠白 */
         0 0 0 1.5px rgba(255, 240, 240, 0.9); 
 }
 
@@ -585,26 +585,17 @@ button:active { transform: scale(0.96) !important; }
     border-radius: var(--radius-card); 
     margin-bottom: var(--spacing-card); 
     z-index: 1;
-    
-    /* 保持绝美的高光渐变与毛玻璃 */
     background: linear-gradient(135deg, rgba(255, 255, 255, 0.75) 0%, rgba(255, 255, 255, 0.4) 100%);
     border: 1px solid rgba(255, 255, 255, 0.85);
     backdrop-filter: blur(16px) saturate(180%);
     -webkit-backdrop-filter: blur(16px) saturate(180%);
-    
     box-shadow: 
         0 8px 24px rgba(15, 23, 42, 0.04), 
         inset 0 2px 4px rgba(255, 255, 255, 1),
         inset 0 -1px 2px rgba(255, 255, 255, 0.3);
-        
-    /* 移除全局 3D 渲染, 释放海量显存。同时剥离 background 动画, 防止重绘雪崩 */
     transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    
-    /* 屏幕外自动剔除 (Off-screen Culling)。
-       离开视野的卡片, 浏览器会直接跳过它的计算与渲染！对长列表是降维打击。*/
     content-visibility: auto;
     contain-intrinsic-size: 120px;
-    contain: layout style;
 }
 
 #taskList .task-card:last-child {
@@ -613,7 +604,7 @@ button:active { transform: scale(0.96) !important; }
 
 .task-card:hover { 
     transform: translateY(-3px); 
-    /* 按需索取资源。仅在鼠标悬停的一瞬间才向 GPU 申请硬件加速 */
+    /* 按需索取资源仅在鼠标悬停的一瞬间才向 GPU 申请硬件加速 */
     will-change: transform, box-shadow;
     box-shadow: 
         0 16px 40px rgba(15, 23, 42, 0.08), 
@@ -668,7 +659,7 @@ button:active { transform: scale(0.96) !important; }
     padding: 8px 32px 40px 32px !important;
     margin: -8px -32px -40px -32px !important;
     
-    /* 核心修复: 引入 Alpha 通道渐隐遮罩 */
+    /* 引入通道渐隐遮罩 */
     /* 从顶部 0px 开始透明, 平滑过渡到 32px 处变为完全不透明；*/
     /* 底部同理, 提前 64px 开始逐渐变透明直到边缘, 完美融合负边距 */
     -webkit-mask-image: linear-gradient(to bottom, 
@@ -705,7 +696,7 @@ button:active { transform: scale(0.96) !important; }
     cursor: pointer;
 }
 
-/* 轨道动画：速率翻倍至 0.5s */
+/* 轨道动画: 速率翻倍至 0.5s */
 input:checked + .alpha-switch {
     animation: alpha-bg-on .32s cubic-bezier(.22,1,.36,1) forwards;
 }
@@ -714,7 +705,7 @@ input:not(:checked) + .alpha-switch {
     animation: alpha-bg-off .32s cubic-bezier(.22,1,.36,1) forwards;
 }
 
-/* 滑块 Knob：等比缩小，维持完美圆角 */
+/* 滑块 Knob: 等比缩小, 维持完美圆角 */
 .alpha-switch::after {
     content:'';
     position:absolute;
@@ -735,7 +726,7 @@ input:not(:checked) + .alpha-switch {
         translate(0,-50%);
 }
 
-/* 开启与关闭：触发 0.5s 高速物理形变 */
+/* 开启与关闭: 触发 0.5s 高速物理形变 */
 input:checked + .alpha-switch::after {
     animation: alpha-slide-on .32s forwards;
 }
@@ -745,7 +736,7 @@ input:not(:checked) + .alpha-switch::after {
 }
 
 /* =======================================
-   衬底变色引擎：维持 1/2 处渐变融合逻辑
+   衬底变色引擎: 维持 1/2 处渐变融合逻辑
 ======================================= */
 @keyframes alpha-bg-on {
     0%, 50% {
@@ -784,28 +775,28 @@ input:not(:checked) + .alpha-switch::after {
         animation-timing-function: cubic-bezier(0.25, 1.00, 0.75, 1.00);
     }
     5% { 
-        /* Anticipation (蓄力)：略微变宽 */
+        /* Anticipation (蓄力): 略微变宽 */
         width: 18px;
         height: 14px;
         transform:translate(-.5px,-50%);
         animation-timing-function: cubic-bezier(0.25, 0.00, 0.75, 0.00);
     }
     50% { 
-        /* Motion (冲刺)：高速形变为药丸状 */
+        /* Motion (冲刺): 高速形变为药丸状 */
         width: 24px;
         height: 10px;
         transform:translate(3px,-50%); /* 完美居中 */
         animation-timing-function: cubic-bezier(0.25, 1.00, 0.75, 1.00);
     }
     80% { 
-        /* Overshoot (撞击右壁)：瞬间纵向挤压 */
+        /* Overshoot (撞击右壁): 瞬间纵向挤压 */
         width: 14px;
         height: 18px;
         transform:translate(15px,-50%);
         animation-timing-function: ease-out; /* 引导 80%->100% 恰好耗时 0.1s 的极速回弹 */
     }
     100% { 
-        /* Settle (归位)：恢复完美圆形 */
+        /* Settle (归位): 恢复完美圆形 */
         width: 16px;
         height: 16px;
         transform:translate(14px,-50%); /* 【重算行程】完美停止在 14px 处 */
@@ -938,17 +929,17 @@ input:not(:checked) + .alpha-switch::after {
     position: fixed; inset: 0; z-index: 10000; display: flex; align-items: center; justify-content: center;
     background: rgba(15, 23, 42, 0.25);
     backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
-    opacity: 1; visibility: visible; 
-    
-    /* 修复掉帧 1: 显式接管 backdrop-filter 过渡, 防止 GPU 盲目重绘 */
+    opacity: 1; visibility: visible;
     transition: opacity 0.3s var(--ease), 
                 backdrop-filter 0.3s var(--ease),
                 -webkit-backdrop-filter 0.3s var(--ease),
                 visibility 0s 0s;
-                
-    /* 修复掉帧 2: 提前宣告模糊度的变化, 并强制开启底层硬件加速 */
-    will-change: opacity, backdrop-filter;
+    /* will-change 移除, 由下面的选择器动态管理 */
     transform: translateZ(0);
+}
+
+.sphere-modal:not(.hidden) {
+    will-change: opacity, backdrop-filter;
 }
 
 .sphere-modal.hidden {
@@ -957,7 +948,7 @@ input:not(:checked) + .alpha-switch::after {
     visibility: hidden; 
     pointer-events: none;
     
-    /* 修复掉帧 3: 退出时将模糊度归零, 彻底释放底层渲染压力 */
+    /* 退出时将模糊度归零, 彻底释放底层渲染压力 */
     backdrop-filter: blur(0px); -webkit-backdrop-filter: blur(0px);
     
     transition: opacity 0.3s var(--ease), 
@@ -973,10 +964,10 @@ input:not(:checked) + .alpha-switch::after {
     
     border-radius: var(--radius-panel); /* 保持卡片级圆角比例 */
     
-    /* 修复 1: 升级为全局最高级留白 (32px), 让内容彻底呼吸 */
+    /* 调整留白空间 */
     padding: var(--spacing-main);
     
-    /* 修复 2: 略微拓宽整体容器宽度, 补偿文字可用空间 */
+    /* 略微拓宽整体容器宽度, 补偿文字可用空间 */
     width: 360px; 
     
     box-shadow: 0 24px 64px rgba(15,23,42,0.15), inset 0 2px 6px rgba(255, 255, 255, 0.6);
@@ -1038,7 +1029,7 @@ input:not(:checked) + .alpha-switch::after {
     box-shadow: 0 0 20px rgba(164, 170, 178, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 
-/* 🚀 性能核心核心: 拖拽形变时, 临时挂载此类。
+/* 🚀 性能核心核心: 拖拽形变时, 临时挂载此类
    暂时降低毛玻璃的饱和度度量与层级, 强迫 GPU 走直接位图缓存通道, 杜绝页面卡顿 */
 .setup-layout.resizing-active .panel {
     backdrop-filter: blur(8px) saturate(100%) !important;
@@ -1201,41 +1192,11 @@ body.alpha-menu-open .nav-click-catcher {
 /* 6. 确保标题区域无敌层 (保持不变) */
 .logo-area { position: relative; z-index: 1001 !important; }
 
-/* ================== 画中画专属玻璃按钮 ================== */
-.pip-btn {
-    position: absolute !important; right: 24px !important; top: 24px !important;
-    width: 44px !important; height: 44px !important; min-height: 44px !important;
-    padding: 0 !important; 
-    border-radius: 14px !important; /* 完美匹配面板的 32px 外圆角 */
-    background: rgba(255, 255, 255, 0.65) !important;
-    backdrop-filter: blur(16px) saturate(180%) !important;
-    -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
-    border: 1px solid rgba(255, 255, 255, 0.6) !important;
-    box-shadow: 0 4px 12px rgba(15,23,42,0.05) !important;
-    color: #64748b !important;
-    display: flex; align-items: center; justify-content: center;
-    z-index: 20; cursor: pointer; overflow: hidden;
-    transition: all 0.26s var(--ease) !important;
-}
-/* 继承全站的液态高光反射效果 */
-.pip-btn::before {
-    content: ""; position: absolute; inset: 0;
-    background: linear-gradient(180deg, rgba(255,255,255,0.8), transparent 50%);
-    opacity: 0; transition: opacity 0.28s var(--ease); pointer-events: none; border-radius: inherit;
-}
-.pip-btn:hover {
-    background: rgba(255, 255, 255, 0.95) !important;
-    border-color: rgba(255, 255, 255, 1) !important;
-    color: #0f172a !important;
-    transform: translateY(-2px) !important;
-    box-shadow: 0 8px 20px rgba(15,23,42,0.08), 0 0 0 1px rgba(255,255,255,0.5) !important;
-}
-.pip-btn:hover::before { opacity: 1; }
-.pip-btn:active { transform: scale(0.92) !important; }
+
 
 /* ================== 全局页面切换动效 (光学解耦版) ================== */
 @keyframes alphaPageIn {
-    /* 核心修复：使用独立的 translate 属性，绝对不干扰 TaskTimer 原有的 transform 居中与缩放 */
+    /* 使用独立的 translate 属性, 绝对不干扰 TaskTimer 原有的 transform 居中与缩放 */
     0% { opacity: 0; translate: 60px 0; }
     100% { opacity: 1; translate: 0 0; }
 }
@@ -1259,18 +1220,18 @@ body.alpha-menu-open .nav-click-catcher {
     left: 0;
     padding: 6px 12px;
     
-    /* 1. 材质重塑：大幅降低白色浓度 (从 0.65 降至 0.35)，让底层画面透过来 */
+    /* 1. 材质重塑: 大幅降低白色浓度 (从 0.65 降至 0.35), 让底层画面透过来 */
     background: rgba(255, 255, 255, 0.65);
     
-    /* 2. 景深增强：提升模糊半径至 24px，并拉高 200% 的色彩饱和度，形成“丁达尔折射” */
+    /* 2. 景深增强: 提升模糊半径至 24px, 并拉高 200% 的色彩饱和度, 形成“丁达尔折射” */
     backdrop-filter: blur(24px) saturate(200%);
     -webkit-backdrop-filter: blur(24px) saturate(200%);
     
-    /* 3. 物理切边：四周使用半透明边框，但顶部保留高亮，模拟顶光打在玻璃边缘 */
+    /* 3. 物理切边: 四周使用半透明边框, 但顶部保留高亮, 模拟顶光打在玻璃边缘 */
     border: 1px solid rgba(255, 255, 255, 0.4);
     border-top-color: rgba(255, 255, 255, 0.85); 
     
-    /* 4. 体积光影：外侧加深悬浮投影，内部注入两层发光感（边缘锐利折射 + 内部柔和泛光） */
+    /* 4. 体积光影: 外侧加深悬浮投影, 内部注入两层发光感（边缘锐利折射 + 内部柔和泛光） */
     box-shadow: 
         0 8px 24px rgba(15, 23, 42, 0.12),         /* 更具浮空感的外阴影 */
         inset 0 1px 1px rgba(255, 255, 255, 0.9),  /* 顶部边缘的极限高光 */
@@ -1402,13 +1363,9 @@ body.alpha-menu-open .nav-click-catcher {
 
 <section class="panel hidden" id="timerPanel" style="position: relative; transition: box-shadow 0.3s ease, transform 0.3s ease; transform-origin: top center;">
     
-    <div id="timerDragHandle" style="position: absolute; top: 0; left: 0; right: 0; height: 32px; cursor: grab; display: flex; align-items: center; justify-content: center; z-index: 10;">
+    <div id="timerDragHandle" title="进入悬浮小窗" style="position: absolute; top: 0; left: 0; right: 0; height: 32px; cursor: grab; display: flex; align-items: center; justify-content: center; z-index: 10;">
         <div style="width: 40px; height: 5px; background: rgba(15,23,42,0.12); border-radius: 3px;"></div>
     </div>
-    
-    <button id="videoPipBtn" class="pip-btn" title="进入悬浮小窗">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><rect x="12" y="12" width="7" height="5" rx="1" ry="1"></rect></svg>
-    </button>
 
     <div class="section-title" id="displayTaskName" style="color: #212121; margin-bottom: 16px; margin-top: 12px; text-align: center;">当前任务</div>
     
@@ -1480,7 +1437,7 @@ function toggleAlphaMenu(e) {
         document.body.classList.remove('alpha-menu-closing');
         document.body.classList.add('alpha-menu-open'); 
         
-        // 核心修复: 延迟开启全局点击监听, 捕获所有漏网之鱼
+        // 延迟开启全局点击监听, 捕获所有漏网之鱼
         setTimeout(() => {
             document.addEventListener('click', handleAlphaMenuOutsideClick);
         }, 0);
@@ -1522,7 +1479,7 @@ function closeAlphaMenu() {
         document.body.classList.remove('alpha-menu-open'); 
         document.body.classList.add('alpha-menu-closing'); 
         
-        // ✅ 核心修复: 退场时立刻卸载全局监听, 保证性能绝不侧漏
+        // 退场时立刻卸载全局监听, 保证性能绝不侧漏
         document.removeEventListener('click', handleAlphaMenuOutsideClick);
         
         clearTimeout(alphaMenuTimeout);
@@ -1558,7 +1515,7 @@ function customAlert(msg, title = "提示", icon = "💡", onClose = null) {
 }
 
 function customConfirm(msg, onConfirm, title = "请确认", isDanger = false, icon = "⚠️") {
-    window.focus(); // 修复 3: 跨窗口拉回焦点
+    window.focus(); // 跨窗口拉回焦点
     document.getElementById('dialogIcon').textContent = icon;
     document.getElementById('dialogTitle').textContent = title;
     document.getElementById('dialogMessage').innerHTML = msg;
@@ -1642,9 +1599,9 @@ function parseTime(timeStr) {
 }
 
 // 核心计算函数: 根据当前时间判断 TaskHub 任务状态
-function getTaskStatus(task) {
-    let alpha_task_mapping = JSON.parse(localStorage.getItem('alpha_task_mapping') || '{}');
-    let taskhub_lists = JSON.parse(localStorage.getItem('taskhub_lists') || '[]');
+function getTaskStatus(task, _cachedMapping, _cachedLists) {
+    let alpha_task_mapping = _cachedMapping || JSON.parse(localStorage.getItem('alpha_task_mapping') || '{}');
+    let taskhub_lists = _cachedLists || JSON.parse(localStorage.getItem('taskhub_lists') || '[]');
     
     let listIds = alpha_task_mapping[task.id] || ['default'];
     let deadline = '无截止日期';
@@ -1700,6 +1657,9 @@ function renderHubTasks() {
     
     const uncompletedTasks = thData.filter(t => !t.isCompleted);
 
+    const cachedMapping = JSON.parse(localStorage.getItem('alpha_task_mapping') || '{}');
+    const cachedLists = JSON.parse(localStorage.getItem('taskhub_lists') || '[]');
+
     if (uncompletedTasks.length === 0) {
         hubTaskList.innerHTML = `
             <div class="empty-state" style="animation: alphaCardIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;">
@@ -1713,7 +1673,7 @@ function renderHubTasks() {
     let htmlContent = "";
 
     uncompletedTasks.forEach((task, index) => {
-        let status = getTaskStatus(task);
+        let status = getTaskStatus(task, cachedMapping, cachedLists);
         let activeClass = (currentHubTaskId === task.id) ? 'active-select' : '';
         
         let durationHtml = "⏱️ 待定";
@@ -1769,7 +1729,7 @@ window.selectHubTask = function(taskId) {
     const task = thData.find(t => t.id === taskId);
     if(!task) return;
     
-    // 修复6: 如果再次点击当前已选中的任务, 则取消选中并清空表单
+    // 如果再次点击当前已选中的任务, 则取消选中并清空表单
     if (currentHubTaskId === taskId) {
         currentHubTaskId = null;
         const activeCard = document.querySelector('.task-card.active-select');
@@ -1845,7 +1805,11 @@ function checkAutoStart() {
 }
 
 // ================= 音频引擎与缓存 =================
-const alarmAudio = new Audio("https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3");
+const alarmAudio = new Audio();
+// 禁止浏览器在启动时去下载远程音频, 解除对全局 load 事件的死锁阻塞
+alarmAudio.preload = "none"; 
+alarmAudio.src = "https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3";
+
 const savedAudio = localStorage.getItem('custom_ringtone');
 const savedAudioName = localStorage.getItem('custom_ringtone_name');
 
@@ -2101,7 +2065,7 @@ startBtn.addEventListener('click', () => {
 
 const timerPanelEl = document.getElementById('timerPanel');
 
-// 核心修复 1: 强制物理克隆按钮, 这招能瞬间秒杀过去所有残余的“幽灵点击事件”, 100% 杜绝记录两次!
+// 杜绝任务记录两次
 const safePauseBtn = timerPanelEl.querySelector('#pauseBtn').cloneNode(true);
 timerPanelEl.querySelector('#pauseBtn').replaceWith(safePauseBtn);
 
@@ -2111,7 +2075,7 @@ timerPanelEl.querySelector('#cancelBtn').replaceWith(safeCancelBtn);
 const safeFinishBtn = timerPanelEl.querySelector('#finishBtn').cloneNode(true);
 timerPanelEl.querySelector('#finishBtn').replaceWith(safeFinishBtn);
 
-// 在面板移动前, 提前锁死所有 DOM 的内存引用。
+// 在面板移动前, 提前锁死所有 DOM 的内存引用
 // 这样即便面板进入了画中画, JS 依然能精准操控它, 再也不会出现暂停死机的 Null 报错!
 const ringProgressEl = timerPanelEl.querySelector('#ringProgress');
 const ringProgressDangerEl = timerPanelEl.querySelector('#ringProgressDanger');
@@ -2136,7 +2100,7 @@ function cancelFrame(id) {
     return window.cancelAnimationFrame(id);
 }
 
-// 修复 4: 退出小窗或结束拖拽时, 强行恢复断裂的帧循环!
+// 退出小窗或结束拖拽时, 强行恢复断裂的帧循环!
 window.alphaResumeTimer = () => {
     if (typeof isRunning !== 'undefined' && isRunning) {
         if (typeof lastFrameTime !== 'undefined') lastFrameTime = Date.now(); // 抹平丢失的时间差
@@ -2171,8 +2135,16 @@ function startTimer() {
                 isRunning = false;
                 try { alarmAudio.play(); } catch(e){}
 
-                if (window.alphaPipWindow) window.alphaPipWindow.close();
-                window.focus();
+                if (window.alphaPipWindow) {
+                    window.alphaPipWindow.close();
+                    window.alphaPipWindow = null;
+                }
+                // 兼容 iframe 层级, 正确获取父窗口的 electronAPI 实现置顶
+                const topAPI = window.electronAPI || window.parent?.electronAPI || window.top?.electronAPI;
+                if (topAPI && topAPI.bringMainToFront) {
+                    // 剥离 requestAnimationFrame 依赖, 改用 setTimeout, 确保最小化状态下仍能唤醒主窗口
+                    setTimeout(() => topAPI.bringMainToFront(), 10);
+                }
                 customAlert("倒计时结束!可以点击『完成并记录』归档此次专注了", "专注完成", "🎉", stopAlarm);
                 return;
             }
@@ -2226,7 +2198,7 @@ function startTimer() {
     animationFrameId = reqFrame(updateFrame);
 }
 
-// 修复 3: 所有的点击事件均通过内存中的 Safe 按钮触发, 绝不使用 document.getElementById
+// 所有的点击事件均通过内存中的 Safe 按钮触发
 safePauseBtn.onclick = () => {
     if (isRunning) {
         isRunning = false;
@@ -2240,10 +2212,20 @@ safePauseBtn.onclick = () => {
 
 safeCancelBtn.onclick = () => {
     stopAlarm();
-    if (window.alphaPipWindow) window.alphaPipWindow.close();
+    if (window.opener && !window.opener.closed) window.opener.focus();
+    if (window.alphaPipWindow) {
+        window.alphaPipWindow.close();
+        window.alphaPipWindow = null;
+    }
+    // 兼容 iframe 层级获取 API
+    const topAPI = window.electronAPI || window.parent?.electronAPI || window.top?.electronAPI;
+    if (topAPI && topAPI.bringMainToFront) {
+        // 改用 setTimeout 确保主程序正常收到置顶指令
+        setTimeout(() => topAPI.bringMainToFront(), 10);
+    }
     window.focus();
 
-    customConfirm('确定要放弃当前专注吗?记录将不会被保存', () => {
+    customConfirm('确定要放弃当前专注吗? 记录将不会被保存', () => {
         cancelFrame(animationFrameId);
         timerPanelEl.classList.add('hidden');
         document.getElementById('setupLayout').classList.remove('hidden');
@@ -2258,7 +2240,17 @@ safeCancelBtn.onclick = () => {
 safeFinishBtn.onclick = () => {
     stopAlarm();
     cancelFrame(animationFrameId);
-    if (window.alphaPipWindow) window.alphaPipWindow.close();
+    if (window.opener && !window.opener.closed) window.opener.focus();
+    if (window.alphaPipWindow) {
+        window.alphaPipWindow.close();
+        window.alphaPipWindow = null;
+    }
+    // 兼容 iframe 层级获取 API, 延迟置顶防止焦点丢失
+    const topAPI = window.electronAPI || window.parent?.electronAPI || window.top?.electronAPI;
+    if (topAPI && topAPI.bringMainToFront) {
+        // 剔除由于挂起导致的复原失败问题
+        setTimeout(() => topAPI.bringMainToFront(), 10);
+    }
     window.focus();
 
     const realEndTime = new Date();
@@ -2313,330 +2305,434 @@ safeFinishBtn.onclick = () => {
 (function initMiniWindowEngine() {
     const timerPanel = document.getElementById('timerPanel');
     const timerDragHandle = document.getElementById('timerDragHandle');
-    const videoPipBtn = document.getElementById('videoPipBtn');
 
-    let isFloating = false;
-    let timerPlaceholder = document.createElement('div');
-    timerPlaceholder.id = 'timerPlaceholder';
-    timerPlaceholder.style.cssText = 'display: none; border: 2px dashed rgba(157, 210, 255, 0.8); border-radius: 32px; background: rgba(157, 210, 255, 0.05); transition: all 0.3s ease; margin: auto;';
-
-    window.addEventListener('resize', () => {
-        if (isFloating && timerPanel) {
-            const rect = timerPanel.getBoundingClientRect();
-            if (rect.left > window.innerWidth || rect.top > window.innerHeight) {
-                timerPanel.style.left = '24px';
-                timerPanel.style.top = '24px';
-            }
-        }
-    });
-
-    let isDragging = false;
-    let startX, startY, initialLeft, initialTop;
-    let dragCompensationX = 0, dragCompensationY = 0; // 新增: 用于存储首次拔起的防脱手补偿
-
-    // 拖拽监听核心
-    if (timerDragHandle) {
-        timerDragHandle.addEventListener('pointerdown', (e) => {
-            isDragging = false;
-            startX = e.clientX;
-            startY = e.clientY;
-
-            // 🌟 终极修复: 严格区分卡片的当前状态, 拒绝“坐标二次污染”
-            if (isFloating) {
-                // 1. 如果已经在悬浮状态 (已被缩放) , 直接读取真实的排版坐标
-                initialLeft = parseFloat(timerPanel.style.left) || 0;
-                initialTop = parseFloat(timerPanel.style.top) || 0;
-                
-                // 此时已经是 0.85 状态, 不再需要任何补偿, 鼠标移动多少, 卡片就移动多少
-                dragCompensationX = 0;
-                dragCompensationY = 0;
-            } else {
-                // 2. 如果是首次从固定位拖出 (1.0 比例) , 读取原始边界
-                const rect = timerPanel.getBoundingClientRect();
-                initialLeft = rect.left;
-                initialTop = rect.top;
-                
-                // 计算: 为了让鼠标指针在突然缩小时保持在原位, 需要给 layout 补充的差值
-                const originX = startX - rect.left;
-                const originY = startY - rect.top;
-                // 0.15 是因为缩小到了 0.85 (1 - 0.85 = 0.15)
-                dragCompensationX = originX * 0.15; 
-                dragCompensationY = originY * 0.15;
-            }
-
-            timerDragHandle.setPointerCapture(e.pointerId);
-            timerDragHandle.style.cursor = 'grabbing';
-
-            const onMove = (moveEvent) => {
-                const dx = moveEvent.clientX - startX;
-                const dy = moveEvent.clientY - startY;
-
-                if (!isDragging && (Math.abs(dx) > 5 || Math.abs(dy) > 5)) {
-                    isDragging = true;
-                    timerPanel.style.transition = 'none';
-
-                    if (!isFloating) {
-                        isFloating = true;
-                        const rect = timerPanel.getBoundingClientRect();
-                        timerPanel.parentNode.insertBefore(timerPlaceholder, timerPanel);
-                        timerPlaceholder.style.display = 'block';
-                        timerPlaceholder.style.width = rect.width + 'px';
-                        timerPlaceholder.style.height = rect.height + 'px';
-
-                        timerPanel.style.position = 'fixed';
-                        timerPanel.style.zIndex = '9999';
-                        timerPanel.style.width = rect.width + 'px';
-                        timerPanel.style.margin = '0';
-                        timerPanel.style.boxShadow = '0 32px 64px rgba(15,23,42,0.15), 0 0 0 1px rgba(255,255,255,0.6)';
-                        
-                        // 🌟 将锚点强行锁定在绝对的左上角 (0, 0), 摒弃 CSS 中心点带来的不可控干扰
-                        timerPanel.style.transformOrigin = '0 0';
-                        timerPanel.style.transform = 'scale(0.85) translateZ(0)';
-                    }
-                }
-
-                if (isDragging) {
-                    // 🌟 极简绝对坐标公式: (初始固定位置 + 鼠标移动距 + 首次拔起的吸附补偿)
-                    timerPanel.style.left = `${initialLeft + dx + dragCompensationX}px`;
-                    timerPanel.style.top = `${initialTop + dy + dragCompensationY}px`;
-
-                    const phRect = timerPlaceholder.getBoundingClientRect();
-                    const panelRect = timerPanel.getBoundingClientRect();
-                    const distance = Math.sqrt(Math.pow((phRect.left + phRect.width / 2) - (panelRect.left + panelRect.width / 2), 2) + Math.pow((phRect.top + phRect.height / 2) - (panelRect.top + panelRect.height / 2), 2));
-
-                    if (distance < 120) { 
-                        timerPlaceholder.style.background = 'rgba(157, 210, 255, 0.2)';
-                        timerPlaceholder.style.borderColor = 'rgba(157, 210, 255, 1)';
-                        timerPlaceholder.classList.add('ready-to-dock');
-                    } else { 
-                        timerPlaceholder.style.background = 'rgba(157, 210, 255, 0.05)';
-                        timerPlaceholder.style.borderColor = 'rgba(157, 210, 255, 0.6)';
-                        timerPlaceholder.classList.remove('ready-to-dock');
-                    }
-                }
-            };
-
-            const onUp = (upEvent) => {
-                window.removeEventListener('pointermove', onMove);
-                window.removeEventListener('pointerup', onUp);
-                timerDragHandle.releasePointerCapture(e.pointerId);
-                timerDragHandle.style.cursor = 'grab';
-
-                if (isDragging) {
-                    timerPanel.style.transition = 'box-shadow 0.3s ease, transform 0.3s ease, left 0.3s ease, top 0.3s ease';
-                    if (timerPlaceholder.classList.contains('ready-to-dock')) {
-                        isFloating = false; // 标记还原
-                        const phRect = timerPlaceholder.getBoundingClientRect();
-                        timerPanel.style.left = phRect.left + 'px';
-                        timerPanel.style.top = phRect.top + 'px';
-                        timerPanel.style.transform = 'scale(1) translateZ(0)';
-                        timerPlaceholder.style.opacity = '0';
-
-                        setTimeout(() => {
-                            if (!isFloating) {
-                                timerPanel.style.transition = 'all 0.4s cubic-bezier(0.22, 1, 0.36, 1)';
-                                timerPanel.style.position = 'relative';
-                                timerPanel.style.left = 'auto';
-                                timerPanel.style.top = 'auto';
-                                timerPanel.style.margin = 'auto';
-                                timerPanel.style.boxShadow = 'var(--shadow-xl), inset 0 1.5px 2px rgba(255,255,255,0.9), inset 1.5px 0 2px rgba(255,255,255,0.3)';
-                                
-                                // 回到正常排版流时, 恢复原本优雅的中心锚点
-                                timerPanel.style.transformOrigin = 'top center'; 
-                                
-                                timerPlaceholder.style.display = 'none';
-                                timerPlaceholder.style.opacity = '1';
-                                timerPlaceholder.classList.remove('ready-to-dock');
-                            }
-                        }, 300);
-                    }
-                    if (window.alphaResumeTimer) window.alphaResumeTimer();
-                }
-            };
-
-            window.addEventListener('pointermove', onMove);
-            window.addEventListener('pointerup', onUp);
-        });
+    let cachedAbsoluteCoords = null;   // 缓存的屏幕坐标
+    let dockStation = document.getElementById('timerDockStation');
+    if (!dockStation && timerPanel && timerPanel.parentNode) {
+        dockStation = document.createElement('div');
+        dockStation.id = 'timerDockStation';
+        dockStation.style.width = '100%';
+        dockStation.style.boxSizing = 'border-box';
+        dockStation.style.border = '2px dashed rgba(157, 210, 255, 0.4)';
+        dockStation.style.background = 'rgba(255, 255, 255, 0.03)';
+        dockStation.style.borderRadius = 'var(--radius-panel, 32px)';
+        dockStation.style.margin = '0 auto'; 
+        dockStation.style.display = 'none';
+        dockStation.style.transition = 'all 0.3s cubic-bezier(0.25, 1, 0.5, 1)';
+        timerPanel.parentNode.insertBefore(dockStation, timerPanel);
     }
 
-    // 画中画监听核心
-    if (!videoPipBtn) return;
-    videoPipBtn.onclick = async (e) => {
-        if (!('documentPictureInPicture' in window)) {
-            customAlert("您的浏览器暂不支持官方 Document PiP 协议<br>建议使用最新版 Chrome 浏览器", "环境受限", "🚫");
-            return;
-        }
-
-        if (window.alphaPipWindow) {
-            window.alphaPipWindow.close();
-            return;
-        }
-
-        try {
-            if (!isFloating) {
-                const rect = timerPanel.getBoundingClientRect();
-                timerPanel.parentNode.insertBefore(timerPlaceholder, timerPanel);
-                timerPlaceholder.style.display = 'block';
-                timerPlaceholder.style.width = rect.width + 'px';
-                timerPlaceholder.style.height = rect.height + 'px';
-            }
-
-            // 稍微增加默认高度, 匹配实际元素高度
-            window.alphaPipWindow = await documentPictureInPicture.requestWindow({ width: 340, height: 480 });
-
-            [...document.styleSheets].forEach((styleSheet) => {
-                try {
-                    const cssRules = [...styleSheet.cssRules].map((rule) => rule.cssText).join('');
-                    const style = document.createElement('style');
-                    style.textContent = cssRules;
-                    window.alphaPipWindow.document.head.appendChild(style);
-                } catch (e) {
-                    const link = document.createElement('link');
-                    link.rel = 'stylesheet'; link.href = styleSheet.href;
-                    window.alphaPipWindow.document.head.appendChild(link);
-                }
-            });
-            document.querySelectorAll('style').forEach(s => window.alphaPipWindow.document.head.appendChild(s.cloneNode(true)));
-
-            isFloating = false;
-            
-            window.alphaPipWindow.document.documentElement.style.height = '100%';
-            window.alphaPipWindow.document.body.style.margin = '0';
-            window.alphaPipWindow.document.body.style.width = '100vw';
-            window.alphaPipWindow.document.body.style.height = '100vh';
-            window.alphaPipWindow.document.body.style.overflow = 'hidden'; 
-            window.alphaPipWindow.document.body.style.background = `radial-gradient(at 0% 0%, rgba(225, 238, 255, 1) 0px, transparent 50%), radial-gradient(at 100% 0%, rgba(234, 226, 255, 1) 0px, transparent 50%), radial-gradient(at 100% 100%, rgba(255, 238, 243, 1) 0px, transparent 50%), radial-gradient(at 0% 100%, rgba(229, 246, 255, 1) 0px, transparent 50%), #fdfbfb`;
-            
-            // 💡 修复 1: 改回 display: block, 并使用绝对定位。这能避免 Flexbox 计算 scale 原生尺寸时的偏差
-            window.alphaPipWindow.document.body.style.display = 'block';
-
-            timerPanel.style.position = 'absolute'; 
-            timerPanel.style.left = '50%';
-            timerPanel.style.top = '50%';
-            timerPanel.style.width = '320px'; // 精准匹配圆环的物理宽度, 不多不少
-            timerPanel.style.margin = '0';
-            timerPanel.style.transformOrigin = 'center center';
-
-            // 💡 修复 2: 必须用 setProperty('...', '...', 'important') 强制击穿 CSS 中 .panel 带来的 !important 阻碍!
-            timerPanel.style.setProperty('padding', '0', 'important');
-            timerPanel.style.setProperty('background', 'transparent', 'important');
-            timerPanel.style.setProperty('border', 'none', 'important');
-            timerPanel.style.setProperty('box-shadow', 'none', 'important');
-            timerPanel.style.setProperty('backdrop-filter', 'none', 'important');
-
-            timerPanel.querySelector('#timerDragHandle').style.display = 'none';
-            timerPanel.querySelector('#videoPipBtn').style.display = 'none';
-            timerPanel.querySelector('#displayTaskName').style.display = 'none';
-            timerPanel.querySelector('#displayCategories').style.display = 'none';
-
-            window.alphaPipWindow.document.body.appendChild(timerPanel);
-
-            const updatePipScale = () => {
-                if (!window.alphaPipWindow) return;
-                const ww = window.alphaPipWindow.innerWidth;
-                const wh = window.alphaPipWindow.innerHeight;
-                // 💡 修复 3: 修正实际高度比例 (表盘 + 按钮大概需要 500px 高度) , 结合 translate(-50%, -50%) 实现真·绝对居中
-                const scale = Math.min(ww / 340, wh / 500) * 0.92; 
-                timerPanel.style.transform = `translate(-50%, -50%) scale(${scale})`;
-            };
-            window.alphaPipWindow.addEventListener('resize', updatePipScale);
-            updatePipScale(); 
-
-            window.alphaPipWindow.addEventListener("pagehide", () => {
-                if (timerPlaceholder.parentNode) {
-                    timerPlaceholder.parentNode.insertBefore(timerPanel, timerPlaceholder);
-                } else {
-                    document.body.appendChild(timerPanel);
-                }
-                
-                // 💡 退出画中画时, 必须清除掉刚才硬加的 important 样式, 否则回到主屏幕后框体会秃掉
-                timerPanel.style.removeProperty('padding');
-                timerPanel.style.removeProperty('background');
-                timerPanel.style.removeProperty('border');
-                timerPanel.style.removeProperty('box-shadow');
-                timerPanel.style.removeProperty('backdrop-filter');
-
-                timerPanel.style.position = '';
-                timerPanel.style.left = '';
-                timerPanel.style.top = '';
-                timerPanel.style.transformOrigin = ''; 
-                timerPanel.style.width = '';
-                timerPanel.style.margin = '';
-                timerPanel.style.transform = '';
-                
-                timerPanel.querySelector('#timerDragHandle').style.display = 'flex';
-                timerPanel.querySelector('#videoPipBtn').style.display = 'flex';
-                timerPanel.querySelector('#displayTaskName').style.display = 'block';
-                timerPanel.querySelector('#displayCategories').style.display = 'flex';
-                
-                timerPlaceholder.style.display = 'none';
-                timerPlaceholder.classList.remove('ready-to-dock');
-                window.alphaPipWindow = null;
-                
-                if (window.alphaResumeTimer) window.alphaResumeTimer();
-            });
-        } catch (error) {
-            console.error("画中画启动失败", error);
-        }
-    };
-})();
-
-// ================= 跨端生态联动引擎 (监听 TaskHub 广播) =================
-window.addEventListener('storage', (e) => {
-    // 1. 监听专属的动作同步指令 (划去/恢复任务)
-    if (e.key === 'tasktimer_sync_action' && e.newValue) {
-        try {
-            const data = JSON.parse(e.newValue);
-            
-            if (data.action === 'FORCE_STOP') {
-                // 情况 A: 正在专注的任务被划去！直接拦截并强制终止
-                if (currentHubTaskId === data.taskId && isRunning) {
-                    isRunning = false;
-                    cancelFrame(animationFrameId);
-                    stopAlarm();
-                    if (window.alphaPipWindow) window.alphaPipWindow.close();
-                    
-                    // 重置 UI 回到配置界面
-                    timerPanelEl.classList.add('hidden');
-                    document.getElementById('setupLayout').classList.remove('hidden');
-                    
-                    // 彻底清空表单与绑定状态
-                    document.getElementById('taskName').value = '';
-                    document.querySelectorAll('.subject-item input').forEach(el => el.checked = false);
-                    currentHubTaskId = null;
-                    
-                    renderHubTasks(); // 刷新列表
-                    
-                    // 呼出项目专属的毛玻璃弹窗
-                    customAlert("该任务已在 TaskHub 中被划去, 当前的专注已自动终止。", "任务已划除", "🛑");
-                } 
-                // 情况 B: 任务只是被选中, 但还没点击“开始专注”
-                else if (currentHubTaskId === data.taskId && !isRunning) {
-                    currentHubTaskId = null;
-                    document.getElementById('taskName').value = '';
-                    document.querySelectorAll('.subject-item input').forEach(el => el.checked = false);
-                    renderHubTasks(); // 刷新列表并清除高亮
-                }
-                // 情况 C: 划去的是其他无关任务, 只需默默刷新左侧列表即可
-                else {
-                    renderHubTasks();
-                }
-            }
-            
-            // 监听恢复指令
-            if (data.action === 'RESTORE') {
-                renderHubTasks(); // 默默刷新列表, 让任务重新出现
-            }
-        } catch (err) {
-            console.error("同步指令解析失败", err);
-        }
-    }
+    let baseW = 0, baseH = 0; 
     
-    // 2. 补充监听: 如果在 TaskHub 中新增或修改了数据, TaskTimer 左侧列表也实现 0 毫秒无感同步
-    if (e.key === TASKHUB_KEY) {
-        renderHubTasks();
+    // 【跨 iframe 绝对屏幕坐标雷达】
+    function getAbsoluteScreenCoords(element) {
+        let rect = element.getBoundingClientRect();
+        let absLeft = rect.left;
+        let absTop = rect.top;
+        
+        try {
+            let currentWin = window;
+            while (currentWin !== window.top) {
+                if (currentWin.frameElement) {
+                    let fRect = currentWin.frameElement.getBoundingClientRect();
+                    absLeft += fRect.left;
+                    absTop += fRect.top;
+                }
+                currentWin = currentWin.parent;
+            }
+        } catch(e) {}
+        
+        return {
+            x: Math.round(window.top.screenX + absLeft),
+            y: Math.round(window.top.screenY + absTop)
+        };
     }
-});
+
+    async function openElectronPip() {
+        if (window.alphaPipWindow && !window.alphaPipWindow.closed) {
+            try { window.alphaPipWindow.focus(); } catch(e) {}
+            return;
+        }
+
+        const ghostTips = document.querySelectorAll('.alpha-tooltip, [class*="tooltip"], [id*="tooltip"], [id*="Tip"]');
+        ghostTips.forEach(tip => tip.style.display = 'none');
+        if (window.hideAlphaTooltip) { try { window.hideAlphaTooltip(); } catch(e){} }
+
+        const childTooltips = timerPanel.querySelectorAll('[data-tooltip], [title]');
+        childTooltips.forEach(el => {
+            if (el.hasAttribute('title')) {
+                el.dataset.pipTitle = el.getAttribute('title');
+                el.removeAttribute('title');
+            }
+            if (el.hasAttribute('data-tooltip')) {
+                el.dataset.pipTooltip = el.getAttribute('data-tooltip');
+                el.removeAttribute('data-tooltip');
+            }
+        });
+
+        timerPanel.style.transition = 'none';
+        timerPanel.style.transform = 'none';
+        
+        void timerPanel.offsetHeight; 
+
+        baseW = timerPanel.offsetWidth;
+        baseH = timerPanel.offsetHeight;
+
+        const coords = cachedAbsoluteCoords || getAbsoluteScreenCoords(timerPanel);
+        
+        // 修复窗口略歪问题
+        const popX = coords.x + 6;  // 向右平移 6px
+        const popY = coords.y - 1;  // 向上平移 1px
+
+        const winW = baseW;
+        const winH = baseH;
+
+        dockStation.style.maxWidth = baseW + 'px';
+        dockStation.style.height = baseH + 'px';
+        dockStation.style.display = 'block';   
+        timerPanel.style.display = 'none';     
+
+        const pip = window.open('about:blank', 'alpha-pip',
+            `width=${winW},height=${winH},left=${popX},top=${popY},alwaysOnTop=yes`);
+        if (!pip) {
+            timerPanel.style.display = 'block';
+            dockStation.style.display = 'none';
+            return;
+        }
+
+        window.alphaPipWindow = pip;
+
+        const stylesHTML = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
+            .map(el => el.outerHTML).join('\n');
+
+        const pipDoc = pip.document;
+        pipDoc.open();
+        pipDoc.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <title>⏳ TaskTimer</title>
+                ${stylesHTML}
+                <style>
+                    html, body {
+                        margin: 0 !important; 
+                        padding: 0 !important;
+                        background: transparent !important;
+                        overflow: hidden;
+                        width: 100vw; height: 100vh;
+                        user-select: none;
+                    }
+                    button {
+                        -webkit-app-region: no-drag !important;
+                    }
+                    #flexSafeZone {
+                        position: absolute;
+                        top: 0; left: 0; width: 100vw; height: 100vh;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        box-sizing: border-box;
+                    }
+                    #animationWrapper {
+                        width: ${baseW}px !important;
+                        height: ${baseH}px !important;
+                        transform: scale(1);
+                        opacity: 1; 
+                        animation: alphaPipMorph 0.38s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+                    }
+                    @keyframes alphaPipMorph {
+                        from { transform: scale(0.85); opacity: 0; }
+                        to   { transform: scale(1); opacity: 1; }
+                    }
+                    #timerPanel {
+                        width: 100% !important;
+                        height: 100% !important;
+                        margin: 0 !important;
+                        border: none !important; 
+                        box-shadow: none !important; 
+                        background: transparent !important;
+                        transition: none !important;
+                        transform: none !important; 
+                    }
+                    #timerDragHandle {
+                        top: -24px;
+                        height: 40px;
+                        cursor: grab;
+                        touch-action: none; /* 禁用默认触摸防止冲突 */
+                    }
+                    #timerDragHandle:active {
+                        cursor: grabbing;
+                    }
+                </style>
+            </head>
+            <body>
+                <div id="flexSafeZone">
+                    <div id="animationWrapper"></div>
+                </div>
+            </body>
+            </html>
+        `);
+        pipDoc.close();
+
+        const animWrapper = pipDoc.getElementById('animationWrapper');
+        if (animWrapper) {
+            pipDoc.adoptNode(timerPanel);
+            animWrapper.appendChild(timerPanel);
+            timerPanel.style.display = 'block';
+        }
+
+        const resizeViewport = () => {
+            if (pip.closed) return;
+            const vw = pip.innerWidth;
+            const vh = pip.innerHeight;
+            const fluidScale = Math.min(vw / winW, vh / winH);
+            if(animWrapper) animWrapper.style.transform = `scale(${fluidScale})`;
+        };
+        
+        if (animWrapper) {
+            animWrapper.addEventListener('animationend', () => {
+                animWrapper.style.animation = 'none';
+                resizeViewport();
+            });
+        }
+
+        pip.addEventListener('resize', resizeViewport);
+        
+        // 注入原生 JS 拖拽引擎, 取代存在事件黑洞的 -webkit-app-region: drag
+        const pipDragHandle = pipDoc.getElementById('timerDragHandle');
+        if (pipDragHandle) {
+            let isPipDragging = false;
+            let pipOffsetX = 0;
+            let pipOffsetY = 0;
+
+        // 【终极防护】: 安全获取 Electron API, 用 try-catch 彻底吸收 iframe 跨域引发的 DOMException 崩溃
+            const getSafeElectronAPI = () => {
+                if (window.electronAPI) return window.electronAPI;
+                try { 
+                    if (window.top && window.top.electronAPI) return window.top.electronAPI; 
+                } catch(err) { /* 静默吞噬跨域报错, 绝不让程序崩溃 */ }
+                return null;
+            };
+
+            pipDragHandle.addEventListener('pointerdown', (e) => {
+                if (e.button !== 0) return; 
+                pip.focus();
+                isPipDragging = true;
+                pipOffsetX = e.screenX - pip.screenX;
+                pipOffsetY = e.screenY - pip.screenY;
+                pipDragHandle.setPointerCapture(e.pointerId);
+                
+                // 踩下离合
+                const api = getSafeElectronAPI();
+                if (api && api.startPipDrag) api.startPipDrag();
+            });
+
+            let dragAnimationFrame = null;
+
+            pipDragHandle.addEventListener('pointermove', (e) => {
+                if (isPipDragging && !pip.closed) {
+                    const targetX = e.screenX - pipOffsetX;
+                    const targetY = e.screenY - pipOffsetY;
+
+                    if (dragAnimationFrame) pip.cancelAnimationFrame(dragAnimationFrame);
+
+                    dragAnimationFrame = pip.requestAnimationFrame(() => {
+                        const api = getSafeElectronAPI();
+                        if (api && api.movePipWindow) {
+                            api.movePipWindow(targetX, targetY);
+                        } else {
+                            pip.moveTo(targetX, targetY);
+                        }
+                        // 💡 彻底移除了 pip.resizeTo(winW, winH)
+                        // 解除了 Chromium 伪造 pointermove 导致的向左滑动死循环
+                    });
+                }
+            });
+
+            pipDragHandle.addEventListener('pointerup', (e) => {
+                isPipDragging = false;
+                try { pipDragHandle.releasePointerCapture(e.pointerId); } catch(err) {}
+                
+                // 松开离合
+                const api = getSafeElectronAPI();
+                if (api && api.stopPipDrag) api.stopPipDrag();
+                
+                // 完美复原判定
+                if (hasMovedAway && isWithinDockRange) {
+                    clearInterval(pipMonitor);
+                    pip.close();
+                }
+            });
+
+            pipDragHandle.addEventListener('pointercancel', () => {
+                isPipDragging = false;
+                const api = getSafeElectronAPI();
+                if (api && api.stopPipDrag) api.stopPipDrag();
+            });
+        }
+
+        let hasMovedAway = false;
+        let pipOpenedAt = Date.now();
+        let isWithinDockRange = false;
+
+        // 捕获松手事件（辅助判定）
+        const triggerDockClose = () => {
+            if (hasMovedAway && isWithinDockRange) {
+                clearInterval(pipMonitor);
+                pip.close();
+            }
+        };
+        pip.addEventListener('mouseup', triggerDockClose);
+        pip.addEventListener('pointerup', triggerDockClose);
+
+        pip.addEventListener('beforeunload', () => {
+            window.alphaPipWindow = null;
+            clearInterval(pipMonitor);
+        });
+
+        let pipMonitor = setInterval(() => {
+            if (pip.closed) {
+                clearInterval(pipMonitor);
+                return;
+            }
+
+            if (Date.now() - pipOpenedAt < 800) {
+                return;
+            }
+
+            const targetCoords = getAbsoluteScreenCoords(dockStation);
+            const targetX = targetCoords.x + 5;
+            const targetY = targetCoords.y - 1;
+
+            const currentX = pip.screenX;
+            const currentY = pip.screenY;
+
+            const deltaX = Math.abs(currentX - targetX);
+            const deltaY = Math.abs(currentY - targetY);
+
+            if (!hasMovedAway) {
+                if (deltaX > 40 || deltaY > 40) {
+                    hasMovedAway = true;
+                } else {
+                    return;
+                }
+            }
+
+            // 重构范围判定: 不论窗口宽窄, 只要X轴在基准区域内有交集, 且Y轴（顶部）重叠误差<50px即可
+            const isYAligned = deltaY < 50;
+            const isXAligned = (currentX + pip.innerWidth > targetX - 30) && (currentX < targetX + baseW + 30);
+            isWithinDockRange = isYAligned && isXAligned;
+
+            // 视觉反馈
+            if (isWithinDockRange) {
+                dockStation.style.borderColor = 'rgba(157, 210, 255, 0.95)';
+                dockStation.style.background = 'rgba(157, 210, 255, 0.18)';
+                dockStation.style.boxShadow = '0 0 25px rgba(157, 210, 255, 0.35), inset 0 0 15px rgba(157, 210, 255, 0.2)';
+                dockStation.style.transform = 'scale(1.01)';
+                if (pipDoc.body) {
+                    pipDoc.body.style.opacity = '0.45';
+                }
+            } else {
+                dockStation.style.borderColor = 'rgba(157, 210, 255, 0.4)';
+                dockStation.style.background = 'rgba(255, 255, 255, 0.03)';
+                dockStation.style.boxShadow = 'none';
+                dockStation.style.transform = 'scale(1)';
+                if (pipDoc.body) pipDoc.body.style.opacity = '1';
+            }
+        }, 16);
+
+           // ================== 安全收回守卫 ==================
+           const restorePanel = () => {
+               if (timerPanel.parentNode !== dockStation.parentNode) {
+                   document.adoptNode(timerPanel);
+                   dockStation.parentNode.insertBefore(timerPanel, dockStation);
+                   dockStation.style.display = 'none';
+
+                   const restoredTooltips = timerPanel.querySelectorAll('[data-pip-title], [data-pip-tooltip]');
+                   restoredTooltips.forEach(el => {
+                       if (el.dataset.pipTitle) el.setAttribute('title', el.dataset.pipTitle);
+                       if (el.dataset.pipTooltip) el.setAttribute('data-tooltip', el.dataset.pipTooltip);
+                       delete el.dataset.pipTitle;
+                       delete el.dataset.pipTooltip;
+                   });
+
+                   timerPanel.style.transition = 'none';
+                   timerPanel.style.transform = 'scale(0.88)';
+                   timerPanel.style.opacity = '0';
+                   timerPanel.style.display = 'block';
+
+                   void timerPanel.offsetWidth;
+
+                   timerPanel.style.transition = 'transform 0.48s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease';
+                   timerPanel.style.transform = 'scale(1)';
+                   timerPanel.style.opacity = '1';
+
+                   window.alphaPipWindow = null;
+
+                   const topAPI = window.electronAPI || window.parent?.electronAPI || window.top?.electronAPI;
+                   if (topAPI && topAPI.bringMainToFront) {
+                       topAPI.bringMainToFront();
+                   }
+
+                   setTimeout(() => { timerPanel.style.transition = ''; }, 480);
+                   if (window.alphaResumeTimer) window.alphaResumeTimer();
+               }
+           };
+
+           pip.addEventListener('beforeunload', restorePanel);
+           pip.addEventListener('unload', restorePanel);
+       }
+
+       if (timerDragHandle) {
+           let parentDragging = false;
+           let pStartX = 0, pStartY = 0;
+
+           timerDragHandle.style.cursor = 'grab';
+
+            timerDragHandle.addEventListener('pointerdown', (e) => {
+                if (window.alphaPipWindow && !window.alphaPipWindow.closed) return;
+                if (e.button !== 0) return;
+                // 缓存此时的屏幕坐标, 避免后续累积偏移
+                cachedAbsoluteCoords = getAbsoluteScreenCoords(timerPanel);
+                parentDragging = true;
+                pStartX = e.clientX;
+                pStartY = e.clientY;
+
+               timerPanel.style.transition = 'transform 0.2s cubic-bezier(0.25, 1, 0.5, 1)';
+               timerPanel.style.transform = 'scale(0.92)';
+               timerDragHandle.setPointerCapture(e.pointerId);
+           });
+
+           timerDragHandle.addEventListener('pointermove', (e) => {
+               if (window.alphaPipWindow && !window.alphaPipWindow.closed) return;
+               if (!parentDragging) return;
+               const dist = Math.hypot(e.clientX - pStartX, e.clientY - pStartY);
+               if (dist > 15) {
+                   parentDragging = false;
+                   timerDragHandle.releasePointerCapture(e.pointerId);
+                   openElectronPip();
+               }
+           });
+
+           timerDragHandle.addEventListener('pointerup', (e) => {
+               if (window.alphaPipWindow && !window.alphaPipWindow.closed) return;
+               if (!parentDragging) return;
+               parentDragging = false;
+               timerPanel.style.transition = 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+               timerPanel.style.transform = 'scale(1)';
+               setTimeout(() => { timerPanel.style.transition = ''; }, 400);
+               try { timerDragHandle.releasePointerCapture(e.pointerId); } catch(err) {}
+           });
+
+            timerDragHandle.addEventListener('pointercancel', () => {
+                if (window.alphaPipWindow && !window.alphaPipWindow.closed) return;
+                // 只重置拖拽状态, 不恢复缩放, 防止提前滑回
+                parentDragging = false;
+            });
+       }
+   })();
+
 // ================= 💡 液态玻璃悬浮球拖拽与点击引擎 =================
 window.addEventListener('DOMContentLoaded', () => {
     renderHubTasks();
@@ -2728,7 +2824,7 @@ timerRadios.forEach((radio, index) => {
 
 // ================= 全局页面切换动效拦截引擎 V3 =================
 window.addEventListener('DOMContentLoaded', () => {
-    // 不再干预动画，让动画自然完成
+    // 不再干预动画, 让动画自然完成
     // 仅保留链接拦截
     document.querySelectorAll('a[href^="./"]').forEach(link => {
         link.addEventListener('click', (e) => {
@@ -2757,13 +2853,13 @@ window.addEventListener('DOMContentLoaded', () => {
     tooltipNode.id = 'alphaTooltip';
     document.body.appendChild(tooltipNode);
 
-    // 2. 利用事件委托，监听全局的鼠标悬停（支持 JS 动态生成的元素）
+    // 2. 利用事件委托, 监听全局的鼠标悬停（支持 JS 动态生成的元素）
     document.addEventListener('mouseover', (e) => {
         // 寻找当前鼠标下带有 title 或 data-tooltip 的最近元素
         const target = e.target.closest('[title], [data-tooltip]');
         if (!target) return;
 
-        // 核心：瞬间没收原生 title，防止浏览器自带的生硬黑框弹出来
+        // 核心: 瞬间没收原生 title, 防止浏览器自带的生硬黑框弹出来
         if (target.hasAttribute('title')) {
             target.setAttribute('data-tooltip', target.getAttribute('title'));
             target.removeAttribute('title'); 
@@ -2773,23 +2869,25 @@ window.addEventListener('DOMContentLoaded', () => {
         if (tipText) {
             tooltipNode.textContent = tipText;
             tooltipNode.classList.add('visible');
-            updateTooltipPosition(e); // 立刻计算一次位置，防止动画乱飞
+            updateTooltipPosition(e); // 立刻计算一次位置, 防止动画乱飞
         }
     });
 
-    // 3. 鼠标移动时，玻璃板柔性跟随
+    // 3. 鼠标移动时, 玻璃板柔性跟随
+    let tooltipRafId = null;
     document.addEventListener('mousemove', (e) => {
-        if (tooltipNode.classList.contains('visible')) {
-            updateTooltipPosition(e);
-        }
-    });
-
-    // 4. 离开时褪去
-    document.addEventListener('mouseout', (e) => {
         const target = e.target.closest('[data-tooltip]');
-        if (target) {
+        if (!target) {
+            // 鼠标不在任何触发元素上, 隐藏 Tooltip
             tooltipNode.classList.remove('visible');
+            return;
         }
+        if (!tooltipNode.classList.contains('visible')) return;
+        if (tooltipRafId !== null) return;            // 上一帧尚未执行, 跳过
+        tooltipRafId = requestAnimationFrame(() => {
+            updateTooltipPosition(e);
+            tooltipRafId = null;
+        });
     });
 
     // 5. 点击时主动隐藏（防遮挡视线优化）
@@ -2805,12 +2903,12 @@ window.addEventListener('DOMContentLoaded', () => {
         let x = e.clientX + offsetX;
         let y = e.clientY + offsetY;
 
-        // 右侧边界碰撞检测：如果超出版面，就翻转到鼠标左侧
+        // 右侧边界碰撞检测: 如果超出版面, 就翻转到鼠标左侧
         if (x + tooltipNode.offsetWidth > window.innerWidth) {
             x = e.clientX - tooltipNode.offsetWidth - 8;
         }
         
-        // 底部边界碰撞检测：如果超出底部，就翻转到鼠标上方
+        // 底部边界碰撞检测: 如果超出底部, 就翻转到鼠标上方
         if (y + tooltipNode.offsetHeight > window.innerHeight) {
             y = e.clientY - tooltipNode.offsetHeight - 8;
         }

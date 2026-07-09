@@ -62,7 +62,7 @@ body {
     padding: 32px; 
     color: var(--text);
     color-scheme: light;
-    /* 1. 将底色剥离到 body，作为最安全的托底，防止动画穿帮 */
+    /* 1. 将底色剥离到 body, 作为最安全的托底, 防止动画穿帮 */
     background-color: #f6f8fa; 
     position: relative;
     box-sizing: border-box;
@@ -87,7 +87,7 @@ body {
 /* ================== 环境光优化版 ================== */
 .sunbeam {
     position: absolute; top: -10%; right: -5%; width: 35vw; height: 80vh;
-    /* 移除 filter: blur，直接在渐变中实现柔和过渡 */
+    /* 移除 filter: blur, 直接在渐变中实现柔和过渡 */
     background: radial-gradient(ellipse at top right, rgba(255, 245, 225, 0.12) 0%, rgba(255, 235, 200, 0.05) 40%, transparent 65%);
     transform-origin: top right; will-change: transform, opacity;
     animation: sunbeam-pulse 12s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
@@ -97,7 +97,7 @@ body {
     /* 彻底移除 filter: blur(110px); */
     will-change: transform; opacity: 0.85; 
 }
-/* 渐变的结尾必须是完全透明，自然形成毛边光晕 */
+/* 渐变的结尾必须是完全透明, 自然形成毛边光晕 */
 .orb-1 { width: 60vw; height: 60vw; background: radial-gradient(circle, rgba(178, 219, 255, 0.3) 0%, transparent 60%); top: -15%; right: -15%; animation: orb-drift-1 18s infinite alternate cubic-bezier(0.4, 0, 0.2, 1); }
 .orb-2 { width: 70vw; height: 70vw; background: radial-gradient(circle, rgba(212, 206, 255, 0.4) 0%, transparent 60%); bottom: -20%; left: -20%; animation: orb-drift-2 22s infinite alternate-reverse cubic-bezier(0.4, 0, 0.2, 1); }
 .orb-3 { width: 50vw; height: 50vw; background: radial-gradient(circle, rgba(255, 204, 194, 0.3) 0%, transparent 60%); top: 20%; left: 30%; animation: orb-drift-3 20s infinite alternate cubic-bezier(0.4, 0, 0.2, 1); }
@@ -246,10 +246,10 @@ body::after {
     width: 250px; height: 250px; flex-shrink: 0;
     background: rgba(255, 255, 255, 0.35); /* 更加通透的底色 */
     backdrop-filter: blur(40px) saturate(200%); -webkit-backdrop-filter: blur(40px) saturate(200%);
-    /* 修复 2: 去掉笨重的粗边框, 改为极细高光边框 */
+    /* 去掉笨重的粗边框, 改为极细高光边框 */
     border: 1px solid rgba(255, 255, 255, 0.7); 
     border-radius: 50%;
-    /* 修复 2: 移植 TaskTimer 的顶级 3D 内凹立体光影 */
+    /* 移植 TaskTimer 的顶级 3D 内凹立体光影 */
     box-shadow: 
         0 24px 64px rgba(15,23,42,0.06), 
         inset 0 16px 32px rgba(15,23,42,0.06), 
@@ -334,7 +334,7 @@ label { font-size: 14px; font-weight: 700; color: #334155; }
     transition-duration: 0.1s; 
 }
 
-/* 选中态 (Checked): 核心修复点! 弃用渐变, 改用高亮单色配合环境光晕 */
+/* 选中态 (Checked): 弃用渐变, 改用高亮单色配合环境光晕 */
 .subject-item input:checked + span { 
     /* 背景极大地透明化, 仅保留淡淡的蓝意 */
     background-color: rgba(157, 210, 255, 0.25) !important; 
@@ -418,7 +418,7 @@ textarea {
     position: absolute !important; right: 8px !important; top: 50% !important; transform: translateY(-50%) !important;
     width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
     border-radius: var(--radius-sm); cursor: pointer; z-index: 10; font-size: 18px; opacity: 0.85;
-    /* 修复: 精准过渡并增加硬件加速前置声明 */
+    /* 精准过渡并增加硬件加速前置声明 */
     transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.25s ease, opacity 0.25s ease;
     will-change: transform;
 }
@@ -443,13 +443,13 @@ button, upload-label {
     position: relative; overflow: hidden; display: inline-flex; height: 52px; border: none;
     align-items: center; justify-content: center; padding: 0 24px;
     border-radius: var(--radius-element); cursor: pointer; font-size: 16px !important; font-weight: 700 !important; 
-    /* 极致顺滑的过渡：使用弹性阻尼曲线，保留 transform 硬件加速 */
+    /* 极致顺滑的过渡: 使用弹性阻尼曲线, 保留 transform 硬件加速 */
     transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), background 0.3s ease, box-shadow 0.3s ease; 
     outline: none; letter-spacing: 0.5px;
     will-change: transform, box-shadow; 
 }
 
-/* 废弃原先粗暴的 ::before 伪元素高光，改用更优雅的多重 background */
+/* 废弃原先粗暴的 ::before 伪元素高光, 改用更优雅的多重 background */
 button::before { display: none; }
 button:active { transform: scale(0.96) !important; }
 
@@ -465,7 +465,7 @@ button:active { transform: scale(0.96) !important; }
         0 6px 16px rgba(120, 175, 225, 0.2), 
         inset 0 1.5px 2px rgba(255, 255, 255, 0.95), 
         inset -1px -1px 2px rgba(255, 255, 255, 0.3), 
-        /* 💡 将白边改为高透冰蓝色：完美融入基底，边缘像纯净的蓝水晶 */
+        /* 💡 将白边改为高透冰蓝色: 完美融入基底, 边缘像纯净的蓝水晶 */
         0 0 0 1px rgba(217, 237, 254, 0.85); 
     backdrop-filter: blur(16px) saturate(180%); 
     -webkit-backdrop-filter: blur(16px) saturate(180%);
@@ -480,7 +480,7 @@ button:active { transform: scale(0.96) !important; }
         0 12px 24px rgba(120, 175, 225, 0.3), 
         inset 0 2px 3px rgba(255, 255, 255, 1), 
         inset -1px -1px 2px rgba(255, 255, 255, 0.5),
-        /* 💡 修复：将刺眼的蓝色霓虹边，改为带有一点点冷蓝调的“高透霜白色” */
+        /*将刺眼的蓝色霓虹边, 改为霜白色 */
         0 0 0 1.5px rgba(240, 248, 255, 0.9); 
 }
 
@@ -492,7 +492,7 @@ button:active { transform: scale(0.96) !important; }
         0 2px 6px rgba(120, 175, 225, 0.1), 
         inset 0 3px 6px rgba(15, 23, 42, 0.08), 
         inset 0 1px 1px rgba(255, 255, 255, 0.5),
-        /* 💡 按下时蓝边暗淡，贴合物理阴影 */
+        /* 💡 按下时蓝边暗淡, 贴合物理阴影 */
         0 0 0 1px rgba(145, 205, 255, 0.6);
 }
 
@@ -508,7 +508,7 @@ button:active { transform: scale(0.96) !important; }
         0 6px 16px rgba(15, 23, 42, 0.04), 
         inset 0 1.5px 2px rgba(255, 255, 255, 0.95), 
         inset -1px -1px 2px rgba(255, 255, 255, 0.3), 
-        /* 💡 将死白改为带有淡淡冷灰/冷蓝的珍珠白，消除锐利感 */
+        /* 💡 将死白改为带有淡淡冷灰/冷蓝的珍珠白, 消除锐利感 */
         0 0 0 1px rgba(241, 245, 249, 0.85);
     backdrop-filter: blur(16px) saturate(180%); 
     -webkit-backdrop-filter: blur(16px) saturate(180%);
@@ -549,7 +549,7 @@ button:active { transform: scale(0.96) !important; }
         0 6px 16px rgba(239, 68, 68, 0.2), 
         inset 0 1.5px 2px rgba(255, 255, 255, 0.5), 
         inset -1px -1px 2px rgba(0, 0, 0, 0.08),
-        /* 💡 将白边改为高透珊瑚红：红玻璃的边缘就应该是透亮的红色 */
+        /* 💡 将白边改为高透珊瑚红: 红玻璃的边缘就应该是透亮的红色 */
         0 0 0 1px rgba(255, 199, 199, 0.75); 
     backdrop-filter: blur(16px) saturate(180%); 
     -webkit-backdrop-filter: blur(16px) saturate(180%);
@@ -564,7 +564,7 @@ button:active { transform: scale(0.96) !important; }
         0 10px 24px rgba(239, 68, 68, 0.3), 
         inset 0 2px 3px rgba(255, 255, 255, 0.75), 
         inset -1px -1px 2px rgba(0, 0, 0, 0.12),
-        /* 💡 修复：将刺眼的亮红边，改为带有一丝微粉的珍珠白 */
+        /* 将刺眼的亮红边, 改为带有一丝微粉的珍珠白 */
         0 0 0 1.5px rgba(255, 240, 240, 0.9); 
 }
 
@@ -616,23 +616,22 @@ button:active { transform: scale(0.96) !important; }
 =========================== */
 .task-card {
     position: relative;
-    /* 核心修改 1：削薄实体白度，注入 15% 的莫奈蓝偏光基底 */
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.45) 0%, rgba(157, 210, 255, 0.15) 100%);
-    /* 核心修改 2：提升色彩饱和度与透过率 */
-    backdrop-filter: blur(16px) saturate(200%);
-    -webkit-backdrop-filter: blur(16px) saturate(200%);
     
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.75) 0%, rgba(255, 255, 255, 0.3) 100%);
     border: 1px solid var(--glass-border);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+
     border-radius: var(--radius-card);
     padding: 18px 24px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     
-    /* 核心修改 3：引入 TaskFlow 验证过的物理级双层彩色环境发光阴影 + 超高折射内侧边缘高光 */
+    /* 核心修改 3: 引入 TaskFlow 验证过的物理级双层彩色环境发光阴影 + 超高折射内侧边缘高光 */
     box-shadow: 
         0 12px 32px rgba(47, 53, 79, 0.05),       /* 奠定实体厚度的骨架外阴影 */
-        0 4px 16px rgba(157, 210, 255, 0.18),     /* 莫奈蓝光晕向外漫射（流光凸显的关键！） */
+        0 4px 16px rgba(157, 210, 255, 0.18),     /* 莫奈蓝光晕向外漫射 */
         inset 0 1.5px 2px rgba(255, 255, 255, 0.95), /* 顶部锐利切边反射高光 */
         inset 0 -1.5px 3px rgba(157, 210, 255, 0.25); /* 底部承接底层光源的翻折射 */
         
@@ -647,7 +646,7 @@ button:active { transform: scale(0.96) !important; }
 
 .task-card:hover { 
     transform: translateY(-3px); 
-    /* 按需索取资源。仅在鼠标悬停的一瞬间才向 GPU 申请硬件加速 */
+    /* 按需索取资源, 仅在鼠标悬停的一瞬间才向 GPU 申请硬件加速 */
     will-change: transform, box-shadow;
     box-shadow: 
         0 16px 40px rgba(15, 23, 42, 0.08), 
@@ -677,7 +676,7 @@ button:active { transform: scale(0.96) !important; }
     position: relative; display: inline-block; cursor: crosshair; user-select: none; touch-action: none;
     font-size: 22px; font-weight: 800; color: var(--monet-text); line-height: 0.75; padding: 4px 0;
     
-    /* 修复 1: 默认无左偏移, 并赋予平滑推移的阻尼动画 */
+    /* 默认无左偏移, 并赋予平滑推移的阻尼动画 */
     margin-left: 0;
     transition: margin-left 0.3s cubic-bezier(0.22, 1, 0.36, 1), color 0.3s;
 }
@@ -702,7 +701,7 @@ button:active { transform: scale(0.96) !important; }
     inset: 0; /* 铺满整个卡片 */
     border-radius: inherit;
     background: rgba(255, 255, 255, 0.45); /* 柔和的白霜效果 */
-    pointer-events: none; /* 核心防线: 绝对不拦截鼠标, 确保底层按钮可点击！ */
+    pointer-events: none; /* 不拦截鼠标, 确保底层按钮可点击 */
     z-index: 1; 
     transition: all 0.4s ease;
 }
@@ -746,7 +745,7 @@ button:active { transform: scale(0.96) !important; }
     position: absolute !important;
     width: auto !important;
     padding: 0 !important;
-    /* 修复渲染卡顿: 将时间框的背景和毛玻璃属性全部上提到父级容器 */
+    /* 将时间框的背景和毛玻璃属性全部上提到父级容器, 修复渲染卡顿 */
     background: rgba(255, 255, 255, 0.65) !important;
     backdrop-filter: blur(24px) saturate(180%) !important;
     -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
@@ -814,7 +813,7 @@ button:active { transform: scale(0.96) !important; }
                 -webkit-backdrop-filter 0.3s var(--ease),
                 visibility 0s 0s;
                 
-    /* 修复掉帧 2: 提前宣告模糊度的变化, 并强制开启底层硬件加速 */
+    /* 提前宣告模糊度的变化, 并强制开启底层硬件加速 */
     will-change: opacity, backdrop-filter;
     transform: translateZ(0);
 }
@@ -825,7 +824,7 @@ button:active { transform: scale(0.96) !important; }
     visibility: hidden; 
     pointer-events: none;
     
-    /* 修复掉帧 3: 退出时将模糊度归零, 彻底释放底层渲染压力 */
+    /* 退出时将模糊度归零, 彻底释放底层渲染压力 */
     backdrop-filter: blur(0px); -webkit-backdrop-filter: blur(0px);
     
     transition: opacity 0.3s var(--ease), 
@@ -925,14 +924,14 @@ button:active { transform: scale(0.96) !important; }
 .list-section-panel {
     animation: alphaCardIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
     transform: translateZ(0);
-    border-radius: calc(var(--radius-panel)) !important; /* 新增: 修复表单外层圆角大小不统一的 Bug */
+    border-radius: calc(var(--radius-panel)) !important; /* 修复表单外层圆角大小不统一的 Bug */
 }
 
 /* ===========================
    9. 响应式布局对齐 TaskFlow (自适应单列)
 =========================== */
 @media(max-width: 1050px) { 
-    /* 修复: 加入 gap: var(--spacing-main), 让卡片之间重新撑开呼吸间距 */
+    /* 加入 gap: var(--spacing-main), 让卡片之间重新撑开呼吸间距 */
     .app { grid-template-columns: 1fr !important; gap: var(--spacing-main) !important; } 
     /* 窄屏时取消侧边栏固定, 让其自适应堆叠 */
     .sidebar { position: relative; top: 0; height: auto; flex-direction: column; } 
@@ -1016,7 +1015,7 @@ button:active { transform: scale(0.96) !important; }
     border: 1px solid rgba(255, 255, 255, 0.6);
     box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05), inset 0 1px 1px rgba(255, 255, 255, 0.8);
     cursor: pointer; 
-    /* 修复 1: 拆分动画属性, 并将 background 改为 background-color 以支持原生平滑过渡 */
+    /* 拆分动画属性, 并将 background 改为 background-color 以支持原生平滑过渡 */
     transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
     font-size: 15px; user-select: none;
 }
@@ -1027,7 +1026,7 @@ button:active { transform: scale(0.96) !important; }
     transform: scale(0.92);
 }
 .glass-icon-btn.selected {
-    /* 修复 2: 使用纯色代替无法动画的渐变, 并将色彩调浅, 更加通透 */
+    /* 使用纯色代替无法动画的渐变, 并将色彩调浅, 更加通透 */
     background-color: rgba(178, 219, 255, 0.4);
     border-color: rgba(255, 255, 255, 0.5);
     box-shadow: 0 6px 16px rgba(140, 185, 225, 0.25), inset 0 1px 2px rgba(255, 255, 255, 0.9);
@@ -1038,8 +1037,8 @@ button:active { transform: scale(0.96) !important; }
     overflow: hidden;
     max-height: 0; opacity: 0;
     
-    /* 【核心黑科技: 水平防切断】两侧内推16px再外拉16px, 拓宽阴影安全区 */
-    /* 【隐形 Bug 修复】闭合时底部 margin -8px, 悄悄吃掉多余的 flex gap, 让表单更紧凑 */
+    /* 两侧内推16px再外拉16px, 拓宽阴影安全区 */
+    /* 闭合时底部 margin -8px, 悄悄吃掉多余的 flex gap, 让表单更紧凑 */
     padding: 0 16px; 
     margin: 0 -16px -8px -16px; 
     
@@ -1305,7 +1304,7 @@ body.alpha-menu-open #clockFace {
 }
 
 /* ===========================
-   修复: 表单/分组容器底部留白过大问题
+    修复表单 / 分组容器底部留白过大问题
 =========================== */
 .hub-card-wrap:last-child .task-card,
 .task-card:last-child {
@@ -1315,7 +1314,7 @@ body.alpha-menu-open #clockFace {
 /* 2. 微调表单分组容器的底部内边距, 使其与顶部和两侧的间距保持视觉统一 */
 .list-section-panel {
     padding-bottom: 23px !important; 
-    border-radius: calc(var(--radius-panel)) !important; /* 新增: 修复表单外层圆角大小不统一的 Bug */
+    border-radius: calc(var(--radius-panel)) !important; /* 修复表单外层圆角大小不统一的 Bug */
 }
 
 #scheduleList .list-section-panel:last-child {
@@ -1354,7 +1353,7 @@ body.alpha-menu-open #clockFace {
 .toolbar-left {
     display: flex;
     align-items: center;
-    justify-content: space-between; /* 核心修复：直接将管理组固定在左, 滑块优雅推至最右 */
+    justify-content: space-between; /* 直接将管理组固定在左, 滑块优雅推至最右 */
     width: 100%; /* 撑满工具栏通栏 */
 }
 .manage-group {
@@ -1386,12 +1385,12 @@ body.manage-mode-active .manage-actions-wrap {
     pointer-events: auto;
 }
 
-/* ================== TaskFlow 同款：复选框平滑阻尼引擎 ================== */
+/* ================== TaskFlow 同款: 复选框平滑阻尼引擎 ================== */
 .task-checkbox-wrap {
     width: 0;
     flex: 0 0 0px; /* 核心黑科技: 用弹性基准代替 margin 暴力推挤 */
     opacity: 0;
-    /* 修复：初始状态加入 translateY(2px), 保障纵向过渡平滑不突兀 */
+    /* 初始状态加入 translateY(2px), 保障纵向过渡平滑不突兀 */
     transform: scale(0.5) translateX(-10px) translateY(2px); 
     margin-right: 0;
     pointer-events: none;
@@ -1406,7 +1405,7 @@ body.manage-mode-active .manage-actions-wrap {
     will-change: width, opacity, transform, flex, margin;
 }
 
-/* 像素级对齐补丁：确保原生/圆角 input 绝不被弹性布局压扁 */
+/* 像素级对齐补丁: 确保原生/圆角 input 绝不被弹性布局压扁 */
 .task-checkbox-wrap .batch-check,
 .task-checkbox-wrap .round-checkbox {
     flex-shrink: 0 !important;
@@ -1414,20 +1413,20 @@ body.manage-mode-active .manage-actions-wrap {
     height: 24px !important;
 }
 
-/* 展开态：完美推开右侧元素, 释放完美的 16px 黄金间距 */
+/* 展开态: 完美推开右侧元素, 释放完美的 16px 黄金间距 */
 body.manage-mode-active .task-checkbox-wrap,
 .show-checkbox .task-checkbox-wrap,
 .batch-active .task-checkbox-wrap {
     width: 26px;
     flex: 0 0 26px;
     opacity: 1;
-    /* 修复核心：在打开状态的最终形态上叠加 translateY(2px), 使其与小字号/低行高的标题栏绝对齐平 */
+    /* 在打开状态的最终形态上叠加 translateY(2px), 使其与小字号/低行高的标题栏绝对齐平 */
     transform: scale(1) translateX(0) translateY(2px); 
     margin-right: 16px;
     pointer-events: auto;
 }
 
-/* 完美对标 TaskFlow 原版写法的 Grid 滑块系统 */
+/* 匹配 TaskFlow 的 Grid 滑块系统 */
 .view-toggle {
     position: relative; 
     display: inline-grid; 
@@ -1495,7 +1494,7 @@ body.manage-mode-active .task-checkbox-wrap,
    3. 动画帧精细化调校（核心去抖与补偿）
    ========================================== */
 
-/* 👉 右滑动画：适度衰减过激的横向拉伸 */
+/* 👉 右滑动画: 适度衰减过激的横向拉伸 */
 @keyframes liquidGlassSlideRight {
     0% {
         scale: 1 1;
@@ -1503,7 +1502,7 @@ body.manage-mode-active .task-checkbox-wrap,
         filter: brightness(1) saturate(1);
     }
     
-    /* 阶段 1：极度克制的微弱拉伸, 摒弃夸张形变 */
+    /* 阶段 1: 极度克制的微弱拉伸, 摒弃夸张形变 */
     25% {
         scale: 1.03 0.98; 
         border-radius: 20px;
@@ -1513,13 +1512,13 @@ body.manage-mode-active .task-checkbox-wrap,
             inset 0 2px 4px rgba(255, 255, 255, .97);
     }
     
-    /* 阶段 2：单向收敛, 彻底剔除原本 scale < 1 的反向缓冲 */
+    /* 阶段 2: 单向收敛, 彻底剔除原本 scale < 1 的反向缓冲 */
     65% {
         scale: 1.008 0.992; 
         border-radius: 19px;
     }
     
-    /* 阶段 3：静止贴合, 无缝融入边界 */
+    /* 阶段 3: 静止贴合, 无缝融入边界 */
     100% {
         scale: 1 1;
         border-radius: calc(var(--radius-element) - 6px);
@@ -1527,7 +1526,7 @@ body.manage-mode-active .task-checkbox-wrap,
     }
 }
 
-/* 👈 左滑动画：显著增强形变阻尼感 */
+/* 👈 左滑动画: 显著增强形变阻尼感 */
 @keyframes liquidGlassSlideLeft {
     0% {
         scale: 1 1;
@@ -1578,7 +1577,7 @@ body.manage-mode-active .task-checkbox-wrap,
     cursor: pointer;
 }
 
-/* 轨道动画：速率翻倍至 0.5s */
+/* 轨道动画: 速率翻倍至 0.5s */
 input:checked + .alpha-switch {
     animation: alpha-bg-on .32s cubic-bezier(.22,1,.36,1) forwards;
 }
@@ -1587,7 +1586,7 @@ input:not(:checked) + .alpha-switch {
     animation: alpha-bg-off .32s cubic-bezier(.22,1,.36,1) forwards;
 }
 
-/* 滑块 Knob：等比缩小，维持完美圆角 */
+/* 滑块 Knob: 等比缩小, 维持完美圆角 */
 .alpha-switch::after {
     content:'';
     position:absolute;
@@ -1608,7 +1607,7 @@ input:not(:checked) + .alpha-switch {
         translate(0,-50%);
 }
 
-/* 开启与关闭：触发 0.5s 高速物理形变 */
+/* 开启与关闭: 触发 0.5s 高速物理形变 */
 input:checked + .alpha-switch::after {
     animation: alpha-slide-on .32s forwards;
 }
@@ -1618,7 +1617,7 @@ input:not(:checked) + .alpha-switch::after {
 }
 
 /* =======================================
-   衬底变色引擎：维持 1/2 处渐变融合逻辑
+   衬底变色引擎: 维持 1/2 处渐变融合逻辑
 ======================================= */
 @keyframes alpha-bg-on {
     0%, 50% {
@@ -1657,28 +1656,28 @@ input:not(:checked) + .alpha-switch::after {
         animation-timing-function: cubic-bezier(0.25, 1.00, 0.75, 1.00);
     }
     5% { 
-        /* Anticipation (蓄力)：略微变宽 */
+        /* Anticipation (蓄力): 略微变宽 */
         width: 18px;
         height: 14px;
         transform:translate(-.5px,-50%);
         animation-timing-function: cubic-bezier(0.25, 0.00, 0.75, 0.00);
     }
     50% { 
-        /* Motion (冲刺)：高速形变为药丸状 */
+        /* Motion (冲刺): 高速形变为药丸状 */
         width: 24px;
         height: 10px;
         transform:translate(3px,-50%); /* 完美居中 */
         animation-timing-function: cubic-bezier(0.25, 1.00, 0.75, 1.00);
     }
     80% { 
-        /* Overshoot (撞击右壁)：瞬间纵向挤压 */
+        /* Overshoot (撞击右壁): 瞬间纵向挤压 */
         width: 14px;
         height: 18px;
         transform:translate(15px,-50%);
         animation-timing-function: ease-out; /* 引导 80%->100% 恰好耗时 0.1s 的极速回弹 */
     }
     100% { 
-        /* Settle (归位)：恢复完美圆形 */
+        /* Settle (归位): 恢复完美圆形 */
         width: 16px;
         height: 16px;
         transform:translate(14px,-50%); /* 【重算行程】完美停止在 14px 处 */
@@ -1731,9 +1730,9 @@ input:not(:checked) + .alpha-switch::after {
     100% { opacity: 0; transform: translateX(-60px); }
 }
 
-/* 1. 进场直接绑定给 .app 容器，无需 JS 介入 */
+/* 1. 进场直接绑定给 .app 容器, 无需 JS 介入 */
 .app {
-    /* backwards 属性是神来之笔：它强制让浏览器在第 0 帧就维持 0% 的状态（透明且偏右），彻底消灭闪烁 */
+    /* backwards 属性是神来之笔: 它强制让浏览器在第 0 帧就维持 0% 的状态（透明且偏右）, 彻底消灭闪烁 */
     animation: alphaPageIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) backwards;
 }
 
@@ -1741,7 +1740,7 @@ input:not(:checked) + .alpha-switch::after {
 .page-transition-leave {
     animation: alphaPageOut 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards !important;
     pointer-events: none;
-    /* 强制降低退出时的层级，确保退场滑动时绝不会从 alphaDropdownMenu 上方压过去 */
+    /* 强制降低退出时的层级, 确保退场滑动时绝不会从 alphaDropdownMenu 上方压过去 */
     position: relative;
     z-index: 1; 
 }
@@ -1753,18 +1752,18 @@ input:not(:checked) + .alpha-switch::after {
     left: 0;
     padding: 6px 12px;
     
-    /* 1. 材质重塑：大幅降低白色浓度 (从 0.65 降至 0.35)，让底层画面透过来 */
+    /* 1. 材质重塑: 大幅降低白色浓度 (从 0.65 降至 0.35), 让底层画面透过来 */
     background: rgba(255, 255, 255, 0.65);
     
-    /* 2. 景深增强：提升模糊半径至 24px，并拉高 200% 的色彩饱和度，形成“丁达尔折射” */
+    /* 2. 景深增强: 提升模糊半径至 24px, 并拉高 200% 的色彩饱和度, 形成“丁达尔折射” */
     backdrop-filter: blur(24px) saturate(200%);
     -webkit-backdrop-filter: blur(24px) saturate(200%);
     
-    /* 3. 物理切边：四周使用半透明边框，但顶部保留高亮，模拟顶光打在玻璃边缘 */
+    /* 3. 物理切边: 四周使用半透明边框, 但顶部保留高亮, 模拟顶光打在玻璃边缘 */
     border: 1px solid rgba(255, 255, 255, 0.4);
     border-top-color: rgba(255, 255, 255, 0.85); 
     
-    /* 4. 体积光影：外侧加深悬浮投影，内部注入两层发光感（边缘锐利折射 + 内部柔和泛光） */
+    /* 4. 体积光影: 外侧加深悬浮投影, 内部注入两层发光感（边缘锐利折射 + 内部柔和泛光） */
     box-shadow: 
         0 8px 24px rgba(15, 23, 42, 0.12),         /* 更具浮空感的外阴影 */
         inset 0 1px 1px rgba(255, 255, 255, 0.9),  /* 顶部边缘的极限高光 */
@@ -1975,13 +1974,13 @@ function customAlert(msg, title = "提示", icon = "💡") {
     const confirmBtn = document.getElementById('dialogConfirmBtn');
     confirmBtn.textContent = "我知道了"; confirmBtn.className = "primary";
     
-    // 核心修复: 弹出警报时, 立刻挂起底层的毛玻璃, 彻底释放 GPU
+    // 弹出警报时, 立刻挂起底层的毛玻璃, 彻底释放 GPU
     const listModal = document.getElementById('alphaListModalOverlay');
     if (listModal && listModal.classList.contains('open')) listModal.classList.add('blur-suspended');
 
     window.dialogConfirmCallback = () => { 
         document.getElementById('customDialog').classList.add('hidden');
-        // 核心修复: 关掉警报后, 恢复底层毛玻璃
+        // 关掉警报后, 恢复底层毛玻璃
         if (listModal) listModal.classList.remove('blur-suspended');
     };
     
@@ -1999,7 +1998,7 @@ function customConfirm(msg, onConfirm, title = "请确认", isDanger = false, ic
     const confirmBtn = document.getElementById('dialogConfirmBtn');
     confirmBtn.textContent = "确定"; confirmBtn.className = isDanger ? "danger" : "primary";
     
-    // 核心修复: 挂起底层毛玻璃
+    // 挂起底层毛玻璃
     const listModal = document.getElementById('alphaListModalOverlay');
     if (listModal && listModal.classList.contains('open')) listModal.classList.add('blur-suspended');
 
@@ -2218,12 +2217,12 @@ function renderSchedules() {
     const showCompleted = document.getElementById('showCompletedTasks') ? document.getElementById('showCompletedTasks').checked : true;
     
     let displaySchedules = schedules.filter(task => {
-        // 规则 1：状态过滤
+        // 规则 1: 状态过滤
         if (!showCompleted && task.isCompleted) {
             return false;
         }
 
-        // 规则 2：视图过滤 (全部视图直接放行)
+        // 规则 2: 视图过滤 (全部视图直接放行)
         if (viewType === 'all') return true;
 
         // 获取该任务所属表单的真实截止日期
@@ -2342,11 +2341,6 @@ function renderSchedules() {
 
     // 一次性渲染进 DOM, 释放浏览器性能
     list.innerHTML = htmlContent;
-
-    // 为所有任务绑定拖拽事件 (支持双向划线) 
-    schedules.forEach(task => {
-        bindStrikeEvents(task.id);
-    });
 }
 
 // ================= 视图滑块动画与事件调度 =================
@@ -2367,6 +2361,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 slider.classList.add('is-sliding-left');
             }
             
+            // 动画结束后清除 will-change
+            const cleanup = () => {
+                slider.style.willChange = 'auto';
+                slider.removeEventListener('animationend', cleanup);
+            };
+            slider.addEventListener('animationend', cleanup);
+            slider.style.willChange = 'transform';
+
             slider.dataset.currentIndex = index;
             renderSchedules(); // 联动渲染引擎
         });
@@ -2391,17 +2393,17 @@ function markTaskStatus(taskId, status) {
             // 1. 同步至 TaskFlow 数据库
             if (typeof syncToTaskFlow === 'function') syncToTaskFlow(schedules[taskIndex]);
             
-            // 2. 广播给 TaskTimer：发送强制结束指令
+            // 2. 广播给 TaskTimer: 发送强制结束指令
             localStorage.setItem('tasktimer_sync_action', JSON.stringify({ action: 'FORCE_STOP', taskId: taskId, timestamp: Date.now() }));
         } else {
             // 恢复为未完成 (反向擦除) 
             if (strikeLine) { strikeLine.style.width = '0px'; strikeLine.classList.remove('done'); }
             if (container) container.classList.remove('done');
             
-            // 1. 核心反向联动：从 TaskFlow 撤销记录
+            // 1. 核心反向联动: 从 TaskFlow 撤销记录
             removeFromTaskFlow(taskId); 
             
-            // 2. 广播给 TaskTimer：发送恢复指令 (预留)
+            // 2. 广播给 TaskTimer: 发送恢复指令 (预留)
             localStorage.setItem('tasktimer_sync_action', JSON.stringify({ action: 'RESTORE', taskId: taskId, timestamp: Date.now() }));
         }
         
@@ -2409,43 +2411,48 @@ function markTaskStatus(taskId, status) {
     }
 }
 
-function bindStrikeEvents(taskId) {
-    const container = document.getElementById(`strike-container-${taskId}`);
-    const strikeLine = document.getElementById(`strike-line-${taskId}`);
-    if(!container || !strikeLine) return;
+// ================= 拖拽划线核心逻辑（事件委托版, 避免内存泄漏） =================
+(function initStrikeDelegation() {
+    const list = document.getElementById('scheduleList');
+    if (!list) return;
+    // 防止多次初始化
+    if (list.dataset.strikeDelegated === 'true') return;
+    list.dataset.strikeDelegated = 'true';
 
-    container.addEventListener('pointerdown', (e) => {
-        e.preventDefault(); 
-        
+    list.addEventListener('pointerdown', (e) => {
+        const container = e.target.closest('.strike-container');
+        if (!container) return;
+        e.preventDefault();
+
+        const taskId = container.id?.replace('strike-container-', '');
+        if (!taskId) return;
+
+        const strikeLine = container.querySelector('.strike-line');
+        if (!strikeLine) return;
+
         const taskIndex = schedules.findIndex(t => t.id === taskId);
-        // 判断当前任务是否已经是完成状态
         const isDone = taskIndex > -1 && schedules[taskIndex].isCompleted;
-        
+
         let startX = e.clientX;
-        let containerWidth = container.offsetWidth;
+        const containerWidth = container.offsetWidth;
         strikeLine.style.transition = 'none';
-        
-        // 动态处理初始动画起点与线条颜色
+
         if (isDone) {
             strikeLine.classList.remove('done');
             strikeLine.style.width = containerWidth + 'px';
-            strikeLine.style.background = '#64748b'; 
-            // 修复：强行抹除脱离 .done 类后的默认红色阴影
-            strikeLine.style.boxShadow = 'none'; 
+            strikeLine.style.background = '#64748b';
+            strikeLine.style.boxShadow = 'none';
         } else {
             strikeLine.style.width = '0px';
-            strikeLine.style.background = '#e3605d'; 
-            // 恢复 CSS 控制的红色阴影
-            strikeLine.style.boxShadow = ''; 
+            strikeLine.style.background = '#e3605d';
+            strikeLine.style.boxShadow = '';
         }
 
         const onPointerMove = (moveEvent) => {
             let deltaX = moveEvent.clientX - startX;
             if (!isDone && deltaX > 0) {
-                // 未完成状态下: 从左往右划掉
                 strikeLine.style.width = Math.min(deltaX, containerWidth) + 'px';
             } else if (isDone && deltaX < 0) {
-                // 已完成状态下: 从右往左擦除
                 strikeLine.style.width = Math.max(0, containerWidth + deltaX) + 'px';
             }
         };
@@ -2456,33 +2463,28 @@ function bindStrikeEvents(taskId) {
             document.removeEventListener('pointercancel', onPointerUp);
 
             let finalWidth = parseFloat(strikeLine.style.width) || 0;
-            
+
             if (!isDone) {
-                // 判断从左向右是否划过了一半
                 if (finalWidth > containerWidth * 0.5) {
-                    markTaskStatus(taskId, true); 
+                    markTaskStatus(taskId, true);
                 } else {
                     strikeLine.style.transition = 'width 0.2s ease-out';
-                    strikeLine.style.width = '0px'; // 没划够一半, 弹回原点
+                    strikeLine.style.width = '0px';
                 }
             } else {
-                // 判断从右向左是否擦除过了一半
                 if (finalWidth < containerWidth * 0.5) {
                     strikeLine.style.background = '';
-                    // 修复：擦除成功, 清空内联无阴影设定, 让红色阴影回归
-                    strikeLine.style.boxShadow = ''; 
-                    markTaskStatus(taskId, false); 
+                    strikeLine.style.boxShadow = '';
+                    markTaskStatus(taskId, false);
                 } else {
-                    // 没擦除够一半, 线条重新铺满弹回
                     strikeLine.style.transition = 'width 0.2s ease-out';
                     strikeLine.style.width = '100%';
                     setTimeout(() => {
                         strikeLine.style.width = '';
                         strikeLine.style.background = '';
-                        // 修复：弹回完成态, 清除所有内联干扰, 完全交由 .done 类控制
-                        strikeLine.style.boxShadow = ''; 
+                        strikeLine.style.boxShadow = '';
                         strikeLine.classList.add('done');
-                    }, 200); 
+                    }, 200);
                 }
             }
         };
@@ -2491,7 +2493,7 @@ function bindStrikeEvents(taskId) {
         document.addEventListener('pointerup', onPointerUp);
         document.addEventListener('pointercancel', onPointerUp);
     });
-}
+})();
 
 // ================= 5. 表单与批处理逻辑 =================
 document.getElementById('addBtn').addEventListener('click', () => {
@@ -2552,10 +2554,10 @@ function cancelEdit() {
     if(fpStart) fpStart.clear(); 
     if(fpEnd) fpEnd.clear();
     
-    // 修复 1: 全面清空学科勾选状态
+    // 清空学科勾选状态
     document.querySelectorAll('.subject-item input[type="checkbox"]').forEach(cb => cb.checked = false);
     
-    // 修复 1: 重置重要级为默认的“中”
+    // 重置重要级为默认的“中”
     document.querySelectorAll('input[name="priority"]').forEach(el => { 
         el.checked = (el.value === ''); 
         el.dataset.wasChecked = (el.value === 'Medium') ? 'true' : 'false';
@@ -2565,7 +2567,7 @@ function cancelEdit() {
     document.getElementById('cancelEditBtn').classList.add("hidden");
 }
 
-// ================= 核心修复 2: TaskHub 原生专属删除与反向联动机制 =================
+// ================= 任务删除与反向联动机制 =================
 function removeFromTaskFlow(taskId) {
     try {
         let tfData = JSON.parse(localStorage.getItem(TASKFLOW_KEY) || "{}");
@@ -2590,9 +2592,9 @@ function deleteTask(id) {
     }, "删除任务", true, "🗑️");
 }
 
-// ================= 8. 管理模式增强：全选与状态联动 =================
+// ================= 8. 管理模式增强: 全选与状态联动 =================
 
-// 新增：动态感应“全选/反选”按钮的文字状态
+// 新增: 动态感应“全选/反选”按钮的文字状态
 function updateSelectAllBtnState() {
     const checkboxes = document.querySelectorAll(".batch-check");
     const btn = document.getElementById("selectAllBtn");
@@ -2605,7 +2607,7 @@ function updateSelectAllBtnState() {
     btn.textContent = allChecked ? "反选" : "全选";
 }
 
-// 修复：加入状态联动，让全选更聪明
+// 加入状态联动, 让全选更聪明
 function selectAllTasks() {
     const boxes = document.querySelectorAll(".batch-check");
     if (boxes.length === 0) return;
@@ -2614,7 +2616,7 @@ function selectAllTasks() {
     updateSelectAllBtnState(); 
 }
 
-// 核心修复：操作正确的 schedules 数组，并引入操作后优雅的收起动画
+// 操作正确的 schedules 数组, 并引入操作后优雅的收起动画
 function deleteSelectedTasks() {
     const checked = document.querySelectorAll(".batch-check:checked");
     if (!checked.length) { 
@@ -2625,20 +2627,20 @@ function deleteSelectedTasks() {
     customConfirm(`确定批量删除这 ${checked.length} 个任务吗？此操作无法恢复`, () => {
         checked.forEach(cb => {
             const id = cb.value;
-            // 修复 1：正确挂载到 TaskHub 的主状态管理器 schedules
+            // 挂载到 TaskHub 的主状态管理器 schedules
             schedules = schedules.filter(t => String(t.id) !== String(id));
-            removeFromTaskFlow(id); // 严格遵守数据单向汇聚，反向拔除 TaskFlow 记录
+            removeFromTaskFlow(id); // 严格遵守数据单向汇聚, 反向拔除 TaskFlow 记录
         });
         
-        // 修复 2：触发原生存储与 Liquid Glass 毛玻璃重绘引擎
+        // 触发原生存储与毛玻璃重绘
         saveSchedules(); 
         
-        // 修复 3：删完后优雅收起液态管理面板，回归极简列表
+        // 删完后收起管理面板, 回归列表
         if (isManageMode) toggleManageMode(); 
     }, "批量删除确认", true, "🗑️");
 }
 
-// 绑定全局事件拦截：单点复选框时，实时更新全选按钮的文字
+// 绑定全局事件拦截: 单点复选框时, 实时更新全选按钮的文字
 document.addEventListener('change', function(e) {
     if (e.target && e.target.classList.contains('batch-check')) {
         updateSelectAllBtnState();
@@ -2705,7 +2707,7 @@ const timeConfig = {
                 e.preventDefault();
                 e.stopImmediatePropagation(); // 彻底阻断 Flatpickr 内部干预
                 
-                // 💡 核心修复: 只有在键盘真正【按下】(keydown) 阶段才执行跳转, 彻底没收【弹起】(keyup) 阶段的穿透残影
+                // 只有在键盘真正【按下】(keydown) 阶段才执行跳转, 彻底没收【弹起】(keyup) 阶段的穿透残影
                 if (e.type === 'keydown') {
                     if (e.target.value) {
                         forceTimeFormat(instance, e.target.value);
@@ -2791,7 +2793,7 @@ document.addEventListener('wheel', function(e) {
     if (e.target.classList.contains('flatpickr-hour') || e.target.classList.contains('flatpickr-minute')) {
         e.preventDefault();
         
-        // 修复：向下滚(deltaY > 0)增加时间(变晚)；向上滚(deltaY < 0)减少时间(变早)
+        // 向下滚(deltaY > 0)增加时间(变晚)；向上滚(deltaY < 0)减少时间(变早)
         const step = e.deltaY > 0 ? 1 : -1; 
         
         let max = e.target.classList.contains('flatpickr-hour') ? 23 : 59;
@@ -2938,6 +2940,7 @@ document.addEventListener('wheel', function(e) {
                 <button id="popConfirmCloseBtn" class="primary" style="width: 100%; margin: 0; height: 52px; border-radius: var(--radius-element); font-size: 16px !important; font-weight: 700 !important;">确定</button>
             </div>`;
         document.body.appendChild(modalDiv);
+        setupListDelegation();
         
         const titleInput = document.getElementById('popListTitle');
         const dateInput = document.getElementById('popListDeadline');
@@ -2956,7 +2959,10 @@ document.addEventListener('wheel', function(e) {
         // 纯净关闭逻辑
         const closeAlphaModal = () => {
             const overlay = document.getElementById('alphaListModalOverlay');
-            if (overlay) overlay.classList.remove('open');
+            if (overlay) {
+                overlay.classList.remove('open');
+                overlay.style.willChange = 'auto'; // 释放 GPU 资源
+            }
         };
 
         document.getElementById('closeAlphaModalX').onclick = closeAlphaModal;
@@ -3009,11 +3015,57 @@ document.addEventListener('wheel', function(e) {
         };
     }
 
+    function setupListDelegation() {
+        const container = document.getElementById('popListContainer');
+        if (!container || container.dataset.delegated === 'true') return;
+        container.dataset.delegated = 'true';
+
+        // 委托 checkbox 变化
+        container.addEventListener('change', (e) => {
+            const cb = e.target.closest('.list-pop-cb');
+            if (!cb) return;
+            const id = cb.value;
+            if (cb.checked) {
+                if (!window.selectedListIds.includes(id)) window.selectedListIds.push(id);
+            } else {
+                window.selectedListIds = window.selectedListIds.filter(x => x !== id);
+            }
+            if (window.selectedListIds.length === 0) window.selectedListIds = ['default'];
+            updateTriggerButtonText();
+        });
+
+        // 委托删除按钮点击
+        container.addEventListener('click', (e) => {
+            const delBtn = e.target.closest('.pop-del-list-action');
+            if (!delBtn) return;
+            e.preventDefault();
+            const targetId = delBtn.getAttribute('data-id');
+            customConfirm("确定删除此表单? 内含任务将退回默认面板", () => {
+                let mapping = {};
+                try {
+                    mapping = JSON.parse(localStorage.getItem('alpha_task_mapping') || '{}');
+                    if (!mapping || typeof mapping !== 'object') mapping = {};
+                } catch (e) { mapping = {}; }
+                for (let tId in mapping) {
+                    mapping[tId] = mapping[tId].filter(id => id !== targetId);
+                    if (mapping[tId].length === 0) mapping[tId] = ['default'];
+                }
+                localStorage.setItem('alpha_task_mapping', JSON.stringify(mapping));
+                lists = lists.filter(l => l.id !== targetId);
+                window.selectedListIds = window.selectedListIds.filter(id => id !== targetId);
+                saveLists();
+                renderModalListItems(); 
+                updateTriggerButtonText();
+                if (typeof renderSchedules === 'function') renderSchedules();
+            }, "删除表单", true, "🗑️");
+        });
+    }
+
     function renderModalListItems() {
         const container = document.getElementById('popListContainer');
         if (!container) return;
         
-        // 优化点 ②: 清理并维持极其纯净的动态行样式, 剔除任何可能引起悬停阴影的潜在线路, 保持扁平化液态玻璃底色
+        // 直接渲染 HTML, 完全依赖委托事件
         container.innerHTML = lists.map(list => {
             const isChecked = window.selectedListIds.includes(list.id);
             return `
@@ -3027,43 +3079,9 @@ document.addEventListener('wheel', function(e) {
                         <span style="font-size: 12px; color: var(--sub);">${list.deadline !== '无截止日期' ? list.deadline : ''}</span>
                     </label>
                     ${list.id !== 'default' ?
-                    `<span class="pop-del-list-action" data-id="${list.id}" style="cursor: pointer; font-size: 12px; font-weight: 700; color: var(--monet-danger); background: rgba(227, 96, 93, 0.1); padding: 4px 10px; border-radius: 8px; transition: background 0.2s;">删除</span>` : ''}
+                    `<span class="pop-del-list-action" data-id="${list.id}">删除</span>` : ''}
                 </div>`;
         }).join('');
-
-        container.querySelectorAll('.list-pop-cb').forEach(cb => {
-            cb.onchange = function() {
-                if (this.checked) { if (!window.selectedListIds.includes(this.value)) window.selectedListIds.push(this.value); }
-                else { window.selectedListIds = window.selectedListIds.filter(id => id !== this.value); }
-                if(window.selectedListIds.length === 0) window.selectedListIds = ['default'];
-                updateTriggerButtonText();
-            };
-        });
-
-        container.querySelectorAll('.pop-del-list-action').forEach(btn => {
-            btn.onclick = function(e) {
-                e.preventDefault();
-                const targetId = this.getAttribute('data-id');
-                customConfirm("确定删除此表单?内含任务将退回默认面板", () => {
-                    let mapping = {};
-                    try {
-                        mapping = JSON.parse(localStorage.getItem('alpha_task_mapping') || '{}');
-                        if (!mapping || typeof mapping !== 'object') mapping = {};
-                    } catch(e) { 
-                        mapping = {}; 
-                    }
-                    for(let tId in mapping) {
-                        mapping[tId] = mapping[tId].filter(id => id !== targetId);
-                        if(mapping[tId].length === 0) mapping[tId] = ['default'];
-                    }
-                    localStorage.setItem('alpha_task_mapping', JSON.stringify(mapping));
-                    lists = lists.filter(l => l.id !== targetId);
-                    window.selectedListIds = window.selectedListIds.filter(id => id !== targetId);
-                    saveLists(); renderModalListItems(); updateTriggerButtonText();
-                    if (typeof renderSchedules === 'function') renderSchedules();
-                }, "删除表单", true, "🗑️");
-            };
-        });
     }
 
     function assembleTriggerButtonDOM() {
@@ -3126,7 +3144,7 @@ document.addEventListener('wheel', function(e) {
             // 1. 如果正在进行分组操作, 直接跳过以防死循环
             if (isGrouping) return;
 
-            // 2. 容器未挂载时跳过 (移除阻碍后台刷新的拦截逻辑, 彻底修复表单删除后卡片挤压的Bug)
+            // 2. 容器未挂载时跳过 (移除阻碍后台刷新的拦截逻辑, 修复表单删除后卡片挤压的Bug)
             if (!container.isConnected) return;
 
             // 3. 获取所有原生任务卡片
@@ -3134,8 +3152,8 @@ document.addEventListener('wheel', function(e) {
                 el.classList.contains('task-card') || el.id?.startsWith('strike-container') || el.querySelector('.task-card')
             );
             
-            // 核心修复: 遇到空状态 (长度为 0) 时直接退出, 绝不提前断开监听器!
-            // 这样就保证了无论你怎么刷新、怎么清空, 监听器都会永远存活!
+            // 遇到空状态 (长度为 0) 时直接退出, 而不提前断开监听器
+            // 证了无论怎么刷新、怎么清空, 监听器都会永远存活
             if (rawCards.length === 0) return;
 
             // 只有确认真的有任务需要装入文件夹时, 才断开监听器进行 DOM 替换
@@ -3185,7 +3203,7 @@ document.addEventListener('wheel', function(e) {
                 listPanel.style.cssText = `margin-bottom: 32px;`;
                 
                 // ==========================================
-                // 修复 Bug ②: “默认”表单深度解耦, 免除视觉衬底
+                // “默认”表单深度解耦, 免除视觉衬底
                 // ==========================================
                 const isDefault = list.id === 'default';
                 const hoverBgStyle = isDefault ? '' : `onmouseover="this.style.background='rgba(15, 23, 42, 0.05)'" onmouseout="this.style.background='transparent'"`;
@@ -3286,7 +3304,7 @@ document.addEventListener('wheel', function(e) {
                         collapseWrap.style.boxShadow = 'inset 0 1px 4px rgba(0,0,0,0.05)'; 
                         
                         // ==========================================
-                        // 修复 Bug ①: 收起时同步抽干多余空间留白
+                        // 收起时同步抽干多余空间留白
                         // ==========================================
                         divider.style.opacity = '0';
                         divider.style.marginBottom = '0px';
@@ -3330,7 +3348,7 @@ document.addEventListener('wheel', function(e) {
 
                 listPanel.querySelector('.list-title-clickable').onclick = () => {
                     if (list.id === 'default') return;
-                    // 修复 Bug ④: 将内联样式的圆角升级为符合规范的 var(--radius-element) 16px 大圆角
+                    // 将内联样式的圆角升级为符合规范的 var(--radius-element) 16px 大圆角
                     customConfirm(
                         `<div class="field" style="text-align: left;">
                             <label style="font-weight:700;">新表单名称</label>
@@ -3353,7 +3371,7 @@ document.addEventListener('wheel', function(e) {
                 const dateClickableEl = listPanel.querySelector('.list-date-clickable');
                 if (dateClickableEl) {
                     dateClickableEl.onclick = () => {
-                        // 修复 Bug ④: 同步将调整日期框的内联圆角升级为 var(--radius-element)
+                        // 同步将调整日期框的内联圆角升级为 var(--radius-element)
                         customConfirm(
                             `<div class="field" style="text-align: left;">
                                 <label style="font-weight:700;">截止日期 (格式不限)</label>
@@ -3447,7 +3465,7 @@ document.addEventListener('wheel', function(e) {
 })();
 
 (function() {
-    // 核心修复 2: 将物理指纹挂载到 window 全局, 允许内部 saveSchedules 函数安全覆写
+    // 将物理指纹挂载到 window 全局, 允许内部 saveSchedules 函数安全覆写
     window.__alphaLastTaskHubSign = localStorage.getItem('taskhub_data');
 
     function alphaAutoSyncEngine() {
@@ -3483,7 +3501,7 @@ document.addEventListener('wheel', function(e) {
     window.addEventListener('focus', alphaAutoSyncEngine);
     
     // 轨道 3: 高性能心跳校验 (兜底本地 file:// 协议不广播的死角) 
-    setInterval(alphaAutoSyncEngine, 800);
+    setInterval(alphaAutoSyncEngine, 2000);
 })();
 
 // ================= 全局景深导航逻辑 (性能与状态分离版) =================
@@ -3511,7 +3529,7 @@ function toggleAlphaMenu(e) {
         document.body.classList.remove('alpha-menu-closing');
         document.body.classList.add('alpha-menu-open'); 
         
-        // ✅ 核心修复: 延迟开启全局点击监听, 捕获所有漏网之鱼
+        // 延迟开启全局点击监听, 捕获所有漏网之鱼
         setTimeout(() => {
             document.addEventListener('click', handleAlphaMenuOutsideClick);
         }, 0);
@@ -3520,7 +3538,7 @@ function toggleAlphaMenu(e) {
     }
 }
 
-// ✅ 新增: 全局点击智能判定引擎
+// 全局点击智能判定引擎
 function handleAlphaMenuOutsideClick(e) {
     const menu = document.getElementById('alphaDropdownMenu');
     const trigger = document.getElementById('logoTrigger');
@@ -3553,7 +3571,7 @@ function closeAlphaMenu() {
         document.body.classList.remove('alpha-menu-open'); 
         document.body.classList.add('alpha-menu-closing'); 
         
-        // ✅ 核心修复: 退场时立刻卸载全局监听, 保证性能绝不侧漏
+        // 退场时立刻卸载全局监听, 保证性能绝不侧漏
         document.removeEventListener('click', handleAlphaMenuOutsideClick);
         
         clearTimeout(alphaMenuTimeout);
@@ -3591,9 +3609,13 @@ function adjustTextareaHeight(el) {
 }
 
 // 关键补丁: 注入全局事件委托雷达, 让任何 textarea 都能实时响应打字
+let rafId = null;
 document.addEventListener('input', (e) => {
     if (e.target.tagName === 'TEXTAREA') {
-        adjustTextareaHeight(e.target);
+        if (rafId) cancelAnimationFrame(rafId);
+        rafId = requestAnimationFrame(() => {
+            adjustTextareaHeight(e.target);
+        });
     }
 });
 
@@ -3629,12 +3651,12 @@ function toggleManageMode() {
 window.addEventListener('DOMContentLoaded', () => {
     const appContainer = document.querySelector('.app');
     
-    // 核心修复 2：进场动画播放完毕后，立刻卸载动画属性
+    // 进场动画播放完毕后, 立刻卸载动画属性
     if (appContainer) {
         appContainer.addEventListener('animationend', (e) => {
             if (e.animationName === 'alphaPageIn') {
                 // 瞬间摧毁残留的 animation 属性
-                // 这将解除强制生成的“层叠上下文”，让 .app 内部和外部的 fixed 定位、z-index 以及 Blur 遮罩完美恢复原状！
+                // 这将解除强制生成的“层叠上下文”, 让 .app 内部和外部的 fixed 定位、z-index 以及 Blur 遮罩恢复原状
                 appContainer.style.animation = 'none';
             }
         });
@@ -3673,13 +3695,13 @@ window.addEventListener('DOMContentLoaded', () => {
     tooltipNode.id = 'alphaTooltip';
     document.body.appendChild(tooltipNode);
 
-    // 2. 利用事件委托，监听全局的鼠标悬停（支持 JS 动态生成的元素）
+    // 2. 利用事件委托, 监听全局的鼠标悬停（支持 JS 动态生成的元素）
     document.addEventListener('mouseover', (e) => {
         // 寻找当前鼠标下带有 title 或 data-tooltip 的最近元素
         const target = e.target.closest('[title], [data-tooltip]');
         if (!target) return;
 
-        // 核心：瞬间没收原生 title，防止浏览器自带的生硬黑框弹出来
+        // 核心: 瞬间没收原生 title, 防止浏览器自带的生硬黑框弹出来
         if (target.hasAttribute('title')) {
             target.setAttribute('data-tooltip', target.getAttribute('title'));
             target.removeAttribute('title'); 
@@ -3689,11 +3711,11 @@ window.addEventListener('DOMContentLoaded', () => {
         if (tipText) {
             tooltipNode.textContent = tipText;
             tooltipNode.classList.add('visible');
-            updateTooltipPosition(e); // 立刻计算一次位置，防止动画乱飞
+            updateTooltipPosition(e); // 立刻计算一次位置, 防止动画乱飞
         }
     });
 
-    // 3. 鼠标移动时，玻璃板柔性跟随
+    // 3. 鼠标移动时, 玻璃板柔性跟随
     document.addEventListener('mousemove', (e) => {
         if (tooltipNode.classList.contains('visible')) {
             updateTooltipPosition(e);
@@ -3721,12 +3743,12 @@ window.addEventListener('DOMContentLoaded', () => {
         let x = e.clientX + offsetX;
         let y = e.clientY + offsetY;
 
-        // 右侧边界碰撞检测：如果超出版面，就翻转到鼠标左侧
+        // 右侧边界碰撞检测: 如果超出版面, 就翻转到鼠标左侧
         if (x + tooltipNode.offsetWidth > window.innerWidth) {
             x = e.clientX - tooltipNode.offsetWidth - 8;
         }
         
-        // 底部边界碰撞检测：如果超出底部，就翻转到鼠标上方
+        // 底部边界碰撞检测: 如果超出底部, 就翻转到鼠标上方
         if (y + tooltipNode.offsetHeight > window.innerHeight) {
             y = e.clientY - tooltipNode.offsetHeight - 8;
         }

@@ -43,33 +43,31 @@
     --ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* 1. 首先声明并挂载你的自定义字体 */
+::selection { background-color: hsla(var(--theme-hue), 60%, 80%, 0.6); color: #0f172a; }
+::-moz-selection { background-color: hsla(var(--theme-hue), 60%, 80%, 0.6); color: #0f172a; }
+
+/* 声明并挂载你的自定义字体 */
 @font-face {
   font-family: 'AlphaFont';
   src: url('./fonts/OPPO Sans 4.0.ttf') format('truetype'); 
   font-weight: medium;
   font-style: normal;
+  font-display: swap; /* 关键优化: 消除字体加载期间的不可见文本闪烁(FOIT) */
 }
 
-/* 2. 全局重置与字体栈融合 */
+/* 全局重置与字体栈融合 */
 * {
     margin: 0; 
     padding: 0; 
     box-sizing: border-box;
     
-    /* 【终极字体栈解析】
-      1. AlphaFont: 最高优先级，全局强制使用你的自定义字体
-      2. -apple-system...: 如果你的字体包里缺少某些字符(比如 Emoji)，自动降级使用苹果原生字体
-      3. Segoe UI Variable: Windows 11 的原生字体，确保在 Windows 上的极致体验
-      4. PingFang SC / Microsoft YaHei: 兜底的中文字体
-    */
     font-family: 'AlphaFont', -apple-system, BlinkMacSystemFont, "Segoe UI Variable", "SF Pro Display", "PingFang SC", "Microsoft YaHei", sans-serif;
     
     -webkit-tap-highlight-color: transparent; 
     outline: none !important;
 }
 
-/* ⚠️ 补丁：确保表单元素强制继承字体 */
+/* ⚠️ 补丁: 确保表单元素强制继承字体 */
 input, textarea, button, select {
     font-family: inherit;
 }
@@ -79,7 +77,7 @@ html, body {
     margin: 0;
     padding: 0;
     width: 100%;
-    /* 🚨 核心改动 1：严格锁定视口高度，禁止整个窗口级滚动 */
+    /* 严格锁定视口高度, 禁止整个窗口级滚动 */
     height: 100vh; 
     overflow: hidden; 
     background: transparent !important; 
@@ -90,13 +88,9 @@ body {
     color-scheme: light;
     position: relative;
     box-sizing: border-box;
-    /* 🚨 核心改动 2：将 body 变为 Flex 容器，为了让内部的 .app 完美撑满剩余高度 */
+    /* 将 body 变为 Flex 容器, 为了让内部的 .app 完美撑满剩余高度 */
     display: flex;
     flex-direction: column;
-}
-
-*, *::before, *::after {
-    box-sizing: border-box;
 }
 
 /* ================== 背景高斯模糊引擎 ================== */
@@ -136,6 +130,7 @@ body {
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     cursor: pointer;
     transition: transform 0.3s var(--ease);
+    will-change: transform; /* 悬停 / 点击缩放时 GPU 直接插值, 跳过重排 */
 }
 
 .clock-display-group:hover {
@@ -156,29 +151,29 @@ body {
     font-variant-numeric: tabular-nums;
     line-height: 0.9;
     
-    /* 恢复实体白，但赋予 95% 的透明度，让其带有一点底层背景的呼吸感 */
+    /* 恢复实体白, 但赋予 95% 的透明度, 让其带有一点底层背景的呼吸感 */
     color: rgba(255, 255, 255, 0.95); 
     
     /* 玻璃边缘的锐利高光倒角 */
     text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3),
                  0 0 20px rgba(255, 255, 255, 0.2); 
     
-    /* 这里是重点：通过 drop-shadow 模拟玻璃实体的折射边缘 */
+    /* 这里是重点: 通过 drop-shadow 模拟玻璃实体的折射边缘 */
     filter: drop-shadow(0px 10px 20px rgba(0, 0, 0, 0.4));
 }
 
-/* 秒表：降低透明度，通过材质对比拉开层级 */
+/* 秒表: 降低透明度, 通过材质对比拉开层级 */
 .time-sec {
     font-size: 56px; font-weight: 700; 
-    /* 将秒表颜色调成深沉的、半透明的灰白色，体现出比主时间更远的物理层级 */
+    /* 将秒表颜色调成深沉的、半透明的灰白色, 体现出比主时间更远的物理层级 */
     color: rgba(255, 255, 255, 0.5); 
     font-variant-numeric: tabular-nums;
     
-    /* 极简折射阴影 */
+    /* 折射阴影 */
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
-/* 日期文本：保持适度的可见性 */
+/* 日期文本: 保持适度的可见性 */
 .date-display {
     margin-top: 24px; font-size: 32px; font-weight: 600;
     color: rgba(255, 255, 255, 0.7); 
@@ -186,22 +181,21 @@ body {
     text-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
-/* ================== 顶部 Apple 悬浮小白条 ================== */
+/* ================== 顶部悬浮小白条 ================== */
 .apple-home-bar {
-    position: absolute; top: 24px; left: 50%; /* 移动到页面顶部 */
+    position: absolute; top: 24px; left: 50%;
     width: 140px; height: 5px;
-    /* 提升透明度，使其更轻盈 */
     background: rgba(255, 255, 255, 0.2);
     border-radius: 10px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.3);
     z-index: 100;
     
-    /* 引入平滑的上下呼吸摆动动画 */
     animation: bounceY 2.5s infinite ease-in-out;
     transition: background 0.3s ease, transform 0.4s var(--ease), opacity 0.3s ease;
+    will-change: transform; /* GPU 预合成, 避免持续动画中的重绘 */
 }
 
-/* 摆动动画内核：保持居中同时实现 translateY 位移 */
+/* 摆动动画内核: 保持居中同时实现 translateY 位移 */
 @keyframes bounceY {
     0%, 100% { transform: translateX(-50%) translateY(0); }
     50% { transform: translateX(-50%) translateY(-6px); }
@@ -273,31 +267,36 @@ if (savedWp) {
 
 function extractColorFromBase64(base64) {
     const img = new Image();
+    img.decoding = 'async'; // 提示浏览器异步解码, 不阻塞主线程
     img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        canvas.width = 50; canvas.height = 50;
-        ctx.drawImage(img, 0, 0, 50, 50);
-        const data = ctx.getImageData(0, 0, 50, 50).data;
-        let r = 0, g = 0, b = 0, count = 0;
-        for (let i = 0; i < data.length; i += 4) {
-            if (data[i] < 30 && data[i+1] < 30 && data[i+2] < 30) continue; 
-            r += data[i]; g += data[i+1]; b += data[i+2]; count++;
-        }
-        if (count === 0) return;
-        r = Math.floor(r/count)/255; g = Math.floor(g/count)/255; b = Math.floor(b/count)/255;
-        const max = Math.max(r, g, b), min = Math.min(r, g, b);
-        let h, d = max - min;
-        if (max === min) h = 0;
-        else {
-            switch (max) {
-                case r: h = (g - b) / d + (g < b ? 6 : 0); break;
-                case g: h = (b - r) / d + 2; break;
-                case b: h = (r - g) / d + 4; break;
+        // 将 Canvas 计算延迟到浏览器空闲时, 避免与首帧渲染争抢资源
+        const scheduleCanvas = window.requestIdleCallback || setTimeout;
+        scheduleCanvas(() => {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = 50; canvas.height = 50;
+            ctx.drawImage(img, 0, 0, 50, 50);
+            const data = ctx.getImageData(0, 0, 50, 50).data;
+            let r = 0, g = 0, b = 0, count = 0;
+            for (let i = 0; i < data.length; i += 4) {
+                if (data[i] < 30 && data[i+1] < 30 && data[i+2] < 30) continue; 
+                r += data[i]; g += data[i+1]; b += data[i+2]; count++;
             }
-            h /= 6;
-        }
-        document.documentElement.style.setProperty('--theme-hue', Math.round(h * 360));
+            if (count === 0) return;
+            r = Math.floor(r/count)/255; g = Math.floor(g/count)/255; b = Math.floor(b/count)/255;
+            const max = Math.max(r, g, b), min = Math.min(r, g, b);
+            let h, d = max - min;
+            if (max === min) h = 0;
+            else {
+                switch (max) {
+                    case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+                    case g: h = (b - r) / d + 2; break;
+                    case b: h = (r - g) / d + 4; break;
+                }
+                h /= 6;
+            }
+            document.documentElement.style.setProperty('--theme-hue', Math.round(h * 360));
+        });
     };
     img.src = base64;
 }
@@ -308,21 +307,36 @@ const timeSecEl = document.getElementById('timeSec');
 const dateDisplayEl = document.getElementById('dateDisplay');
 const weekdays = ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"];
 
+// ================== 高精度时间渲染引擎（优化版） ==================
+// 初始化日期（立即显示, 不等时钟首次回调）
+(function initDate() {
+    const now = new Date();
+    dateDisplayEl.textContent = `${now.getMonth() + 1}月${now.getDate()}日 ${weekdays[now.getDay()]}`;
+})();
+
+// 改为每秒更新一次（原 RAF 每帧约 60 次/秒, 其中 59 次 textContent 无变化, 纯浪费）
 function updateClock() {
     const now = new Date();
     const hh = String(now.getHours()).padStart(2, '0');
     const mm = String(now.getMinutes()).padStart(2, '0');
     const ss = String(now.getSeconds()).padStart(2, '0');
     
-    timeMainEl.textContent = `${hh}:${mm}`;
+    // 分钟级内容才可能变化, 先比对再写入, 避免触发无意义的重绘
+    const newMain = `${hh}:${mm}`;
+    if (timeMainEl.textContent !== newMain) {
+        timeMainEl.textContent = newMain;
+    }
     timeSecEl.textContent = ss;
     
-    if (ss === '00' && mm === '00' && hh === '00' || dateDisplayEl.textContent === '加载中...') {
+    // 日期每日更新一次（午夜零点触发）
+    if (hh === '00' && mm === '00' && ss === '00') {
         dateDisplayEl.textContent = `${now.getMonth() + 1}月${now.getDate()}日 ${weekdays[now.getDay()]}`;
     }
-    requestAnimationFrame(updateClock);
 }
-requestAnimationFrame(updateClock);
+
+// 立即执行第一次, 然后每秒更新
+updateClock();
+setInterval(updateClock, 1000);
 
 // ================== 全屏系统控制 ==================
 document.addEventListener('dblclick', () => {
@@ -333,22 +347,21 @@ document.addEventListener('dblclick', () => {
     }
 });
 
-// 精准控制：提示显示2s后以阻尼曲率自动向下滑出隐藏
+// 精准控制: 提示显示2s后以阻尼曲率自动向下滑出隐藏
 setTimeout(() => {
     document.getElementById('hintToast').classList.add('fade-out');
 }, 2000);
 
-// ================== 物理惯性退出路由 (返回主页) ==================
+// 退出逻辑
 let isTransitioningToHome = false;
+const mainContainer = document.getElementById('mainContainer'); // 提前缓存引用
 
 window.addEventListener('wheel', (e) => {
     if (isTransitioningToHome) return;
 
-    // 用户用力向上滚动（此时由于提示条在顶部，向上滑动意为将当前页面“推走”或拉出主页）
     if (e.deltaY < -40) {
         isTransitioningToHome = true;
-        const container = document.getElementById('mainContainer');
-        container.classList.add('exiting');
+        mainContainer.classList.add('exiting');
         
         if (document.fullscreenElement) {
             document.exitFullscreen();

@@ -56,7 +56,7 @@ body {
     padding: 32px; 
     color: var(--text);
     color-scheme: light;
-    /* 1. 将底色剥离到 body，作为最安全的托底，防止动画穿帮 */
+    /* 将底色剥离到 body, 作为最安全的托底, 防止动画穿帮 */
     background-color: #f6f8fa; 
     position: relative;
     box-sizing: border-box;
@@ -68,7 +68,7 @@ body {
     box-sizing: border-box;
 }
 
-/* 2. 赋予流光容器生命 - 恢复原版清冷灰蓝底色 */
+/* 赋予流光容器生命 - 恢复原版清冷灰蓝底色 */
 .alpha-ambient-bg {
     position: fixed;
     inset: 0;
@@ -83,9 +83,9 @@ body {
     position: absolute;
     top: -10%;
     right: -5%;
-    width: 35vw; /* 大幅缩小范围，真的是“一抹” */
+    width: 35vw; /* 大幅缩小范围, 真的是“一抹” */
     height: 80vh;
-    /* 极度降低透明度，瞬间融入原本的冷色环境中 */
+    /* 极度降低透明度, 瞬间融入原本的冷色环境中 */
     background: linear-gradient(155deg, rgba(255, 245, 225, 0.12) 0%, rgba(255, 235, 200, 0.03) 30%, transparent 55%);
     transform-origin: top right;
     filter: blur(60px);
@@ -96,7 +96,7 @@ body {
 /* ================== 环境光优化版 ================== */
 .sunbeam {
     position: absolute; top: -10%; right: -5%; width: 35vw; height: 80vh;
-    /* 移除 filter: blur，直接在渐变中实现柔和过渡 */
+    /* 移除 filter: blur, 直接在渐变中实现柔和过渡 */
     background: radial-gradient(ellipse at top right, rgba(255, 245, 225, 0.12) 0%, rgba(255, 235, 200, 0.05) 40%, transparent 65%);
     transform-origin: top right; will-change: transform, opacity;
     animation: sunbeam-pulse 12s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
@@ -106,7 +106,7 @@ body {
     /* 彻底移除 filter: blur(110px); */
     will-change: transform; opacity: 0.85; 
 }
-/* 渐变的结尾必须是完全透明，自然形成毛边光晕 */
+/* 渐变的结尾必须是完全透明, 自然形成毛边光晕 */
 .orb-1 { width: 60vw; height: 60vw; background: radial-gradient(circle, rgba(178, 219, 255, 0.3) 0%, transparent 60%); top: -15%; right: -15%; animation: orb-drift-1 18s infinite alternate cubic-bezier(0.4, 0, 0.2, 1); }
 .orb-2 { width: 70vw; height: 70vw; background: radial-gradient(circle, rgba(212, 206, 255, 0.4) 0%, transparent 60%); bottom: -20%; left: -20%; animation: orb-drift-2 22s infinite alternate-reverse cubic-bezier(0.4, 0, 0.2, 1); }
 .orb-3 { width: 50vw; height: 50vw; background: radial-gradient(circle, rgba(255, 204, 194, 0.3) 0%, transparent 60%); top: 20%; left: 30%; animation: orb-drift-3 20s infinite alternate cubic-bezier(0.4, 0, 0.2, 1); }
@@ -146,10 +146,10 @@ body::after {
             rgba(255, 255, 255, 0.03) 100%
         );
 }
-/* ================== 侧边栏与主面板 (宽度自适应修复) ================== */
+/* ================== 侧边栏与主面板 (宽度自适应) ================== */
 .app { 
     display: grid; 
-    /* 修复 3: 宽度放宽到 1600px 匹配 TaskFlow, 且拉宽了左侧的基准占比 */
+    /* 宽度放宽到 1600px 匹配 TaskFlow, 且拉宽了左侧的基准占比 */
     grid-template-columns: 320px minmax(0, 1fr); 
     gap: var(--spacing-main); 
     max-width: 1600px; 
@@ -169,7 +169,7 @@ body::after {
     z-index: 10;
 }
 
-/* 修复 4: 左侧个人信息栏撑满整屏高度 */
+/* 左侧个人信息栏撑满整屏高度 */
 .sidebar { 
     position: sticky; top: var(--spacing-main); 
     height: calc(100vh - (var(--spacing-main) * 2));
@@ -179,7 +179,7 @@ body::after {
 
 .main { display: flex; flex-direction: column; gap: var(--spacing-main); min-width: 0; }
 
-/* 修复 6: 删除返回文字, 仅保留极简箭头 */
+/* 删除返回文字, 仅保留极简箭头 */
 .logo-area { 
     display: inline-flex; align-items: center; justify-content: center;
     width: 44px; height: 44px; border-radius: 16px;
@@ -413,7 +413,7 @@ textarea {
     flex-wrap: wrap; 
     gap: 16px; 
     align-items: center; 
-    margin-top: var(--spacing-main); /* 👈 核心修复：引入 32px 的主间距隔离表单与按钮 */
+    margin-top: var(--spacing-main); /* 引入 32px 的主间距隔离表单与按钮 */
     position: relative; 
     z-index: 1;
 }
@@ -424,13 +424,13 @@ button, upload-label {
     position: relative; overflow: hidden; display: inline-flex; height: 52px; border: none;
     align-items: center; justify-content: center; padding: 0 24px;
     border-radius: var(--radius-element); cursor: pointer; font-size: 16px !important; font-weight: 700 !important; 
-    /* 极致顺滑的过渡：使用弹性阻尼曲线，保留 transform 硬件加速 */
+    /* 极致顺滑的过渡: 使用弹性阻尼曲线, 保留 transform 硬件加速 */
     transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), background 0.3s ease, box-shadow 0.3s ease; 
     outline: none; letter-spacing: 0.5px;
     will-change: transform, box-shadow; 
 }
 
-/* 废弃原先粗暴的 ::before 伪元素高光，改用更优雅的多重 background */
+/* 废弃原先粗暴的 ::before 伪元素高光, 改用更优雅的多重 background */
 button::before { display: none; }
 button:active { transform: scale(0.96) !important; }
 
@@ -446,7 +446,7 @@ button:active { transform: scale(0.96) !important; }
         0 6px 16px rgba(120, 175, 225, 0.2), 
         inset 0 1.5px 2px rgba(255, 255, 255, 0.95), 
         inset -1px -1px 2px rgba(255, 255, 255, 0.3), 
-        /* 💡 将白边改为高透冰蓝色：完美融入基底，边缘像纯净的蓝水晶 */
+        /* 💡 将白边改为高透冰蓝色: 完美融入基底, 边缘像纯净的蓝水晶 */
         0 0 0 1px rgba(217, 237, 254, 0.85); 
     backdrop-filter: blur(16px) saturate(180%); 
     -webkit-backdrop-filter: blur(16px) saturate(180%);
@@ -461,7 +461,7 @@ button:active { transform: scale(0.96) !important; }
         0 12px 24px rgba(120, 175, 225, 0.3), 
         inset 0 2px 3px rgba(255, 255, 255, 1), 
         inset -1px -1px 2px rgba(255, 255, 255, 0.5),
-        /* 💡 修复：将刺眼的蓝色霓虹边，改为带有一点点冷蓝调的“高透霜白色” */
+        /* 将刺眼的蓝色霓虹边, 改为霜白色 */
         0 0 0 1.5px rgba(240, 248, 255, 0.9); 
 }
 
@@ -473,7 +473,7 @@ button:active { transform: scale(0.96) !important; }
         0 2px 6px rgba(120, 175, 225, 0.1), 
         inset 0 3px 6px rgba(15, 23, 42, 0.08), 
         inset 0 1px 1px rgba(255, 255, 255, 0.5),
-        /* 💡 按下时蓝边暗淡，贴合物理阴影 */
+        /* 💡 按下时蓝边暗淡, 贴合物理阴影 */
         0 0 0 1px rgba(145, 205, 255, 0.6);
 }
 
@@ -489,7 +489,7 @@ button:active { transform: scale(0.96) !important; }
         0 6px 16px rgba(15, 23, 42, 0.04), 
         inset 0 1.5px 2px rgba(255, 255, 255, 0.95), 
         inset -1px -1px 2px rgba(255, 255, 255, 0.3), 
-        /* 💡 将死白改为带有淡淡冷灰/冷蓝的珍珠白，消除锐利感 */
+        /* 💡 将死白改为带有淡淡冷灰/冷蓝的珍珠白, 消除锐利感 */
         0 0 0 1px rgba(241, 245, 249, 0.85);
     backdrop-filter: blur(16px) saturate(180%); 
     -webkit-backdrop-filter: blur(16px) saturate(180%);
@@ -530,7 +530,7 @@ button:active { transform: scale(0.96) !important; }
         0 6px 16px rgba(239, 68, 68, 0.2), 
         inset 0 1.5px 2px rgba(255, 255, 255, 0.5), 
         inset -1px -1px 2px rgba(0, 0, 0, 0.08),
-        /* 💡 将白边改为高透珊瑚红：红玻璃的边缘就应该是透亮的红色 */
+        /* 💡 将白边改为高透珊瑚红: 红玻璃的边缘就应该是透亮的红色 */
         0 0 0 1px rgba(255, 199, 199, 0.75); 
     backdrop-filter: blur(16px) saturate(180%); 
     -webkit-backdrop-filter: blur(16px) saturate(180%);
@@ -545,7 +545,7 @@ button:active { transform: scale(0.96) !important; }
         0 10px 24px rgba(239, 68, 68, 0.3), 
         inset 0 2px 3px rgba(255, 255, 255, 0.75), 
         inset -1px -1px 2px rgba(0, 0, 0, 0.12),
-        /* 💡 修复：将刺眼的亮红边，改为带有一丝微粉的珍珠白 */
+        /* 将刺眼的亮红边, 改为带有一丝微粉的珍珠白 */
         0 0 0 1.5px rgba(255, 240, 240, 0.9); 
 }
 
@@ -593,13 +593,13 @@ button:active { transform: scale(0.96) !important; }
     backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
     opacity: 1; visibility: visible; 
     
-    /* 修复掉帧 1: 显式接管 backdrop-filter 过渡, 防止 GPU 盲目重绘 */
+    /* 显式接管 backdrop-filter 过渡, 防止 GPU 盲目重绘 */
     transition: opacity 0.3s var(--ease), 
                 backdrop-filter 0.3s var(--ease),
                 -webkit-backdrop-filter 0.3s var(--ease),
                 visibility 0s 0s;
                 
-    /* 修复掉帧 2: 提前宣告模糊度的变化, 并强制开启底层硬件加速 */
+    /* 提前宣告模糊度的变化, 并强制开启底层硬件加速 */
     will-change: opacity, backdrop-filter;
     transform: translateZ(0);
 }
@@ -610,7 +610,7 @@ button:active { transform: scale(0.96) !important; }
     visibility: hidden; 
     pointer-events: none;
     
-    /* 修复掉帧 3: 退出时将模糊度归零, 彻底释放底层渲染压力 */
+    /* 退出时将模糊度归零, 释放底层渲染压力 */
     backdrop-filter: blur(0px); -webkit-backdrop-filter: blur(0px);
     
     transition: opacity 0.3s var(--ease), 
@@ -626,10 +626,10 @@ button:active { transform: scale(0.96) !important; }
     
     border-radius: var(--radius-panel); /* 保持卡片级圆角比例 */
     
-    /* 修复 1: 升级为全局最高级留白 (32px), 让内容彻底呼吸 */
+    /* 留白控制, 让内容呼吸 */
     padding: var(--spacing-main);
     
-    /* 修复 2: 略微拓宽整体容器宽度, 补偿文字可用空间 */
+    /* 拓宽整体容器宽度, 补偿文字可用空间 */
     width: 360px; 
     
     box-shadow: 0 24px 64px rgba(15,23,42,0.15), inset 0 2px 6px rgba(255, 255, 255, 0.6);
@@ -698,9 +698,9 @@ button:active { transform: scale(0.96) !important; }
     100% { opacity: 0; transform: translateX(-60px); }
 }
 
-/* 1. 进场直接绑定给 .app 容器，无需 JS 介入 */
+/* 1. 进场直接绑定给 .app 容器, 无需 JS 介入 */
 .app {
-    /* backwards 属性是神来之笔：它强制让浏览器在第 0 帧就维持 0% 的状态（透明且偏右），彻底消灭闪烁 */
+    /* backwards 属性是神来之笔: 它强制让浏览器在第 0 帧就维持 0% 的状态（透明且偏右）, 彻底消灭闪烁 */
     animation: alphaPageIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) backwards;
 }
 
@@ -708,7 +708,7 @@ button:active { transform: scale(0.96) !important; }
 .page-transition-leave {
     animation: alphaPageOut 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards !important;
     pointer-events: none;
-    /* 强制降低退出时的层级，确保退场滑动时绝不会从 alphaDropdownMenu 上方压过去 */
+    /* 强制降低退出时的层级, 确保退场滑动时绝不会从 alphaDropdownMenu 上方压过去 */
     position: relative;
     z-index: 1; 
 }
@@ -720,18 +720,18 @@ button:active { transform: scale(0.96) !important; }
     left: 0;
     padding: 6px 12px;
     
-    /* 1. 材质重塑：大幅降低白色浓度 (从 0.65 降至 0.35)，让底层画面透过来 */
+    /* 1. 材质重塑: 大幅降低白色浓度 (从 0.65 降至 0.35), 让底层画面透过来 */
     background: rgba(255, 255, 255, 0.65);
     
-    /* 2. 景深增强：提升模糊半径至 24px，并拉高 200% 的色彩饱和度，形成“丁达尔折射” */
+    /* 2. 景深增强: 提升模糊半径至 24px, 并拉高 200% 的色彩饱和度, 形成“丁达尔折射” */
     backdrop-filter: blur(24px) saturate(200%);
     -webkit-backdrop-filter: blur(24px) saturate(200%);
     
-    /* 3. 物理切边：四周使用半透明边框，但顶部保留高亮，模拟顶光打在玻璃边缘 */
+    /* 3. 物理切边: 四周使用半透明边框, 但顶部保留高亮, 模拟顶光打在玻璃边缘 */
     border: 1px solid rgba(255, 255, 255, 0.4);
     border-top-color: rgba(255, 255, 255, 0.85); 
     
-    /* 4. 体积光影：外侧加深悬浮投影，内部注入两层发光感（边缘锐利折射 + 内部柔和泛光） */
+    /* 4. 体积光影: 外侧加深悬浮投影, 内部注入两层发光感（边缘锐利折射 + 内部柔和泛光） */
     box-shadow: 
         0 8px 24px rgba(15, 23, 42, 0.12),         /* 更具浮空感的外阴影 */
         inset 0 1px 1px rgba(255, 255, 255, 0.9),  /* 顶部边缘的极限高光 */
@@ -865,7 +865,7 @@ button:active { transform: scale(0.96) !important; }
     </div>
 </div>
 <script>
-/* ================== 全局弹窗引擎 (状态隔离修复版) ================== */
+/* ================== 全局弹窗引擎 ================== */
 window.dialogConfirmCallback = null;
 
 function customAlert(msg, title = "提示", icon = "💡") {
@@ -875,7 +875,7 @@ function customAlert(msg, title = "提示", icon = "💡") {
     
     const cancelBtn = document.getElementById('dialogCancelBtn');
     cancelBtn.style.display = 'none';
-    // 🛡️ 修复防线 1: 强制重置取消事件, 防止被其他模式污染
+    // 强制重置取消事件, 防止被其他模式污染
     cancelBtn.onclick = () => document.getElementById('customDialog').classList.add('hidden');
     
     document.getElementById('dialogBottomCancelBtn').style.display = 'none'; 
@@ -923,7 +923,7 @@ function customConfirm(msg, onConfirm, title = "请确认", isDanger = false, ic
     const cancelBtn = document.getElementById('dialogCancelBtn');
     cancelBtn.style.display = 'block';
     cancelBtn.textContent = "取消";
-    // 🛡️ 修复防线 2: 每次唤醒时, 切断残留事件, 重新赋予关闭 Modal 的默认职能
+    // 每次唤醒时, 切断残留事件, 重新赋予关闭 Modal 的默认职能
     cancelBtn.onclick = () => document.getElementById('customDialog').classList.add('hidden');
     
     document.getElementById('dialogBottomCancelBtn').style.display = 'none'; 
@@ -985,7 +985,7 @@ profileInputs.forEach((input, index) => {
     input.addEventListener('keydown', function(e) {
         if (e.key === 'Enter') {
             if (this === els.inBio) {
-                // 🛑 修复 3: 个人简介特殊处理, Ctrl+Enter 跳转, 单纯 Enter 换行
+                // 个人简介特殊处理, Ctrl+Enter 跳转, 单纯 Enter 换行
                 if (e.ctrlKey || e.metaKey) {
                     e.preventDefault();
                     profileInputs[index + 1]?.focus();
@@ -1012,11 +1012,11 @@ function adjustTextareaHeight(el) {
         document.body.appendChild(clone);
     }
     
-    // 镜像原文本框的核心样式, 确保测量 100% 精准
+    // 镜像原文本框的核心样式, 确保测量精准
     clone.style.cssText = window.getComputedStyle(el).cssText;
     clone.style.position = 'absolute';
     
-    // 修复核心: 将克隆体彻底移出物理视口, 防止撑开页面高度
+    // 将克隆体彻底移出物理视口, 防止撑开页面高度
     clone.style.top = '-9999px';
     clone.style.left = '-9999px';
     
@@ -1087,7 +1087,7 @@ els.inBirthday.addEventListener('blur', function() {
         isValid = true;
     }
     
-    // 修复 1: 如果日期极度离谱, 兜底强行修正为今天
+    // 如果日期极度离谱, 兜底强行修正为今天
     if (!isValid) {
         const today = new Date();
         const ty = today.getFullYear();
@@ -1096,7 +1096,7 @@ els.inBirthday.addEventListener('blur', function() {
         this.value = `${ty}-${tm}-${td}`;
         accountData.birthday = this.value;
         checkBirthdayConfetti();
-        showSyncStatus("⚠️ 识别到无效日期, 已自动修正为今日", "var(--monet-danger)");
+        showSyncStatus("⚠️ 识别到无效日期, 已自动修正为今日", "var(--monet-text)");
     }
 });
 
@@ -1220,69 +1220,107 @@ function checkBirthdayConfetti() {
     }
 }
 
+// ================= 生日彩带 =================
+// 全局的 resize 处理函数, 避免匿名函数导致的移除失败
+function confettiResizeHandler() {
+    const canvas = document.getElementById('confettiCanvas');
+    if (canvas) {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+}
+
 function launchConfetti() {
     const canvas = document.getElementById('confettiCanvas');
     const ctx = canvas.getContext('2d');
-    canvas.width = window.innerWidth; canvas.height = window.innerHeight;
-    
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    // 先移除再添加, 防止重复绑定
+    window.removeEventListener('resize', confettiResizeHandler);
+    window.addEventListener('resize', confettiResizeHandler);
+
     const particles = [];
     const colors = ['#9DD2FF', '#f17875', '#10b981', '#f59e0b', '#8b5cf6'];
-    
+
     for (let i = 0; i < 150; i++) {
         particles.push({
-            x: Math.random() * canvas.width, y: Math.random() * canvas.height - canvas.height,
-            w: Math.random() * 10 + 5, h: Math.random() * 10 + 5,
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height - canvas.height,
+            w: Math.random() * 10 + 5,
+            h: Math.random() * 10 + 5,
             c: colors[Math.floor(Math.random() * colors.length)],
-            vy: Math.random() * 3 + 2, vx: Math.random() * 2 - 1,
-            rot: Math.random() * 360, rotSpeed: Math.random() * 10 - 5
+            vy: Math.random() * 3 + 2,
+            vx: Math.random() * 2 - 1,
+            rot: Math.random() * 360,
+            rotSpeed: Math.random() * 10 - 5
         });
     }
 
-    let stopSpawning = false; // 发射开关
+    let stopSpawning = false;
 
     function render() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         let activeParticles = 0;
-        
+
         particles.forEach(p => {
             p.y += p.vy; p.x += p.vx; p.rot += p.rotSpeed;
-            if (p.y > canvas.height) { 
+            if (p.y > canvas.height) {
                 if (!stopSpawning) {
-                    p.y = -20; p.x = Math.random() * canvas.width; // 不断在顶部重生
+                    p.y = -20;
+                    p.x = Math.random() * canvas.width;
                 } else {
-                    p.y = canvas.height + 100; // 开关关闭时, 将其永久丢弃到屏幕外
+                    p.y = canvas.height + 100;
                 }
             }
             if (p.y <= canvas.height) activeParticles++;
-            
+
             ctx.save();
-            ctx.translate(p.x, p.y); ctx.rotate(p.rot * Math.PI / 180);
-            ctx.fillStyle = p.c; ctx.fillRect(-p.w/2, -p.h/2, p.w, p.h);
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.rot * Math.PI / 180);
+            ctx.fillStyle = p.c;
+            ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
             ctx.restore();
         });
-        
+
         if (confettiInterval && activeParticles > 0) {
             requestAnimationFrame(render);
         } else if (activeParticles === 0) {
-            confettiInterval = false; // 粒子全部掉落干净后, 彻底销毁渲染循环
+            confettiInterval = false;
+            // 所有粒子消失后移除 resize 监听, 彻底释放资源
+            window.removeEventListener('resize', confettiResizeHandler);
         }
     }
-    
+
     confettiInterval = true;
     render();
-    
-    window.addEventListener('resize', () => {
-        canvas.width = window.innerWidth; canvas.height = window.innerHeight;
-    });
 
-    // 核心修复: 5秒后自动关闭发射器, 让残留彩带优美飘落
     if (confettiTimeout) clearTimeout(confettiTimeout);
     confettiTimeout = setTimeout(() => {
         stopSpawning = true;
     }, 5000);
 }
 
-/* ================== 全生态同步引擎 (深度安全算法修复版) ================== */
+function checkBirthdayConfetti() {
+    if (!accountData.birthday) return;
+    const today = new Date();
+    const currentMMDD = String(today.getMonth() + 1).padStart(2, '0') + "-" + String(today.getDate()).padStart(2, '0');
+    const bdayMMDD = accountData.birthday.substring(5);
+
+    if (currentMMDD === bdayMMDD) {
+        if (!confettiInterval) launchConfetti();
+    } else {
+        confettiInterval = false;
+        if (confettiTimeout) clearTimeout(confettiTimeout);
+        const canvas = document.getElementById('confettiCanvas');
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        // 非生日时也清理 resize 监听
+        window.removeEventListener('resize', confettiResizeHandler);
+    }
+}
+
+/* ================== 数据同步引擎 ================== */
 let toastTimeout;
 function showSyncStatus(msg, color = "var(--text)") {
     const toast = document.getElementById('globalToast');
@@ -1502,12 +1540,12 @@ loadProfileData();
 window.addEventListener('DOMContentLoaded', () => {
     const appContainer = document.querySelector('.app');
     
-    // 核心修复 2：进场动画播放完毕后，立刻卸载动画属性
+    // 进场动画播放完毕后, 立刻卸载动画属性
     if (appContainer) {
         appContainer.addEventListener('animationend', (e) => {
             if (e.animationName === 'alphaPageIn') {
                 // 瞬间摧毁残留的 animation 属性
-                // 这将解除强制生成的“层叠上下文”，让 .app 内部和外部的 fixed 定位、z-index 以及 Blur 遮罩完美恢复原状！
+                // 这将解除强制生成的“层叠上下文”, 让 .app 内部和外部的 fixed 定位、z-index 以及 Blur 遮罩恢复原状
                 appContainer.style.animation = 'none';
             }
         });
@@ -1539,74 +1577,98 @@ window.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// ================= 全局毛玻璃 Tooltip 劫持引擎 =================
+// ================= 全局毛玻璃 Tooltip 劫持引擎（性能优化版） =================
 window.addEventListener('DOMContentLoaded', () => {
-    // 1. 创建全局唯一的 Tooltip 玻璃面板
+    // 创建 tooltip 节点
     const tooltipNode = document.createElement('div');
     tooltipNode.id = 'alphaTooltip';
     document.body.appendChild(tooltipNode);
 
-    // 2. 利用事件委托，监听全局的鼠标悬停（支持 JS 动态生成的元素）
+    // 尺寸缓存（内容改变时更新）
+    let tooltipWidth = 0, tooltipHeight = 0;
+    function measureTooltip() {
+        // 强制读取一次尺寸并缓存, 后续移动不再读取 DOM
+        tooltipWidth = tooltipNode.offsetWidth;
+        tooltipHeight = tooltipNode.offsetHeight;
+    }
+
+    // 鼠标位置缓存与 rAF 节流
+    let lastMouseX = 0, lastMouseY = 0;
+    let tooltipRafId = null;
+
+    function updateTooltipPosition(x, y) {
+        const offsetX = 14;
+        const offsetY = 18;
+        let tx = x + offsetX;
+        let ty = y + offsetY;
+
+        // 边界碰撞检测, 使用缓存尺寸, 避免回流
+        if (tx + tooltipWidth > window.innerWidth) {
+            tx = x - tooltipWidth - 8;
+        }
+        if (ty + tooltipHeight > window.innerHeight) {
+            ty = y - tooltipHeight - 8;
+        }
+
+        // 关键优化: 使用 transform 代替 left/top, 触发合成层而非重排
+        tooltipNode.style.transform = `translate(${tx}px, ${ty}px)`;
+    }
+
+    // 事件委托: 鼠标悬停
     document.addEventListener('mouseover', (e) => {
-        // 寻找当前鼠标下带有 title 或 data-tooltip 的最近元素
         const target = e.target.closest('[title], [data-tooltip]');
         if (!target) return;
 
-        // 核心：瞬间没收原生 title，防止浏览器自带的生硬黑框弹出来
+        // 劫持原生 title
         if (target.hasAttribute('title')) {
             target.setAttribute('data-tooltip', target.getAttribute('title'));
-            target.removeAttribute('title'); 
+            target.removeAttribute('title');
         }
 
         const tipText = target.getAttribute('data-tooltip');
         if (tipText) {
             tooltipNode.textContent = tipText;
             tooltipNode.classList.add('visible');
-            updateTooltipPosition(e); // 立刻计算一次位置，防止动画乱飞
+            measureTooltip();                 // 新内容出现时重新测量尺寸
+            // 立即定位一次, 避免闪现
+            lastMouseX = e.clientX;
+            lastMouseY = e.clientY;
+            updateTooltipPosition(e.clientX, e.clientY);
         }
     });
 
-    // 3. 鼠标移动时，玻璃板柔性跟随
+    // 鼠标移动: rAF 节流, 只记录最新坐标并异步更新
     document.addEventListener('mousemove', (e) => {
-        if (tooltipNode.classList.contains('visible')) {
-            updateTooltipPosition(e);
+        lastMouseX = e.clientX;
+        lastMouseY = e.clientY;
+        if (tooltipNode.classList.contains('visible') && !tooltipRafId) {
+            tooltipRafId = requestAnimationFrame(() => {
+                updateTooltipPosition(lastMouseX, lastMouseY);
+                tooltipRafId = null;
+            });
         }
     });
 
-    // 4. 离开时褪去
+    // 鼠标离开 / 按下时隐藏
     document.addEventListener('mouseout', (e) => {
         const target = e.target.closest('[data-tooltip]');
         if (target) {
             tooltipNode.classList.remove('visible');
+            // 清理 rAF, 避免隐藏后仍触发更新
+            if (tooltipRafId) {
+                cancelAnimationFrame(tooltipRafId);
+                tooltipRafId = null;
+            }
         }
     });
 
-    // 5. 点击时主动隐藏（防遮挡视线优化）
     document.addEventListener('mousedown', () => {
         tooltipNode.classList.remove('visible');
+        if (tooltipRafId) {
+            cancelAnimationFrame(tooltipRafId);
+            tooltipRafId = null;
+        }
     });
-
-    // 💡 定位计算函数（附带屏幕边缘防溢出系统）
-    function updateTooltipPosition(e) {
-        const offsetX = 14; // 距离鼠标的横向距离
-        const offsetY = 18; // 距离鼠标的纵向距离
-        
-        let x = e.clientX + offsetX;
-        let y = e.clientY + offsetY;
-
-        // 右侧边界碰撞检测：如果超出版面，就翻转到鼠标左侧
-        if (x + tooltipNode.offsetWidth > window.innerWidth) {
-            x = e.clientX - tooltipNode.offsetWidth - 8;
-        }
-        
-        // 底部边界碰撞检测：如果超出底部，就翻转到鼠标上方
-        if (y + tooltipNode.offsetHeight > window.innerHeight) {
-            y = e.clientY - tooltipNode.offsetHeight - 8;
-        }
-
-        tooltipNode.style.left = `${x}px`;
-        tooltipNode.style.top = `${y}px`;
-    }
 });
 </script>
 </body>

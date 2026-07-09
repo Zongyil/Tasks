@@ -94,6 +94,10 @@
   <div class="alpha-tooltip" id="alphaTooltip"></div>
 
   <script>
+    // 提取 Tooltip 元素引用（避免重复查询）
+    const tooltipEl = document.getElementById('alphaTooltip');
+    let tooltipTimer = null;
+
     // 窗口控制（双击最大化）
     document.getElementById('title-bar').addEventListener('dblclick', (e) => {
       if (e.target.closest('.title-left') || e.target === document.getElementById('title-bar')) {
@@ -111,26 +115,27 @@
       try {
         const doc = frame.contentDocument || frame.contentWindow.document
         if (doc) {
-          // 注入字体（若 iframe 内部未定义）
-          const fontStyle = doc.createElement('style')
-          fontStyle.textContent = `
-            @font-face {
-              font-family: 'OPPO Sans 4.0';
-              src: url('./fonts/OPPO Sans 4.0.ttf') format('truetype');
-              font-weight: 1 999;
-              font-style: normal;
-            }
-            * {
-              font-family: 'OPPO Sans 4.0', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif !important;
-              font-feature-settings: "emoji";
-            }
-          `
-          doc.head.appendChild(fontStyle)
+          // 注入字体（若 iframe 内部未定义）, 避免重复添加
+          if (!doc.head.querySelector('style[data-font="oppo"]')) {
+            const fontStyle = doc.createElement('style')
+            fontStyle.setAttribute('data-font', 'oppo')
+            fontStyle.textContent = `
+              @font-face {
+                font-family: 'OPPO Sans 4.0';
+                src: url('./fonts/OPPO Sans 4.0.ttf') format('truetype');
+                font-weight: 1 999;
+                font-style: normal;
+              }
+              * {
+                font-family: 'OPPO Sans 4.0', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif !important;
+                font-feature-settings: "emoji";
+              }
+            `
+            doc.head.appendChild(fontStyle)
+          }
 
-          // ====== 自定义 Tooltip (在 iframe 内也生效) ======
-          const tooltipEl = window.parent.document.getElementById('alphaTooltip')
-          let tooltipTimer = null
-
+          // ====== 自定义 Tooltip (在 iframe 内生效) ======
+          // 在 mouseover 中移除原生 title, 存入 dataset；mouseout 时恢复
           doc.addEventListener('mouseover', (e) => {
             const target = e.target.closest('[title]')
             if (!target) {
@@ -140,6 +145,12 @@
             }
             const title = target.getAttribute('title')
             if (!title) return
+
+            // 保存原始 title 并移除, 防止浏览器默认提示
+            if (!target.dataset.originalTitle) {
+              target.dataset.originalTitle = title
+              target.removeAttribute('title')
+            }
 
             clearTimeout(tooltipTimer)
             tooltipTimer = setTimeout(() => {
@@ -157,10 +168,13 @@
 
           doc.addEventListener('mouseout', (e) => {
             const target = e.target.closest('[title]')
-            if (target) {
-              clearTimeout(tooltipTimer)
-              tooltipEl.classList.remove('visible')
+            // 恢复 title（如果之前被移除）
+            if (target && target.dataset.originalTitle) {
+              target.setAttribute('title', target.dataset.originalTitle)
+              delete target.dataset.originalTitle
             }
+            clearTimeout(tooltipTimer)
+            tooltipEl.classList.remove('visible')
           })
 
           doc.addEventListener('beforeunload', () => {
