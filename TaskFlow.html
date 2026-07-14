@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>TaskFlow</title>
 <link rel="icon" href="TaskFlow.ico" type="image/x-icon">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<link rel="stylesheet" href="./assets/flatpickr.min.css">
 <base href="./">
 <style>
 /* ================== 全局与色彩体系 ================== */
@@ -46,7 +46,7 @@
 
 * {
     margin: 0; padding: 0; box-sizing: border-box;
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", sans-serif;
+    font-family: 'OPPO Sans 4.0', -apple-system, BlinkMacSystemFont, "Segoe UI Variable", "SF Pro Display", "PingFang SC", "Microsoft YaHei", sans-serif;
     -webkit-tap-highlight-color: transparent; outline: none !important;
 }
 
@@ -660,8 +660,8 @@ button:active { transform: scale(0.96) !important; }
         
     will-change: auto; /* 新增: 默认不创建 GPU 层, 让浏览器自动管理 */
     transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    content-visibility: auto;
-    contain-intrinsic-size: 120px;
+
+    cursor: grab;
 }
 
 #taskList .task-card:last-child {
@@ -678,6 +678,32 @@ button:active { transform: scale(0.96) !important; }
         inset 0 -1px 2px rgba(255, 255, 255, 0.4); 
 }
 
+.task-card.is-dragging {
+    position: absolute !important;
+    top: -9999px !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    z-index: -1 !important;
+    transition: none !important;
+}
+
+.drag-placeholder {
+    background: transparent;
+    border: none;
+    margin-bottom: var(--spacing-card, 16px);
+    border-radius: var(--radius-card, 24px);
+    pointer-events: none;
+}
+
+@keyframes dropSnap {
+    0% { transform: scale(0.95); opacity: 1; }
+    50% { transform: scale(1.02); opacity: 1; }  /* 增加微幅放大实现果冻弹性 */
+    100% { transform: scale(1); opacity: 1; }
+}
+
+.task-card.drop-bounce {
+    animation: dropSnap 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards !important;
+}
 /* ===========================
    微拟态玻璃标签 (Micro-Glass Tag)
 =========================== */
@@ -1207,12 +1233,160 @@ select.flatpickr-monthDropdown-months,
     pointer-events: none !important;
 }
 
-/* 窄屏自适应 */
+/* ===========================
+   升级：液态局部文字与标签融合引擎
+=========================== */
+.liquid-part {
+    display: inline-block;
+    margin: 0;
+    padding: 0;
+    vertical-align: baseline;
+    will-change: transform, opacity, filter;
+}
+.liquid-enter {
+    animation: liquidSurface 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+.liquid-leave {
+    animation: liquidSubmerge 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    pointer-events: none;
+}
+@keyframes liquidSurface {
+    0% { opacity: 0; transform: translateY(12px); filter: blur(6px); }
+    100% { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+@keyframes liquidSubmerge {
+    0% { opacity: 1; transform: translateY(0); filter: blur(0); }
+    100% { opacity: 0; transform: translateY(-12px); filter: blur(6px); }
+}
+
+/* 核心修复：给“周/月”小标签赋予独立的液态入场阻尼动效 */
+.view-date-tag {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--sub);
+    background: rgba(15, 23, 42, 0.06);
+    padding: 4px 10px;
+    border-radius: 10px;
+    vertical-align: middle;
+    margin-left: 6px;
+    margin-top: -4px;
+    transform-origin: center;
+    animation: alphaTagPop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+@keyframes alphaTagPop {
+    0% { opacity: 0; transform: scale(0.85) translateY(4px); filter: blur(2px); }
+    100% { opacity: 1; transform: scale(1) translateY(0); filter: blur(0); }
+}
+
+/* ===========================
+   响应式布局 - 1050px (彻底放权，滑块与 PC 端 1:1 一致)
+=========================== */
 @media (max-width: 1050px) {
     .app { grid-template-columns: 1fr !important; gap: var(--spacing-main) !important; }
     .sidebar { position: relative !important; top: 0 !important; height: auto !important; grid-column: 1 !important; }
     .main { grid-column: 1 !important; }
     .glass-resizer-bar { display: none !important; }
+
+    /* 允许工具栏优雅折行，居中对齐防止拉伸 */
+    .toolbar-left { 
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: wrap !important; 
+        align-items: center !important; 
+        gap: 16px !important; 
+        width: 100% !important; 
+    }
+    
+    /* 核心：清空所有多余命令，让它自然继承 PC 端的完美原生尺寸 */
+    .view-toggle { 
+        margin: 0 !important; 
+    }
+}
+
+/* ===========================
+   响应式布局 - 768px (滑块对齐与纵向增高)
+=========================== */
+@media (max-width: 768px) {
+    body { padding: 16px !important; }
+    
+    .panel, .main, .sidebar, #flowPanel { 
+        padding: 24px !important; 
+        width: 100% !important; 
+        box-sizing: border-box !important;
+    }
+    
+    .add-task-grid { grid-template-columns: 1fr !important; }
+
+    .app-container, .wrapper, .window-body, .main-layout { 
+        flex-direction: column !important; 
+        display: flex !important;
+        gap: 16px !important; 
+    }
+    .timeline-card, .stats-grid, .chart-card-grid, .grid-2col { 
+        grid-template-columns: 1fr !important; 
+        width: 100%;
+        gap: 16px !important;
+    }
+    
+    .toolbar {
+        display: flex !important;
+        flex-direction: row !important; 
+        flex-wrap: wrap !important;     
+        gap: 12px !important;
+    }
+    .toolbar-left { 
+        display: flex !important;
+        flex-direction: column !important; 
+        align-items: flex-start !important; 
+        gap: 14px !important; 
+        width: 100% !important;         
+    }
+    .toolbar > button {
+        flex: 1 !important;             
+        padding: 0 10px !important;
+    }
+
+    .manage-group {
+        width: 100% !important;
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+    }
+
+    /* 🚨 终极光学对齐魔法：只增高，不碰宽度！🚨 */
+    .view-toggle {
+        display: inline-flex !important; 
+        width: auto !important;          
+        padding: 6px !important;       /* 【关键】必须死守 6px 间距，否则滑块会错位！ */
+        margin: 0 !important;
+    }
+    .view-toggle label {
+        /* 【关键】横向保持 32px 骗过 JS，纵向增高至 12px 满足你的要求！ */
+        padding: 12px 32px !important;   
+        font-size: 15px !important;     
+        flex: none !important;         /* 绝对禁止拉伸形变 */
+    }
+
+    .chart-zone { width: 100% !important; overflow-x: auto; }
+
+    .task-card > div { 
+        flex-direction: column !important; 
+        align-items: flex-start !important; 
+        gap: 16px !important; 
+    }
+    .task-card > div > div:first-child { width: 100% !important; }
+    .task-card > div > div:last-child { 
+        width: 100% !important; 
+        flex-direction: row !important; 
+        justify-content: space-between !important; 
+        gap: 12px !important;
+    }
+    
+    .hide-on-mobile { display: none !important; }
+    #focusAnalysis { text-align: center !important; font-size: 15px !important; }
 }
 
 /* ===========================
@@ -1424,7 +1598,8 @@ body.manage-mode-active .task-checkbox-wrap {
     width: 26px;
     flex: 0 0 26px;
     opacity: 1;
-    transform: scale(1) translateX(0);
+    /* 【修复 ①】增加 translateY(2px) 补偿 flex-center 与字体 baseline 之间的视觉误差，实现完美光学对齐 */
+    transform: scale(1) translateX(0) translateY(2px);
     margin-right: 16px;
     pointer-events: auto;
 }
@@ -1460,47 +1635,56 @@ body.manage-mode-active .task-checkbox-wrap .round-checkbox {
     z-index: 1; 
 }
 
-/* ================== 全局 Alpha Tooltip (极致液态毛玻璃增强版) ================== */
-#alphaTooltip {
-    position: fixed;
-    top: 0;
-    left: 0;
-    padding: 6px 12px;
-    
-    /* 1. 材质重塑: 大幅降低白色浓度 (从 0.65 降至 0.35), 让底层画面透过来 */
-    background: rgba(255, 255, 255, 0.65);
-    
-    /* 2. 景深增强: 提升模糊半径至 24px, 并拉高 200% 的色彩饱和度, 形成“丁达尔折射” */
-    backdrop-filter: blur(24px) saturate(200%);
-    -webkit-backdrop-filter: blur(24px) saturate(200%);
-    
-    /* 3. 物理切边: 四周使用半透明边框, 但顶部保留高亮, 模拟顶光打在玻璃边缘 */
-    border: 1px solid rgba(255, 255, 255, 0.4);
-    border-top-color: rgba(255, 255, 255, 0.85); 
-    
-    /* 4. 体积光影: 外侧加深悬浮投影, 内部注入两层发光感（边缘锐利折射 + 内部柔和泛光） */
-    box-shadow: 
-        0 8px 24px rgba(15, 23, 42, 0.12),         /* 更具浮空感的外阴影 */
-        inset 0 1px 1px rgba(255, 255, 255, 0.9),  /* 顶部边缘的极限高光 */
-        inset 0 0 12px rgba(255, 255, 255, 0.4);   /* 玻璃内部的均匀泛光厚度 */
-        
-    border-radius: var(--radius-sm);
-    font-size: 12px;
-    color: var(--text, #0f172a);
-    font-weight: 500;
-    pointer-events: none;
-    z-index: 10000;
-    opacity: 0;
-    transform: translateY(6px) scale(0.94);
-    transition: opacity 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), 
-                transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-    will-change: transform, opacity, left, top;
-    white-space: nowrap;
+/* =================================================================
+   修复换行溢出：终极单行省略号与 Flex 防线 (全域 DOM 兼容)
+================================================================= */
+/* 1. 给所有时间轴卡片和中间层加上“防撑爆装甲”，这是 Flex 布局下省略号生效的前提！ */
+.timeline-card, .task-card, .timeline-item,
+.timeline-card > div, .task-card > div,
+.timeline-content, .task-info, .card-main {
+    min-width: 0 !important; 
+    overflow: visible !important; 
 }
 
-#alphaTooltip.visible {
-    opacity: 1;
-    transform: translateY(0) scale(1);
+/* 2. 广域锁定一切可能作为标题的元素，一律强行按死在单行并出省略号 */
+.task-title, .title, .timeline-title, .item-title, 
+.strike-container, .task-name {
+    display: block !important; 
+    max-width: 100% !important;
+    min-width: 0 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
+/* 3. 如果标题内部带了 span，让 span 穿透继承截断能力 */
+.task-title span, .title span, .timeline-title span, 
+.strike-container span, .task-name span {
+    display: inline-block !important;
+    max-width: 100% !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    vertical-align: middle;
+    pointer-events: none; /* 屏蔽文字干扰，让容器完整接收事件 */
+}
+
+/* 4. 跑马灯滚动期间解除宽度锁与省略号，展露完整文字原貌 */
+.is-scrolling .task-title, .is-scrolling.task-title,
+.is-returning .task-title, .is-returning.task-title {
+    overflow: hidden !important;
+    -webkit-mask-image: linear-gradient(to right, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%) !important;
+    mask-image: linear-gradient(to right, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%) !important;
+}
+
+.is-scrolling .task-title span, .is-scrolling.task-title span,
+.is-returning .task-title span, .is-returning.task-title span {
+    text-overflow: clip !important;
+    max-width: none !important; /* 让文字自由舒展以便 transform 滑动 */
+    overflow: visible !important;
+    -webkit-mask-image: none !important;
+    mask-image: none !important;
+    will-change: transform; /* 强制开启 GPU 硬件加速 */
 }
 </style>
 </head>
@@ -1677,8 +1861,157 @@ body.manage-mode-active .task-checkbox-wrap .round-checkbox {
     </main>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+window.updateLiquidStat = function(el, newHTML) {
+    if (!el) return;
+    newHTML = String(newHTML);
+    if (el.dataset.rawHtml === newHTML) return;
+
+    // 首次初始化无动画静默组装
+    if (!el.dataset.rawHtml) {
+        el.dataset.rawHtml = newHTML;
+        el.innerHTML = newHTML;
+        wrapTextNodes(el);
+        return;
+    }
+
+    el.dataset.rawHtml = newHTML;
+    el.style.position = 'relative'; // 为剥离 DOM 准备绝对定位环境
+
+    // 【智能分词】将数字、符号、中文、字母打散并用 span 独立包裹
+    function wrapTextNodes(container) {
+        function walk(node) {
+            if (node.nodeType === 3) {
+                const text = node.textContent;
+                const parts = text.split(/(\d+|[a-zA-Z]+|[\u4e00-\u9fa5]+|\s+|[^\d\w\u4e00-\u9fa5\s]+)/).filter(p => p.length > 0);
+                if (parts.length > 0) {
+                    const frag = document.createDocumentFragment();
+                    parts.forEach(p => {
+                        const span = document.createElement('span');
+                        span.className = 'liquid-part';
+                        span.textContent = p;
+                        span.dataset.val = p;
+                        if (p.trim() === '') span.style.whiteSpace = 'pre';
+                        frag.appendChild(span);
+                    });
+                    node.replaceWith(frag);
+                }
+            } else if (node.nodeType === 1 && !node.classList.contains('liquid-part')) {
+                Array.from(node.childNodes).forEach(walk);
+            }
+        }
+        Array.from(container.childNodes).forEach(walk);
+    }
+
+    let oldParts = Array.from(el.querySelectorAll('.liquid-part'));
+    if (oldParts.length === 0 && el.textContent.trim() !== '') {
+        wrapTextNodes(el);
+        oldParts = Array.from(el.querySelectorAll('.liquid-part'));
+    }
+
+    // 记录旧元素的物理座标与计算样式快照（锁死外观防止失真）
+    const oldRects = new Map();
+    const oldStyles = new Map();
+    oldParts.forEach((part, i) => {
+        const key = part.dataset.val + '_' + i;
+        part.dataset.key = key;
+        oldRects.set(key, part.getBoundingClientRect());
+        
+        // 关键安全防线：捕获它在原先环境（如标签内部）时的计算样式
+        const comp = window.getComputedStyle(part);
+        oldStyles.set(key, {
+            color: comp.color,
+            fontSize: comp.fontSize,
+            fontWeight: comp.fontWeight,
+            fontFamily: comp.fontFamily,
+            letterSpacing: comp.letterSpacing
+        });
+    });
+
+    // 虚拟渲染新 DOM
+    const tempContainer = document.createElement('div');
+    tempContainer.innerHTML = newHTML;
+    wrapTextNodes(tempContainer);
+    const newParts = Array.from(tempContainer.querySelectorAll('.liquid-part'));
+
+    newParts.forEach((part, i) => {
+        part.dataset.key = part.dataset.val + '_' + i;
+    });
+
+    const newKeys = new Set(newParts.map(p => p.dataset.key));
+    const leavingParts = oldParts.filter(p => !newKeys.has(p.dataset.key));
+
+    // 真正替换 DOM
+    el.innerHTML = '';
+    while (tempContainer.firstChild) {
+        el.appendChild(tempContainer.firstChild);
+    }
+
+    // 处理旧文字退场：下沉 + 模糊淡出 (防止影响新元素排版, 赋予绝对定位)
+    const containerRect = el.getBoundingClientRect();
+    leavingParts.forEach(part => {
+        const rect = oldRects.get(part.dataset.key);
+        const styleInfo = oldStyles.get(part.dataset.key);
+        if (rect && styleInfo) {
+            part.style.position = 'absolute';
+            part.style.left = (rect.left - containerRect.left) + 'px';
+            part.style.top = (rect.top - containerRect.top) + 'px';
+            part.style.width = rect.width + 'px';
+            part.style.height = rect.height + 'px';
+            part.style.margin = '0';
+            
+            // 核心修复：强行将之前快照中的字号颜色固化在当前 DOM 上，杜绝闪烁和突变
+            part.style.color = styleInfo.color;
+            part.style.fontSize = styleInfo.fontSize;
+            part.style.fontWeight = styleInfo.fontWeight;
+            part.style.fontFamily = styleInfo.fontFamily;
+            part.style.letterSpacing = styleInfo.letterSpacing;
+
+            part.classList.add('liquid-leave');
+            el.appendChild(part);
+            setTimeout(() => part.remove(), 400);
+        }
+    });
+
+    // 处理留存文字的 FLIP 平滑滑动与新文字的上浮动画
+    const currentNewParts = Array.from(el.querySelectorAll('.liquid-part:not(.liquid-leave)'));
+    currentNewParts.forEach(part => {
+        const key = part.dataset.key;
+        if (oldRects.has(key)) {
+            const oldRect = oldRects.get(key);
+            const newRect = part.getBoundingClientRect();
+            const dx = oldRect.left - newRect.left;
+            const dy = oldRect.top - newRect.top;
+            
+            if (dx !== 0 || dy !== 0) {
+                // FLIP 引擎：瞬间拉回旧座标，然后优雅释放送到新座标
+                part.style.transform = `translate(${dx}px, ${dy}px)`;
+                part.style.transition = 'none';
+                void part.offsetWidth; // 强制回流
+                requestAnimationFrame(() => {
+                    part.style.transition = 'transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)';
+                    part.style.transform = 'translate(0, 0)';
+                });
+            }
+        } else {
+            part.classList.add('liquid-enter');
+        }
+    });
+};
+
+(function renderEarlyUI() {
+    const d = new Date();
+    const dateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+    const parts = dateStr.split("-");
+    const html = `${parts[0]}<span class="faded-slash">/</span>${Number(parts[1])}<span class="faded-slash">/</span>${Number(parts[2])}`;
+    
+    const todayText = document.getElementById("todayText");
+    if (todayText) window.updateLiquidStat(todayText, html);
+})();
+</script>
+
+<script src="./assets/flatpickr.min.js"></script>
+<script src="./assets/chart.umd.min.js"></script>
 
 <script>
 const STORAGE_KEY = "taskflow_data";
@@ -1959,7 +2292,13 @@ function editTask(date,id) {
     cancelEditBtn.classList.remove("hidden");
     
     // 优化 2: 触发编辑后, 页面丝滑滚动到最顶端的表单处
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    const mainEl = document.querySelector('.main');
+    if (mainEl) {
+        const topPos = mainEl.getBoundingClientRect().top + window.scrollY - 24;
+        window.scrollTo({ top: topPos, behavior: 'smooth' });
+    } else {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
 }
 
 function cancelEdit() { clearInputs(); }
@@ -2283,7 +2622,373 @@ function renderAnalysis(tasks) {
     const focus = total===0 ? 0 : Math.round((1-prepare/total)*100);
     const focusBox = document.getElementById("focusAnalysis");
     if (focusBox) {
-        focusBox.innerHTML = `📊 专注效率: <b style="color:#0f172a;">${focus}%</b> &nbsp; | &nbsp; 🧩 准备时间: <b style="color:#0f172a;">${prepare} 分钟</b> &nbsp; | &nbsp; ⏱️ 总时间: <b style="color:#0f172a;">${total} 分钟</b>`;
+        // 给需要隐藏的文字包裹上专属的 class
+        focusBox.innerHTML = `📊 <span class="hide-on-mobile">专注效率: </span><b style="color:#0f172a;">${focus}%</b> &nbsp; | &nbsp; 🧩 <span class="hide-on-mobile">准备时间: </span><b style="color:#0f172a;">${prepare} 分钟</b> &nbsp; | &nbsp; ⏱️ <span class="hide-on-mobile">总时间: </span><b style="color:#0f172a;">${total} 分钟</b>`;
+    }
+}
+
+// ================= 终极物理指针拖拽引擎 (Pointer Events + FLIP 5.0 丝滑架构 + 边缘自动滚动) =================
+(function initAlphaDragEngine() {
+    // ========== 滚动状态管理（全局性能开关） ==========
+    window.__perf = window.__perf || {};
+    window.__perf.isScrolling = false;
+    let scrollTimeout = null;
+
+    function handleScrollStart() {
+        if (!window.__perf.isScrolling) {
+            window.__perf.isScrolling = true;
+        }
+        clearTimeout(scrollTimeout);
+        scrollTimeout = setTimeout(() => {
+            window.__perf.isScrolling = false;
+        }, 120);
+    }
+    window.addEventListener('scroll', handleScrollStart, { passive: true });
+
+    let dragCtx = null;
+    let dragPlaceholder = document.createElement('div');
+    dragPlaceholder.className = 'drag-placeholder';
+    
+    // 边缘自动滚动控制参数
+    let autoScrollRAF = null;
+    let edgeScrollSpeed = 0;
+    let lastMouseX = 0;
+    let lastMouseY = 0;
+
+    // 彻底接管原生拖拽，防止冲突
+    document.addEventListener('dragstart', (e) => {
+        if (e.target.closest('.task-card')) e.preventDefault();
+    });
+
+    // 【修复 ① & ②】：增加容器高度的平滑过渡，并将卡片避让曲线从“果冻回弹”降级为“极致平滑”
+    function flipDOM(container, domMutateFn) {
+        const cards = Array.from(container.querySelectorAll('.task-card:not(.is-dragging)'));
+        const oldRects = new Map();
+        cards.forEach(c => oldRects.set(c, c.getBoundingClientRect()));
+        
+        // 记录外层大 Panel 在突变前的高度
+        const oldHeight = container.getBoundingClientRect().height;
+
+        domMutateFn();
+        
+        // 记录大 Panel 在突变后的高度
+        const newHeight = container.getBoundingClientRect().height;
+        const heightDiff = oldHeight - newHeight;
+
+        // 1. 如果面板容器高度发生了改变（比如移到了列表最末尾引起了 margin 折叠变动），执行丝滑伸缩
+        if (Math.abs(heightDiff) > 1) {
+            container.animate([
+                { height: `${oldHeight}px` },
+                { height: `${newHeight}px` }
+            ], { duration: 300, easing: 'cubic-bezier(0.25, 1, 0.5, 1)' });
+        }
+        
+        // 2. 内部卡片执行极致平滑的避让补间
+        cards.forEach(c => {
+            const newRect = c.getBoundingClientRect();
+            const oldRect = oldRects.get(c);
+            if (!oldRect || !newRect) return;
+            const deltaY = oldRect.top - newRect.top;
+            if (deltaY !== 0) {
+                if (c.flipAnim) c.flipAnim.cancel();
+                // 使用丝滑缓动曲线，拒绝生硬和不适的抖动
+                c.flipAnim = c.animate([
+                    { transform: `translateY(${deltaY}px)` },
+                    { transform: `translateY(0)` }
+                ], { duration: 300, easing: 'cubic-bezier(0.25, 1, 0.5, 1)', fill: 'forwards' });
+            }
+        });
+    }
+
+    // 【修复 ③ 核心构件】：独立提取出的插队侦测算法，确保在“窗口自主滚动”时也能实时更新卡片位置
+    function updateSorting(clientX, clientY) {
+        if (!dragCtx || !dragCtx.isDragging) return;
+        const container = dragCtx.container;
+        
+        const draggableElements = [...container.querySelectorAll('.task-card:not(.is-dragging)')];
+        const afterElement = draggableElements.reduce((closest, child) => {
+            const box = child.getBoundingClientRect();
+            // 判定准星为卡片正中心
+            const offset = clientY - box.top - box.height / 2;
+            if (offset < 0 && offset > closest.offset) {
+                return { offset: offset, element: child };
+            } else {
+                return closest;
+            }
+        }, { offset: Number.NEGATIVE_INFINITY }).element;
+
+        const currentNextSibling = dragPlaceholder.nextElementSibling;
+
+        if (afterElement) {
+            if (currentNextSibling !== afterElement) {
+                flipDOM(container, () => container.insertBefore(dragPlaceholder, afterElement));
+            }
+        } else {
+            if (currentNextSibling !== null) {
+                flipDOM(container, () => container.appendChild(dragPlaceholder));
+            }
+        }
+    }
+
+    // 【修复 ③ 核心引擎】：物理变速滚动侦听器
+    function autoScrollLoop() {
+        if (!dragCtx || !dragCtx.isDragging) {
+            autoScrollRAF = null;
+            return;
+        }
+        if (edgeScrollSpeed !== 0) {
+            window.scrollBy(0, edgeScrollSpeed);
+            // ※ 关键：页面滚动会导致视口底下的元素全部位移，所以即使鼠标没动，也要再做一次穿透侦测！
+            updateSorting(lastMouseX, lastMouseY);
+        }
+        autoScrollRAF = requestAnimationFrame(autoScrollLoop);
+    }
+
+    document.addEventListener('pointerdown', (e) => {
+        if (e.button !== 0) return; 
+        if (window.__perf.isScrolling) return;
+        if (e.target.closest('button, input, textarea, label, .round-checkbox, .batch-check, .task-checkbox-wrap, .btn-compact, .action-btn')) return;
+
+        const card = e.target.closest('.task-card');
+        if (!card || card.classList.contains('is-dragging')) return;
+
+        const isTouch = e.pointerType === 'touch' || e.pointerType === 'pen';
+
+        dragCtx = {
+            card: card,
+            startX: e.clientX,
+            startY: e.clientY,
+            isDragging: false,
+            ticking: false,
+            isTouch: isTouch,
+            readyToDrag: !isTouch 
+        };
+
+        if (isTouch) {
+            dragCtx.touchTimer = setTimeout(() => {
+                if (dragCtx) {
+                    dragCtx.readyToDrag = true;
+                    if (dragCtx.card) {
+                        dragCtx.card.style.transform = 'scale(0.98)';
+                        dragCtx.card.style.transition = 'transform 0.2s var(--ease)';
+                    }
+                    if (navigator.vibrate) navigator.vibrate(50);
+                }
+            }, 250); 
+        }
+    });
+
+    document.addEventListener('pointermove', (e) => {
+        if (!dragCtx) return;
+
+        lastMouseX = e.clientX;
+        lastMouseY = e.clientY;
+
+        const dx = e.clientX - dragCtx.startX;
+        const dy = e.clientY - dragCtx.startY;
+
+        if (!dragCtx.isDragging) {
+            if (dragCtx.isTouch && !dragCtx.readyToDrag) {
+                if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
+                    clearTimeout(dragCtx.touchTimer);
+                    if (dragCtx.card) dragCtx.card.style.transform = '';
+                    dragCtx = null;
+                    return;
+                }
+            } else if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+                dragCtx.isDragging = true;
+                if (dragCtx.card) dragCtx.card.style.transform = ''; 
+                
+                const { card } = dragCtx;
+                const rect = card.getBoundingClientRect();
+                const container = card.parentNode;
+                const computedStyle = window.getComputedStyle(card);
+                
+                dragCtx.container = container;
+                dragCtx.origX = rect.left;
+                dragCtx.origY = rect.top;
+                
+                dragCtx.avatar = card.cloneNode(true);
+                
+                dragCtx.avatar.classList.remove('animating-in', 'drop-bounce');
+                dragCtx.avatar.style.setProperty('transition', 'none', 'important');
+                
+                dragCtx.avatar.style.position = 'fixed';
+                dragCtx.avatar.style.top = dragCtx.origY + 'px';
+                dragCtx.avatar.style.left = dragCtx.origX + 'px';
+                // 使用 important 防止移动端 CSS 横向挤爆
+                dragCtx.avatar.style.setProperty('width', rect.width + 'px', 'important');
+                dragCtx.avatar.style.setProperty('height', rect.height + 'px', 'important');
+                dragCtx.avatar.style.margin = '0';
+                dragCtx.avatar.style.zIndex = '99999';
+                dragCtx.avatar.style.pointerEvents = 'none';
+                dragCtx.avatar.style.boxSizing = 'border-box'; 
+                
+                dragCtx.avatar.style.boxShadow = '0 24px 64px rgba(15,23,42,0.18), inset 0 2px 4px rgba(255,255,255,1), inset 0 -1px 2px rgba(255,255,255,0.4)';
+                dragCtx.avatar.style.transformOrigin = 'center center';
+                dragCtx.avatar.style.willChange = 'transform'; 
+                
+                document.body.appendChild(dragCtx.avatar);
+
+                dragPlaceholder.style.height = rect.height + 'px';
+                dragPlaceholder.style.marginBottom = computedStyle.marginBottom;
+
+                flipDOM(container, () => {
+                    card.classList.remove('animating-in');
+                    card.classList.add('is-dragging'); 
+                    container.insertBefore(dragPlaceholder, card.nextSibling);
+                });
+
+                document.body.style.cursor = 'grabbing';
+            }
+        }
+
+        if (dragCtx.isDragging) {
+            // 阻断原生滚动避免干扰
+            if (e.cancelable) e.preventDefault(); 
+            
+            // 【修复 ③ 触发】：计算鼠标与窗口上下边缘的距离，赋予非线性滚动速率
+            const edgeThreshold = 80;
+            const maxSpeed = 16;
+            
+            if (lastMouseY < edgeThreshold) {
+                // 越靠近顶部边缘，负向移动越快
+                edgeScrollSpeed = -maxSpeed * (1 - lastMouseY / edgeThreshold);
+            } else if (lastMouseY > window.innerHeight - edgeThreshold) {
+                // 越靠近底部边缘，正向移动越快
+                edgeScrollSpeed = maxSpeed * (1 - (window.innerHeight - lastMouseY) / edgeThreshold);
+            } else {
+                // 停留在安全区，挂起滚动引擎
+                edgeScrollSpeed = 0;
+            }
+
+            // 按需启动滚动侦听管线
+            if (edgeScrollSpeed !== 0 && !autoScrollRAF) {
+                autoScrollRAF = requestAnimationFrame(autoScrollLoop);
+            }
+
+            if (!dragCtx.ticking) {
+                dragCtx.ticking = true;
+                requestAnimationFrame(() => {
+                    if (!dragCtx) return; 
+                    if (window.__perf.isScrolling && !dragCtx.isDragging) return;
+                    
+                    // 利用 translate3d 定位，与边缘滚动完美并联运行
+                    dragCtx.avatar.style.transform = `translate3d(${lastMouseX - dragCtx.startX}px, ${lastMouseY - dragCtx.startY}px, 0) scale(0.95)`;
+                    if (!window.__perf.isScrolling) {
+                        updateSorting(lastMouseX, lastMouseY);
+                    }
+                    
+                    dragCtx.ticking = false; 
+                });
+            }
+        }
+    });
+
+    const endDrag = (e) => {
+        if (!dragCtx) return;
+        
+        clearTimeout(dragCtx.touchTimer);
+        if (dragCtx.card && !dragCtx.isDragging) dragCtx.card.style.transform = '';
+        
+        // 扫尾清理：关闭所有的滚动监控与速度继承
+        edgeScrollSpeed = 0;
+        if (autoScrollRAF) {
+            cancelAnimationFrame(autoScrollRAF);
+            autoScrollRAF = null;
+        }
+
+        if (dragCtx.isDragging) {
+            const { card, container, avatar, origX, origY } = dragCtx;
+            document.body.style.cursor = '';
+
+            const targetRect = dragPlaceholder.getBoundingClientRect();
+            // 该算法天然兼容页面发生过了滚动的情况，由于 targetRect 与原固定座标的差值即等于当前的视口物理距离
+            const finalDx = targetRect.left - origX;
+            const finalDy = targetRect.top - origY;
+
+            avatar.style.transition = 'transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)';
+            avatar.style.transform = `translate3d(${finalDx}px, ${finalDy}px, 0) scale(0.95)`;
+
+            setTimeout(() => {
+                flipDOM(container, () => {
+                    card.classList.remove('is-dragging');
+                    if (dragPlaceholder.parentNode) {
+                        container.insertBefore(card, dragPlaceholder);
+                        container.removeChild(dragPlaceholder);
+                    }
+                });
+
+                if (avatar.parentNode) document.body.removeChild(avatar);
+
+                // 通过底层 API 呼出完美的着陆回弹
+                card.animate([
+                    { transform: 'scale(0.95)', opacity: 0.8 },
+                    { transform: 'scale(1.02)', opacity: 1, offset: 0.6 },
+                    { transform: 'scale(1)', opacity: 1 }
+                ], {
+                    duration: 400,
+                    easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)'
+                });
+
+                if(typeof saveReorderedTasks === 'function') saveReorderedTasks();
+            }, 250); 
+        }
+        dragCtx = null;
+    };
+
+    document.addEventListener('pointerup', endDrag);
+    document.addEventListener('pointercancel', endDrag);
+})();
+
+// ================= 安全兜底防线 =================
+// 暴力接管旧版 HTML 渲染残留的所有事件钩子，确保它们什么都不做且绝不报错导致页面白屏
+window.handleDragStart = function(e){ e.preventDefault(); };
+window.handleDragOver = function(e){ e.preventDefault(); };
+window.handleDragEnd = function(e){ e.preventDefault(); };
+
+
+function saveReorderedTasks() {
+    const modeEl = document.querySelector('input[name="viewType"]:checked');
+    const mode = modeEl ? modeEl.value : "day";
+    
+    // 逻辑防爆机制：仅允许在"当天"视图下持久化排序，防止多日期交织错位
+    if (mode !== 'day') return; 
+
+    const container = document.getElementById('taskList');
+    const currentCards = Array.from(container.querySelectorAll('.task-card'));
+    
+    // 从复选框提取真实的 task.id 阵列
+    const newOrderIds = currentCards.map(c => {
+        const checkbox = c.querySelector('.batch-check');
+        return checkbox ? checkbox.value : null;
+    }).filter(Boolean);
+
+    const date = dateInput.value || getToday();
+    const data = loadData();
+    if (data[date]) {
+        const taskMap = {};
+        data[date].forEach(t => taskMap[t.id] = t);
+
+        // 利用底层的排序依赖，重写 createdAt 伪时间戳即可持久化接管渲染顺序
+        const baseTime = Date.now() - (newOrderIds.length * 1000);
+        const reorderedTasks = newOrderIds.map((id, index) => {
+            const task = taskMap[id];
+            if (task) {
+                task.createdAt = baseTime + (index * 1000);
+                return task;
+            }
+            return null;
+        }).filter(Boolean);
+
+        // 捕捉遗漏或意外节点
+        const existingIds = new Set(newOrderIds);
+        data[date].forEach(t => {
+            if (!existingIds.has(t.id)) reorderedTasks.push(t);
+        });
+
+        data[date] = reorderedTasks;
+        saveData(data); // 写入数据库并自动触发多面板同步
     }
 }
 
@@ -2298,9 +3003,9 @@ function render() {
     const todayTasks = data[todayStr] || [];
     let todayTotal = 0;
     todayTasks.forEach(t => todayTotal += t.duration);
-    document.getElementById("todayText").innerHTML = formatDateHTML(todayStr);
-    document.getElementById("taskCount").textContent = todayTasks.length;
-    document.getElementById("totalTime").textContent = `${todayTotal} min`;
+    window.updateLiquidStat(document.getElementById("todayText"), formatDateHTML(todayStr));
+    window.updateLiquidStat(document.getElementById("taskCount"), todayTasks.length);
+    window.updateLiquidStat(document.getElementById("totalTime"), `${todayTotal} min`);
 
     // 右侧视图数据
     let tasks = [];
@@ -2321,19 +3026,25 @@ function render() {
                 const card = document.createElement("div");
                 card.className = "task-card timeline-card animating-in";
                 card.style.animationDelay = `${index * 0.05}s`;
+                
+                // 【修复 ②】赋予卡片拖拽物理引擎
+                card.draggable = true;
+                card.addEventListener('dragstart', handleDragStart);
+                card.addEventListener('dragover', handleDragOver);
+                card.addEventListener('dragend', handleDragEnd);
 
                 const formattedDateWithFadedSlash = formatDateHTML(task.date);
                 const recordDate = task.createdAt ? new Date(task.createdAt) : null;
                 const recordTimeStr = recordDate ? `${String(recordDate.getHours()).padStart(2, '0')}:${String(recordDate.getMinutes()).padStart(2, '0')}` : "--:--";
 
                 card.innerHTML = `
-                    <div style="display: flex; justify-content: space-between; align-items: stretch; gap: 24px; min-height: 110px;">
-                        <div style="display: flex; flex-direction: column; justify-content: center; gap: 14px; flex: 1;">
-                            <div style="display: flex; align-items: center;">
+                    <div style="display: flex; justify-content: space-between; align-items: stretch; gap: 24px; min-height: 110px; min-width: 0;">
+                        <div style="display: flex; flex-direction: column; justify-content: center; gap: 14px; flex: 1; min-width: 0;">
+                            <div style="display: flex; align-items: center; min-width: 0; max-width: 100%;">
                                 <div class="task-checkbox-wrap">
                                     <input type="checkbox" class="batch-check round-checkbox" value="${task.id}" data-date="${task.date}">
                                 </div>
-                                <div style="font-size: 22px; font-weight: 800; color: var(--monet-text); line-height: 1;">${task.name}</div>
+                                <div class="task-title" style="font-size: 22px; font-weight: 800; color: var(--monet-text); line-height: 1.2; flex: 1;"><span>${task.name}</span></div>
                             </div>
                             <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 10px; font-size: 14px; color: var(--monet-sub); font-weight: 600;">
                                 <span>📅 ${formattedDateWithFadedSlash}</span>
@@ -2383,8 +3094,8 @@ function render() {
         });
 
         // 更新统计面板
-        document.getElementById("showCount").textContent = tasks.length;
-        document.getElementById("showDuration").textContent = `${total} min`;
+        window.updateLiquidStat(document.getElementById("showCount"), tasks.length);
+        window.updateLiquidStat(document.getElementById("showDuration"), `${total} min`);
         
         // 视图日期标签
         let viewLabelHTML = "-";
@@ -2392,12 +3103,11 @@ function render() {
             const parts = current.split("-").map(Number);
             if (parts.length === 3) {
                 const [y, m, d] = parts;
-                const tagStyle = "display: inline-flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 800; color: var(--sub); background: rgba(15, 23, 42, 0.06); padding: 4px 10px; border-radius: 10px; vertical-align: middle; margin-left: 6px; margin-top: -4px;";
                 if (mode === "week") {
                     const weekNum = Math.ceil(d / 7);
-                    viewLabelHTML = `${y}<span class="faded-slash">/</span>${m} <span style="${tagStyle}">第 ${weekNum} 周</span>`;
+                    viewLabelHTML = `${y}<span class="faded-slash">/</span>${m} <span class="view-date-tag">第 ${weekNum} 周</span>`;
                 } else if (mode === "month") {
-                    viewLabelHTML = `${y}<span class="faded-slash">/</span>${m} <span style="${tagStyle}">月</span>`;
+                    viewLabelHTML = `${y}<span class="faded-slash">/</span>${m} <span class="view-date-tag">月</span>`;
                 } else {
                     viewLabelHTML = formatDateHTML(current);
                 }
@@ -2405,7 +3115,7 @@ function render() {
                 viewLabelHTML = formatDateHTML(current);
             }
         }
-        document.getElementById("viewDate").innerHTML = viewLabelHTML;
+        window.updateLiquidStat(document.getElementById("viewDate"), viewLabelHTML);
         
         renderAnalysis(tasks);
     });
@@ -2557,7 +3267,7 @@ document.addEventListener('input', (e) => {
     }
 });
 
-document.getElementById("todayText").innerHTML = formatDateHTML(getToday());
+window.updateLiquidStat(document.getElementById("todayText"), formatDateHTML(getToday()));
 setupAutoNext();
 
 taskName.addEventListener("input", autoCategory);
@@ -2738,33 +3448,6 @@ function showSelector(instance, type) {
     setTimeout(() => document.addEventListener('click', closeHandler), 10);
 }
 
-function forceTimeFormat(inputEl, wrapId) {
-    let val = inputEl.value.trim();
-    if (!val || val.includes(':')) return; 
-    
-    let raw = val.replace(/\D/g, "");
-    let h = 0, m = 0, valid = false;
-    if (raw.length === 3) {
-        h = parseInt(raw.slice(0, 1), 10);
-        m = parseInt(raw.slice(1, 3), 10);
-        valid = true;
-    } else if (raw.length === 4) {
-        h = parseInt(raw.slice(0, 2), 10);
-        m = parseInt(raw.slice(2, 4), 10);
-        valid = true;
-    }
-    
-    if (valid && h <= 23 && m <= 59) {
-        let formatted = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-        inputEl.value = formatted; 
-        
-        let wrapEl = document.getElementById(wrapId);
-        if (wrapEl && wrapEl._flatpickr) {
-            wrapEl._flatpickr.setDate(formatted, true);
-        }
-    }
-}
-
 function forceTimeFormat(instance, val) {
     if (!val) return false;
     let raw = val.replace(/\D/g, "");
@@ -2788,12 +3471,16 @@ const timeConfig = {
     wrap: true, clickOpens: false, position: "auto left", enableTime: true, 
     noCalendar: true, dateFormat: "H:i", time_24hr: true, disableMobile: true, allowInput: true, minuteIncrement: 1,
     onReady: function(selectedDates, dateStr, instance) {
+    instance.__rawTimeValue = "";
         
-        // 1. 终极防击穿事件拦截器
+        // 1. 终极防击穿事件拦截器 (修复 DOM Target 阶段同级穿透漏洞)
         const flatpickrEnterHook = function(e) {
+            // 安全屏障：仅拦截针对 input 框本体的键盘事件，不干扰包裹器内的其他操作（如点击图标）
+            if (e.target !== instance.input) return;
+
             if (e.key === 'Enter') {
                 e.preventDefault();
-                e.stopImmediatePropagation(); // 彻底阻断 Flatpickr 内部干预
+                e.stopPropagation(); // 替换原先的 stopImmediatePropagation，在父级切断下沉
                 
                 // 只有在键盘真正【按下】(keydown) 阶段才执行跳转, 彻底没收【弹起】(keyup) 阶段的穿透残影
                 if (e.type === 'keydown') {
@@ -2806,18 +3493,24 @@ const timeConfig = {
                     setTimeout(() => focusNextElement(e.target.id), 60);
                 }
             } else if (e.key !== 'Tab') {
-                // 依然保持对 "1222 -> 12:02" 篡改 bug 的绝对封杀
+                instance.__rawTimeValue = e.target.value;
                 e.stopImmediatePropagation();
             }
         };
 
-        // 确保在事件捕获阶段优先拿到绝对控制权
+        // 💡 核心魔法：将监听器挂载到 parentNode（父节点）上！
+        // 这样事件永远停留在真正的捕获阶段，绝对优先于 Flatpickr 绑定的原生目标阶段事件。
         ['input', 'keyup', 'keydown'].forEach(evt => {
-            instance.input.addEventListener(evt, flatpickrEnterHook, true);
+            instance.input.parentNode.addEventListener(evt, flatpickrEnterHook, true);
         });
 
-        instance.input.addEventListener('blur', function(e) { 
-            forceTimeFormat(instance, this.value); 
+        instance.input.addEventListener('blur', function() {
+            forceTimeFormat(
+                instance,
+                instance.__rawTimeValue || this.value
+            );
+
+            instance.__rawTimeValue = "";
         }, true);
     }
 };
@@ -3263,79 +3956,6 @@ window.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// ================= 全局毛玻璃 Tooltip 劫持引擎 =================
-window.addEventListener('DOMContentLoaded', () => {
-    // 1. 创建全局唯一的 Tooltip 玻璃面板
-    const tooltipNode = document.createElement('div');
-    tooltipNode.id = 'alphaTooltip';
-    document.body.appendChild(tooltipNode);
-
-    // 2. 利用事件委托, 监听全局的鼠标悬停（支持 JS 动态生成的元素）
-    document.addEventListener('mouseover', (e) => {
-        // 寻找当前鼠标下带有 title 或 data-tooltip 的最近元素
-        const target = e.target.closest('[title], [data-tooltip]');
-        if (!target) return;
-
-        // 核心: 瞬间没收原生 title, 防止浏览器自带的生硬黑框弹出来
-        if (target.hasAttribute('title')) {
-            target.setAttribute('data-tooltip', target.getAttribute('title'));
-            target.removeAttribute('title'); 
-        }
-
-        const tipText = target.getAttribute('data-tooltip');
-        if (tipText) {
-            tooltipNode.textContent = tipText;
-            tooltipNode.classList.add('visible');
-            updateTooltipPosition(e); // 立刻计算一次位置, 防止动画乱飞
-        }
-    });
-
-    // 3. 鼠标移动时, 玻璃板柔性跟随
-    let tooltipThrottleRAF = null;
-    document.addEventListener('mousemove', (e) => {
-        if (!tooltipNode.classList.contains('visible')) return;
-        if (tooltipThrottleRAF) cancelAnimationFrame(tooltipThrottleRAF);
-        tooltipThrottleRAF = requestAnimationFrame(() => {
-            updateTooltipPosition(e);
-        });
-    });
-
-    // 4. 离开时褪去
-    document.addEventListener('mouseout', (e) => {
-        const target = e.target.closest('[data-tooltip]');
-        if (target) {
-            tooltipNode.classList.remove('visible');
-        }
-    });
-
-    // 5. 点击时主动隐藏（防遮挡视线优化）
-    document.addEventListener('mousedown', () => {
-        tooltipNode.classList.remove('visible');
-    });
-
-    // 💡 定位计算函数（附带屏幕边缘防溢出系统）
-    function updateTooltipPosition(e) {
-        const offsetX = 14; // 距离鼠标的横向距离
-        const offsetY = 18; // 距离鼠标的纵向距离
-        
-        let x = e.clientX + offsetX;
-        let y = e.clientY + offsetY;
-
-        // 右侧边界碰撞检测: 如果超出版面, 就翻转到鼠标左侧
-        if (x + tooltipNode.offsetWidth > window.innerWidth) {
-            x = e.clientX - tooltipNode.offsetWidth - 8;
-        }
-        
-        // 底部边界碰撞检测: 如果超出底部, 就翻转到鼠标上方
-        if (y + tooltipNode.offsetHeight > window.innerHeight) {
-            y = e.clientY - tooltipNode.offsetHeight - 8;
-        }
-
-        tooltipNode.style.left = `${x}px`;
-        tooltipNode.style.top = `${y}px`;
-    }
-});
-
 // ================= 液态玻璃悬浮球: 拖拽 + 点击弹窗 =================
 window.addEventListener('DOMContentLoaded', function() {
     const sphere = document.getElementById('glassSphere');
@@ -3398,6 +4018,142 @@ window.addEventListener('DOMContentLoaded', function() {
     sphere.addEventListener('pointermove', onPointerMove);
     sphere.addEventListener('pointerup', onPointerUp);
     sphere.addEventListener('pointercancel', onPointerUp); // 防止丢失捕获
+});
+
+// ================= 智能跑马灯与阻尼回弹引擎 (全域结构自适应版) =================
+const scrollAnimMap = new WeakMap();
+const returnAnimMap = new WeakMap();
+
+document.addEventListener('mouseover', function(e) {
+    // 扩大捕获网，囊括所有 TaskFlow 可能使用的标题类名
+    const targetEl = e.target.closest('.task-title, .title, .timeline-title, .strike-container, .task-name');
+    if (!targetEl) return;
+
+    let container, scrollEl;
+    const innerSpan = targetEl.querySelector('span');
+    
+    // 【核心修复】：智能探查 DOM 结构
+    // 如果内部有 span，以 span 为滚动体；如果没有，直接滚动自身，借用父级当遮罩！
+    if (innerSpan) {
+        container = targetEl;
+        scrollEl = innerSpan;
+    } else {
+        container = targetEl.parentElement;
+        scrollEl = targetEl;
+        // 临时为父级加装溢出隐藏防线
+        container.style.overflow = 'hidden';
+        container.style.minWidth = '0';
+        scrollEl.style.display = 'inline-block'; // 解除 Block 的霸道撑满以便滚动
+    }
+
+    if (container.classList.contains('is-scrolling') || container.classList.contains('is-returning')) return;
+
+    if (!scrollEl.dataset.origText) scrollEl.dataset.origText = scrollEl.textContent.trim();
+    scrollEl.textContent = scrollEl.dataset.origText;
+
+    if (scrollEl.scrollWidth > scrollEl.clientWidth + 2) {
+        container.classList.remove('is-returning', 'is-resting');
+        container.classList.add('is-scrolling');
+
+        const existingReturn = returnAnimMap.get(scrollEl);
+        if (existingReturn) existingReturn.cancel();
+
+        const measureSpan = document.createElement('span');
+        measureSpan.style.visibility = 'hidden';
+        measureSpan.style.position = 'absolute';
+        measureSpan.style.whiteSpace = 'nowrap';
+        measureSpan.style.font = window.getComputedStyle(scrollEl).font;
+        const gapText = '\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0'; 
+        measureSpan.textContent = scrollEl.dataset.origText + gapText;
+        document.body.appendChild(measureSpan);
+        const shiftDist = measureSpan.getBoundingClientRect().width;
+        document.body.removeChild(measureSpan);
+
+        scrollEl.textContent = scrollEl.dataset.origText + gapText + scrollEl.dataset.origText;
+
+        scrollEl.animate([
+            { opacity: 0.4, filter: 'blur(3px)' },
+            { opacity: 1, filter: 'blur(0)' }
+        ], { duration: 350, easing: 'ease-out' });
+
+        const speed = 35; 
+        const tOut = shiftDist * speed; 
+        const tPause = 800; 
+        const totalT = tPause + tOut; 
+
+        const anim = scrollEl.animate([
+            { transform: 'translateX(0px)', offset: 0 },
+            { transform: 'translateX(0px)', offset: tPause / totalT },
+            { transform: `translateX(-${shiftDist}px)`, offset: 1 }
+        ], {
+            duration: totalT,
+            iterations: Infinity,
+            easing: 'linear'
+        });
+
+        scrollAnimMap.set(scrollEl, anim);
+    }
+});
+
+document.addEventListener('mouseout', function(e) {
+    const targetEl = e.target.closest('.task-title, .title, .timeline-title, .strike-container, .task-name');
+    if (!targetEl) return;
+
+    let container, scrollEl;
+    const innerSpan = targetEl.querySelector('span');
+    
+    if (innerSpan) {
+        container = targetEl;
+        scrollEl = innerSpan;
+    } else {
+        container = targetEl.parentElement;
+        scrollEl = targetEl;
+    }
+
+    if (e.relatedTarget && container.contains(e.relatedTarget)) return;
+
+    if (container.classList.contains('is-scrolling')) {
+        const anim = scrollAnimMap.get(scrollEl);
+        let currentX = 0;
+
+        if (anim) {
+            const currentTransform = window.getComputedStyle(scrollEl).transform;
+            if (currentTransform !== 'none') {
+                const match = currentTransform.match(/matrix\((.+)\)/);
+                if (match) currentX = parseFloat(match[1].split(', ')[4]);
+            }
+            anim.cancel();
+            scrollAnimMap.delete(scrollEl);
+        }
+
+        container.classList.remove('is-scrolling');
+        container.classList.add('is-returning');
+
+        const returnAnim = scrollEl.animate([
+            { transform: `translateX(${currentX}px)` },
+            { transform: 'translateX(0px)' }
+        ], {
+            duration: 500, 
+            easing: 'cubic-bezier(0.22, 1, 0.36, 1)' 
+        });
+        
+        returnAnim.onfinish = () => { 
+            scrollEl.style.transform = 'translateX(0px)'; 
+            
+            scrollEl.animate([
+                { opacity: 0.3, filter: 'blur(4px)' },
+                { opacity: 1, filter: 'blur(0)' }
+            ], { duration: 350, easing: 'ease-out' });
+
+            if (scrollEl.dataset.origText) scrollEl.textContent = scrollEl.dataset.origText; 
+            container.classList.remove('is-returning');
+            
+            container.classList.add('is-resting');
+            setTimeout(() => container.classList.remove('is-resting'), 300); 
+        };
+        
+        returnAnimMap.set(scrollEl, returnAnim);
+    }
 });
 </script>
 

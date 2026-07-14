@@ -22,6 +22,7 @@
     --monet-text: #2F354F;
     --monet-sub: #78829E;
     --monet-danger: #e3605d;
+    --monet-danger-text: #54201f;
     --monet-success: #0d4533c4;
     
     --glass: rgba(255, 255, 255, 0.35);
@@ -49,7 +50,7 @@
 
 * {
     margin: 0; padding: 0; box-sizing: border-box;
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", sans-serif;
+    font-family: 'OPPO Sans 4.0', -apple-system, BlinkMacSystemFont, "Segoe UI Variable", "SF Pro Display", "PingFang SC", "Microsoft YaHei", sans-serif;
     -webkit-tap-highlight-color: transparent; outline: none !important;
 }
 
@@ -157,16 +158,6 @@ body::after {
     animation: alphaPageIn 0.6s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-@media(max-width: 950px) {
-    .setup-layout { 
-        /* 加入 !important 强压拖拽生成的行内样式, 窄屏绝对单列 */
-        grid-template-columns: 1fr !important; 
-        gap: var(--spacing-main) !important;
-    }
-    .glass-resizer-bar {
-        display: none !important; /* 窄屏自动隐藏拖拽线 */
-    }
-}
 .panel {
     background: var(--glass); 
     border: 1px solid var(--glass-border);
@@ -177,6 +168,7 @@ body::after {
     padding: 32px !important;
     width: 100%; 
     position: relative; transition: all 0.4s var(--ease);
+    min-width: 0;
 }
 #timerPanel { 
     max-width: 680px; 
@@ -656,24 +648,24 @@ button:active { transform: scale(0.96) !important; }
     display: flex;
     flex-direction: column;
     
-    /* 强行将它的基础物理高度归零，彻底切断它向 Grid 父级上报内容高度的能力 */
-    height: 0 !important; 
+    /* 强行将它的基础物理高度归零, 彻底切断它向 Grid 父级上报内容高度的能力 */
+    height: 0; 
     
-    /* 它自己没有高度了，只能 100% 乖乖听从父级分配的高度（也就是左侧面板天然撑开的高度） */
+    /* 它自己没有高度了, 只能 100% 乖乖听从父级分配的高度（也就是左侧面板天然撑开的高度） */
     min-height: 100% !important; 
 }
 
 .hub-scroll-zone {
-    flex: 1; /* 动态撑满剩余空间，抛弃 calc(100vh - 140px) 的硬编码 */
-    min-height: 0; /* 配合 flex: 1，防止内部子元素撑爆容器 */
+    flex: 1; /* 动态撑满剩余空间, 抛弃 calc(100vh - 140px) 的硬编码 */
+    min-height: 0; /* 配合 flex: 1, 防止内部子元素撑爆容器 */
     overflow-y: auto;
     overflow-x: hidden;
     
-    /* 统一底部与两侧留白均为 32px，确保最后一张卡片边距视觉统一 */
+    /* 统一底部与两侧留白均为 32px, 确保最后一张卡片边距视觉统一 */
     padding: 8px 32px 32px 32px !important;
     margin: -8px -32px -32px -32px !important;
     
-    /* 修正通道渐隐遮罩：确保透明过渡区间仅限于底部 32px 负边距内，不再向上越界裁切正常的卡片内容 */
+    /* 修正通道渐隐遮罩: 确保透明过渡区间仅限于底部 32px 负边距内, 不再向上越界裁切正常的卡片内容 */
     -webkit-mask-image: linear-gradient(to bottom, 
         transparent 0px, 
         black 16px, 
@@ -1225,47 +1217,156 @@ body.alpha-menu-open .nav-click-catcher {
     z-index: 1; 
 }
 
-/* ================== 全局 Alpha Tooltip (极致液态毛玻璃增强版) ================== */
-#alphaTooltip {
-    position: fixed;
-    top: 0;
-    left: 0;
-    padding: 6px 12px;
-    
-    /* 1. 材质重塑: 大幅降低白色浓度 (从 0.65 降至 0.35), 让底层画面透过来 */
-    background: rgba(255, 255, 255, 0.65);
-    
-    /* 2. 景深增强: 提升模糊半径至 24px, 并拉高 200% 的色彩饱和度, 形成“丁达尔折射” */
-    backdrop-filter: blur(24px) saturate(200%);
-    -webkit-backdrop-filter: blur(24px) saturate(200%);
-    
-    /* 3. 物理切边: 四周使用半透明边框, 但顶部保留高亮, 模拟顶光打在玻璃边缘 */
-    border: 1px solid rgba(255, 255, 255, 0.4);
-    border-top-color: rgba(255, 255, 255, 0.85); 
-    
-    /* 4. 体积光影: 外侧加深悬浮投影, 内部注入两层发光感（边缘锐利折射 + 内部柔和泛光） */
-    box-shadow: 
-        0 8px 24px rgba(15, 23, 42, 0.12),         /* 更具浮空感的外阴影 */
-        inset 0 1px 1px rgba(255, 255, 255, 0.9),  /* 顶部边缘的极限高光 */
-        inset 0 0 12px rgba(255, 255, 255, 0.4);   /* 玻璃内部的均匀泛光厚度 */
-        
-    border-radius: var(--radius-sm);
-    font-size: 12px;
-    color: var(--text, #0f172a);
-    font-weight: 500;
-    pointer-events: none;
-    z-index: 10000;
-    opacity: 0;
-    transform: translateY(6px) scale(0.94);
-    transition: opacity 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), 
-                transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-    will-change: transform, opacity, left, top;
-    white-space: nowrap;
-}
-
 #alphaTooltip.visible {
     opacity: 1;
     transform: translateY(0) scale(1);
+}
+
+/* =================================================================
+   动态折叠与响应式
+================================================================= */
+
+/* 1. 修复：正/倒计时切换时，输入框与外层面板的平滑伸缩动画 */
+#durationField {
+    max-height: 120px !important; /* 强制限定物理高度 */
+    opacity: 1 !important;
+    overflow: hidden !important;
+    margin-bottom: var(--spacing-card) !important;
+    padding-top: 2px !important; 
+    padding-bottom: 2px !important;
+    /* 阻尼感动画属性 */
+    transition: max-height 0.45s cubic-bezier(0.34, 1.56, 0.64, 1),
+                opacity 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+                margin-bottom 0.45s cubic-bezier(0.34, 1.56, 0.64, 1),
+                padding 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+
+#durationField:focus-within {
+    overflow: visible !important;
+}
+
+/* 核心魔法：强行接管 JS 的 .hidden 类，击穿原有的 display: none，转化为平滑坍塌 */
+#durationField.hidden {
+    display: flex !important; 
+    max-height: 0 !important;
+    opacity: 0 !important;
+    margin-bottom: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    pointer-events: none !important;
+    border: none !important;
+}
+
+/* 2. 950px 断点：解除网格封印，修复右侧卡片背景断裂 BUG */
+@media (max-width: 950px) {
+    .setup-layout { 
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 24px !important;
+        height: auto !important;
+    }
+    .glass-resizer-bar {
+        display: none !important; 
+    }
+    
+    /* 核心修复：解除 #hubPanel 里的 height: 0 !important 死亡锁死，让背景自然铺满 */
+    #hubPanel {
+        height: auto !important;
+        min-height: 200px !important;
+        flex: none !important;
+    }
+    
+    /* 废除 PC 端的底部渐变遮罩与负边距，释放卡片空间，杜绝卡片被截断 */
+    .hub-scroll-zone {
+        overflow: visible !important;
+        -webkit-mask-image: none !important;
+        mask-image: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        flex: none !important;
+    }
+}
+
+/* 3. 768px 断点：极限窄屏的留白拯救与防挤压 */
+@media (max-width: 768px) {
+    .main-container {
+        /* 强制同行排列，绝对不允许掉下去 */
+        flex-wrap: nowrap !important; 
+    }
+    body { padding: 16px !important; }
+    
+    /* 寻回 macOS 级内侧呼吸感留白 */
+    .panel { 
+        padding: 24px !important; 
+        width: 100% !important;
+        box-sizing: border-box !important;
+        min-width: 320px !important;
+    }
+    
+    /* 防止“倒计时铃声”上传按键群在手机上换行错乱 */
+    .field > div[style*="gap: 12px"] {
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+    }
+    
+    /* 同步优化“添加待办”中的卡片间距 */
+    .task-card {
+        padding: 20px !important;
+    }
+    
+    /* 计时器主界面的大圆环微缩，留出屏幕顶部空气感 */
+    .timer-circle-wrap {
+        transform: scale(0.9) !important;
+        margin: -10px auto 16px auto !important;
+    }
+}
+
+/* ===========================
+   文本截断与无缝跑马灯引擎
+=========================== */
+.marquee-container {
+    position: relative; 
+    display: inline-flex; 
+    align-items: center;
+    max-width: 100%; 
+    vertical-align: middle;
+}
+
+.marquee-container span { 
+    display: inline-block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    line-height: 1.2;
+    padding: 0;
+    vertical-align: middle; 
+    pointer-events: none; 
+}
+
+/* 渐隐边缘遮罩：防止滚动时文字越界突兀 */
+.marquee-container.is-scrolling,
+.marquee-container.is-returning {
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(to right, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%);
+}
+
+/* 释放宽度限制，开启 GPU 硬件加速进行物理滑动 */
+.marquee-container.is-scrolling span,
+.marquee-container.is-returning span {
+    text-overflow: clip;
+    max-width: none; 
+    overflow: visible;
+    -webkit-mask-image: none !important;
+    mask-image: none !important;
+    will-change: transform; 
+}
+
+/* 配合全局滚动优化：列表高速滚动时挂起跑马灯渲染 */
+.scrolling .marquee-container span {
+    transition: none !important;
+    animation-play-state: paused !important;
 }
 </style>
 </head>
@@ -1339,7 +1440,12 @@ body.alpha-menu-open .nav-click-catcher {
 
         <div class="field hidden" id="durationField">
             <label>倒计时时长 (分钟) </label>
-            <input type="number" id="targetMinutes" min="1" value="25" placeholder="默认25分钟">
+            <input type="number" id="targetMinutes" min="1" value="25" placeholder="默认 25 分钟">
+        </div>
+
+        <div class="field">
+            <label>拆分任务</label>
+            <input type="number" id="splitCount" min="2" placeholder="填写拆分段数, 不填则不拆分">
         </div>
         
         <div class="field" style="margin-top: 8px;">
@@ -1379,7 +1485,9 @@ body.alpha-menu-open .nav-click-catcher {
         <div style="width: 40px; height: 5px; background: rgba(15,23,42,0.12); border-radius: 3px;"></div>
     </div>
 
-    <div class="section-title" id="displayTaskName" style="color: #212121; margin-bottom: 16px; margin-top: 12px; text-align: center;">当前任务</div>
+    <div class="section-title marquee-container" id="displayTaskName" style="color: #212121; margin-bottom: 16px; margin-top: 12px; max-width: 100%; justify-content: center; display: flex;">
+        <span>当前任务</span>
+    </div>
     
     <div style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 20px;" id="displayCategories"></div>
     
@@ -1710,8 +1818,12 @@ function renderHubTasks() {
         htmlContent += `
             <div class="task-card-wrap" style="animation-delay: ${index * 0.06}s;">
                 <div class="task-card ${activeClass}" id="hub-card-${task.id}" onclick="selectHubTask('${task.id}')">
-                    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-                        <div style="font-weight: 800; color: var(--monet-text); font-size: 20px; line-height: 1.1;">${task.name}</div>
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div style="flex: 1; min-width: 0; display: flex; align-items: center; margin-right: 16px;">
+                            <div class="marquee-container" style="font-weight: 800; color: var(--monet-text); font-size: 20px; line-height: 1.2;">
+                                <span>${task.name}</span>
+                            </div>
+                        </div>
                         <div class="badge ${status.class}" style="flex-shrink: 0;">${status.label}</div>
                     </div>
                     
@@ -1752,9 +1864,13 @@ window.selectHubTask = function(taskId) {
         customCategoryInput.value = '';
         document.querySelectorAll(".subject-item input").forEach(cb => cb.checked = false);
         targetMinutesInput.value = '25';
+        
+        // 【精准修复】：清空输入框后，立即触发状态校验引擎，解除拆分限制
+        document.getElementById('splitCount').value = '';
+        checkSplitStatus(); 
+        
         return;
     }
-
     currentHubTaskId = task.id;
     taskNameInput.value = task.name;
     
@@ -1791,6 +1907,7 @@ window.selectHubTask = function(taskId) {
         isCountdown = false;
         durationField.classList.add('hidden');
     }
+    checkSplitStatus();
 }
 
 // ================= 智能启动探测 (Auto-Start) =================
@@ -1823,6 +1940,36 @@ const alarmAudio = new Audio();
 // 禁止浏览器在启动时去下载远程音频, 解除对全局 load 事件的死锁阻塞
 alarmAudio.preload = "none"; 
 alarmAudio.src = "https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3";
+
+let alarmPlayCount = 1;
+const MAX_PLAY_COUNT = 3;
+
+// 适配 iframe: 获取顶层 wrapper 的 electronAPI
+const electronAPI = window.electronAPI || window.top?.electronAPI || window.parent?.electronAPI;
+
+function stopAlarm() { 
+    alarmAudio.pause(); 
+    alarmAudio.currentTime = 0; 
+    alarmPlayCount = 1;
+}
+
+// 监听当前音频播放完毕，进行计数与重播
+alarmAudio.addEventListener('ended', () => {
+    if (alarmPlayCount < MAX_PLAY_COUNT) {
+        alarmPlayCount++;
+        alarmAudio.currentTime = 0; // 强制重置播放进度
+        alarmAudio.play().catch(e => console.error("音频重播被拦截:", e));
+    } else {
+        stopAlarm();
+    }
+});
+
+// 监听来自 Electron 主进程的“静音”事件 (通过通知卡片触发)
+if (electronAPI && electronAPI.onStopAlarm) {
+    electronAPI.onStopAlarm(() => {
+        stopAlarm();
+    });
+}
 
 const savedAudio = localStorage.getItem('custom_ringtone');
 const savedAudioName = localStorage.getItem('custom_ringtone_name');
@@ -1957,6 +2104,32 @@ function autoCategory() {
     });
 }
 
+// ====== 任务拆分状态检测引擎 ======
+function checkSplitStatus() {
+    const name = taskNameInput.value.trim();
+    const splitInput = document.getElementById('splitCount');
+    if (!splitInput) return;
+    
+    // 如果任务名末尾已经是 " - 数字" 格式，说明它是拆分产物，禁止再拆
+    if (/( - \d+)$/.test(name)) {
+        splitInput.value = '';
+        splitInput.disabled = true;
+        splitInput.placeholder = "已拆分任务不可再拆分";
+    } else {
+        splitInput.disabled = false;
+        splitInput.placeholder = "填写拆分段数 (如 3)，不填则不拆分";
+    }
+}
+
+// 绑定到手动输入事件
+taskNameInput.addEventListener("input", () => {
+    currentHubTaskId = null;
+    const activeCard = document.querySelector('.task-card.active-select');
+    if (activeCard) activeCard.classList.remove('active-select');
+    autoCategory();
+    checkSplitStatus(); // 触发检测
+});
+
 function getSelectedCategories() {
     const checked = Array.from(document.querySelectorAll(".subject-item input:checked")).map(cb => cb.value);
     const custom = customCategoryInput.value.split("+").map(v => v.trim()).filter(Boolean);
@@ -1977,7 +2150,7 @@ function formatHM(date) {
 }
 
 // 智能回车焦点流转
-const inputFlow = ["taskName", "customCategory", "targetMinutes"];
+const inputFlow = ["taskName", "customCategory", "splitCount", "targetMinutes"];
 function focusNextElement(currentId) {
     if (currentId === "customCategory" && !isCountdown) { startBtn.click(); return; }
     const currentIndex = inputFlow.indexOf(currentId);
@@ -2047,7 +2220,20 @@ startBtn.addEventListener('click', () => {
         ringProgressDanger.style.strokeDashoffset = "892"; 
     }
 
-    displayTaskName.textContent = name;
+    const splitVal = Math.floor(Number(document.getElementById('splitCount').value));
+    const isSplit = !document.getElementById('splitCount').disabled && splitVal > 1;
+    let displayName = name;
+    if (isSplit) {
+        displayName = `${name} - 1`;
+    }
+    const nameSpan = displayTaskName.querySelector('span');
+    if (nameSpan) {
+        nameSpan.textContent = displayName;
+        // 关键防撞机制：切换任务时清除缓存的旧文本，防止宽度计算沿用旧数据
+        nameSpan.removeAttribute('data-orig-text');
+    } else {
+        displayTaskName.textContent = displayName;
+    }
     
     const catContainer = document.getElementById('displayCategories');
     catContainer.innerHTML = '';
@@ -2132,6 +2318,23 @@ function startTimer() {
     const circumference = 892;
     let lastRenderedSeconds = -1;
 
+    // 新增后台兜底唤醒引擎
+    if (window.alphaBackgroundTimer) clearInterval(window.alphaBackgroundTimer);
+    const expectedEndTime = Date.now() + currentTimerMs;
+    
+    window.alphaBackgroundTimer = setInterval(() => {
+        if (!isRunning) {
+            clearInterval(window.alphaBackgroundTimer);
+            return;
+        }
+        // 若为倒计时, 且系统绝对时间已跨越结束时间 (给 200ms 容差避免与前台 rAF 抢活)
+        if (isCountdown && Date.now() >= expectedEndTime + 200) {
+            if (typeof window.alphaUpdateFrame === 'function') {
+                window.alphaUpdateFrame(); // 强制唤醒一帧，完成倒计时结算与弹窗
+            }
+        }
+    }, 1000);
+
     function updateFrame() {
         if (!isRunning) return;
         const now = Date.now();
@@ -2147,7 +2350,21 @@ function startTimer() {
                 ringProgressDangerEl.style.strokeDashoffset = circumference;
                 timerCircleWrapEl.classList.remove('danger-ring');
                 isRunning = false;
+
+                // 结算时销毁兜底定时器
+                if (window.alphaBackgroundTimer) clearInterval(window.alphaBackgroundTimer); 
+                
+                alarmPlayCount = 1; 
+                alarmAudio.currentTime = 0; 
                 try { alarmAudio.play(); } catch(e){}
+
+                // 触发 Electron 系统级静默通知 (通知标题与副标题已核对无误)
+                if (electronAPI && electronAPI.showAlarmNotification) {
+                    electronAPI.showAlarmNotification({
+                        title: `倒计时已结束`,
+                        body: document.getElementById('taskName').value.trim() || "专注任务"
+                    });
+                }
 
                 if (window.alphaPipWindow) {
                     window.alphaPipWindow.close();
@@ -2155,21 +2372,17 @@ function startTimer() {
                 }
                 // 兼容 iframe 层级, 正确获取父窗口的 electronAPI 实现置顶
                 const topAPI = window.electronAPI || window.parent?.electronAPI || window.top?.electronAPI;
-                if (topAPI && topAPI.bringMainToFront) {
-                    // 剥离 requestAnimationFrame 依赖, 改用 setTimeout, 确保最小化状态下仍能唤醒主窗口
-                    setTimeout(() => topAPI.bringMainToFront(), 10);
-                }
                 overtimeSeconds = 0;
                 if (overtimeInterval) clearInterval(overtimeInterval);
 
                 const baseMsg = "倒计时结束! 可以点击「完成并记录」归档此次专注了";
                 const overtimeHtml = `
                     <div style="margin-top: 16px; padding: 12px; background: rgba(227, 96, 93, 0.08); border-radius: var(--radius-element); border: 1px solid rgba(227, 96, 93, 0.3); box-shadow: inset 0 1px 2px rgba(255,255,255,0.5);">
-                        <span id="overtimeDisplay" style="color: var(--monet-text); font-weight: 800; font-size: 16px; font-variant-numeric: tabular-nums;">已超时 0 分 0 秒</span>
+                        <span id="overtimeDisplay" style="color: var(--monet-danger-text); font-weight: 800; font-size: 16px; font-variant-numeric: tabular-nums;">已超时 0 分 0 秒</span>
                     </div>
                 `;
 
-                // 传入回调函数：当用户点击"我知道了"，执行 stopAlarm 并停止超时计时
+                // 传入回调函数: 当用户点击"我知道了", 执行 stopAlarm 并停止超时计时
                 customAlert(baseMsg + overtimeHtml, "专注完成", "🎉", () => {
                     stopAlarm();
                     if (overtimeInterval) {
@@ -2178,7 +2391,7 @@ function startTimer() {
                     }
                 });
 
-                // 启动后台超时读秒引擎，直接操控 DOM 节点进行无感刷新
+                // 启动后台超时读秒引擎, 直接操控 DOM 节点进行无感刷新
                 overtimeInterval = setInterval(() => {
                     overtimeSeconds++;
                     const display = document.getElementById('overtimeDisplay');
@@ -2246,6 +2459,7 @@ safePauseBtn.onclick = () => {
     if (isRunning) {
         isRunning = false;
         cancelFrame(animationFrameId);
+        if (window.alphaBackgroundTimer) clearInterval(window.alphaBackgroundTimer); 
         safePauseBtn.textContent = "继续";
         safePauseBtn.classList.replace("secondary", "primary");
     } else {
@@ -2254,6 +2468,8 @@ safePauseBtn.onclick = () => {
 };
 
 safeCancelBtn.onclick = () => {
+    isRunning = false; 
+    if (window.alphaBackgroundTimer) clearInterval(window.alphaBackgroundTimer); 
     stopAlarm();
     /* 清空超时计时器 */
     if (overtimeInterval) {
@@ -2287,6 +2503,8 @@ safeCancelBtn.onclick = () => {
 };
 
 safeFinishBtn.onclick = () => {
+    isRunning = false; 
+    if (window.alphaBackgroundTimer) clearInterval(window.alphaBackgroundTimer); 
     stopAlarm();
     cancelFrame(animationFrameId);
 
@@ -2312,16 +2530,23 @@ safeFinishBtn.onclick = () => {
     let actualSeconds = isCountdown ? (targetSeconds - secondsElapsed + overtimeSeconds) : secondsElapsed;
     let actualMinutes = Math.max(1, Math.round(actualSeconds / 60));
 
+let baseName = document.getElementById('taskName').value.trim() || "未命名专注任务";
+    const splitVal = Math.floor(Number(document.getElementById('splitCount').value));
+    const isSplit = !document.getElementById('splitCount').disabled && splitVal > 1;
+
+    let recordName = baseName;
+    if (isSplit) recordName = `${baseName} - 1`; // 若拆分，本次计为第一段
+
     const taskData = {
         id: currentHubTaskId || window.crypto?.randomUUID?.() || String(Date.now()),
         createdAt: Date.now(),
         date: getTodayString(),
-        name: document.getElementById('taskName').value.trim() || "未命名专注任务", 
+        name: recordName,
         category: getSelectedCategories(),
         duration: actualMinutes,
         start: formatHM(realStartTime),
         end: formatHM(realEndTime),
-        remark: "通过 TaskTimer 记录"
+        remark: isSplit ? "任务拆分 (1阶段) - 通过 TaskTimer 记录" : "通过 TaskTimer 记录"
     };
 
     let allData = {};
@@ -2332,22 +2557,62 @@ safeFinishBtn.onclick = () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(allData));
 
     let crossHubMsg = "";
-    if (currentHubTaskId) {
-        try {
-            let thData = JSON.parse(localStorage.getItem(TASKHUB_KEY) || "[]");
+    try {
+        let thData = JSON.parse(localStorage.getItem(TASKHUB_KEY) || "[]");
+        let mappingData = JSON.parse(localStorage.getItem('alpha_task_mapping') || '{}');
+        let thChanged = false;
+
+        // 1. 处理原本绑定的任务（划除原计划）
+        let originalListId = 'default';
+        let originalPriority = 'Medium';
+        let originalStart = '', originalEnd = '';
+
+        if (currentHubTaskId) {
             let targetTask = thData.find(t => t.id === currentHubTaskId);
             if (targetTask) {
                 targetTask.isCompleted = true;
-                localStorage.setItem(TASKHUB_KEY, JSON.stringify(thData));
+                originalPriority = targetTask.priority || 'Medium';
+                originalStart = targetTask.start || '';
+                originalEnd = targetTask.end || '';
+                thChanged = true;
                 crossHubMsg = "<br><span style='color: var(--monet-text); font-weight:800;'>TaskHub 中的原计划已自动划去</span>";
             }
-        } catch(e) { console.error("同步至 TaskHub 失败", e); }
-    }
+            if (mappingData[currentHubTaskId]) {
+                originalListId = mappingData[currentHubTaskId][0];
+            }
+        }
+
+        // 2. 核心拆分引擎：在 TaskHub 生成剩余的 N-1 个任务
+        if (isSplit) {
+            for (let i = 2; i <= splitVal; i++) {
+                let newId = "split_" + Date.now() + "_" + i + "_" + Math.floor(Math.random() * 1000);
+                let newTask = {
+                    id: newId,
+                    name: `${baseName} - ${i}`,
+                    subject: getSelectedCategories(),
+                    priority: originalPriority,
+                    start: originalStart,
+                    end: originalEnd,
+                    remark: "由 TaskTimer 自动拆分生成",
+                    isCompleted: false
+                };
+                thData.push(newTask);
+                mappingData[newId] = [originalListId]; // 维持与原任务同样的看板归属
+            }
+            localStorage.setItem('alpha_task_mapping', JSON.stringify(mappingData));
+            thChanged = true;
+            crossHubMsg += `<br><span style='color: var(--monet-text); font-weight:800;'>已在 TaskHub 生成剩余 ${splitVal - 1} 个阶段任务</span>`;
+        }
+
+        if (thChanged) localStorage.setItem(TASKHUB_KEY, JSON.stringify(thData));
+    } catch(e) { console.error("同步至 TaskHub 失败", e); }
 
     customAlert(`共专注 ${actualMinutes} 分钟, 已自动同步至 TaskFlow${crossHubMsg}`, '记录成功', '🎉');
 
     document.getElementById('taskName').value = '';
     document.getElementById('customCategory').value = '';
+    document.getElementById('splitCount').value = ''; 
+    checkSplitStatus();
     document.querySelectorAll(".subject-item input").forEach(cb => cb.checked = false);
     currentHubTaskId = null;
 
@@ -2877,6 +3142,152 @@ timerRadios.forEach((radio, index) => {
     });
 });
 
+// ================= 智能跑马灯与阻尼回弹引擎 (移植版) =================
+const scrollAnimMap = new WeakMap();
+const returnAnimMap = new WeakMap();
+
+document.addEventListener('mouseover', function(e) {
+    // 感应我们刚刚设置的 marquee-container
+    const container = e.target.closest('.marquee-container');
+    if (!container) return;
+    const span = container.querySelector('span');
+    if (!span) return;
+
+    if (container.classList.contains('is-scrolling') || container.classList.contains('is-returning')) return;
+
+    if (!span.dataset.origText) span.dataset.origText = span.textContent;
+    span.textContent = span.dataset.origText; // 测量前确保是干净的单倍文本
+
+    // 只有当文本真实宽度被截断时，才触发引擎
+    if (span.scrollWidth > span.clientWidth + 2) {
+        container.classList.remove('is-returning', 'is-resting');
+        container.classList.add('is-scrolling');
+
+        const existingReturn = returnAnimMap.get(span);
+        if (existingReturn) existingReturn.cancel();
+
+        // 1. 测量位移距离
+        const measureSpan = document.createElement('span');
+        measureSpan.style.visibility = 'hidden';
+        measureSpan.style.position = 'absolute';
+        measureSpan.style.whiteSpace = 'nowrap';
+        measureSpan.style.font = window.getComputedStyle(span).font;
+        const gapText = '\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0'; // 8个空格的视差缓冲区
+        measureSpan.textContent = span.dataset.origText + gapText;
+        document.body.appendChild(measureSpan);
+        const shiftDist = measureSpan.getBoundingClientRect().width;
+        document.body.removeChild(measureSpan);
+
+        // 2. 双重文本克隆拼接，达成无缝衔接
+        span.textContent = span.dataset.origText + gapText + span.dataset.origText;
+
+        // 3. 进入缓冲遮罩
+        span.animate([
+            { opacity: 0.4, filter: 'blur(3px)' },
+            { opacity: 1, filter: 'blur(0)' }
+        ], { duration: 350, easing: 'ease-out' });
+
+        const speed = 35; 
+        const tOut = shiftDist * speed; 
+        const tPause = 800; // 注视 0.8s 后起跑
+        const totalT = tPause + tOut; 
+
+        // 4. 发动无尽循环轨道
+        const anim = span.animate([
+            { transform: 'translateX(0px)', offset: 0 },
+            { transform: 'translateX(0px)', offset: tPause / totalT },
+            { transform: `translateX(-${shiftDist}px)`, offset: 1 }
+        ], {
+            duration: totalT,
+            iterations: Infinity,
+            easing: 'linear'
+        });
+
+        scrollAnimMap.set(span, anim);
+    }
+});
+
+document.addEventListener('mouseout', function(e) {
+    const container = e.target.closest('.marquee-container');
+    if (!container) return;
+    if (e.relatedTarget && container.contains(e.relatedTarget)) return;
+
+    const span = container.querySelector('span');
+    if (!span) return;
+
+    if (container.classList.contains('is-scrolling')) {
+        const anim = scrollAnimMap.get(span);
+        let currentX = 0;
+
+        // 获取并冻结当前轨道位置
+        if (anim) {
+            const currentTransform = window.getComputedStyle(span).transform;
+            if (currentTransform !== 'none') {
+                const match = currentTransform.match(/matrix\((.+)\)/);
+                if (match) currentX = parseFloat(match[1].split(', ')[4]);
+            }
+            anim.cancel();
+            scrollAnimMap.delete(span);
+        }
+
+        container.classList.remove('is-scrolling');
+        container.classList.add('is-returning');
+
+        // 触发 macOS 级物理阻尼回弹
+        const returnAnim = span.animate([
+            { transform: `translateX(${currentX}px)` },
+            { transform: 'translateX(0px)' }
+        ], {
+            duration: 500, 
+            easing: 'cubic-bezier(0.22, 1, 0.36, 1)' 
+        });
+        
+        returnAnim.onfinish = () => { 
+            span.style.transform = 'translateX(0px)'; 
+            span.animate([
+                { opacity: 0.3, filter: 'blur(4px)' },
+                { opacity: 1, filter: 'blur(0)' }
+            ], { duration: 350, easing: 'ease-out' });
+
+            if (span.dataset.origText) span.textContent = span.dataset.origText; 
+            container.classList.remove('is-returning');
+            
+            container.classList.add('is-resting');
+            setTimeout(() => container.classList.remove('is-resting'), 300); 
+        };
+        
+        returnAnimMap.set(span, returnAnim);
+    }
+});
+
+// ========== 添加配套的滚动性能优化 ==========
+// 防止右侧待办列表在急速滚动时频繁触发重排
+let isFastScrolling = false;
+let scrollTimer = null;
+let scrollFramePending = false;
+
+function handleScrollEvent() {
+    if (!scrollFramePending) {
+        scrollFramePending = true;
+        requestAnimationFrame(() => {
+            isFastScrolling = true;
+            document.body.classList.add('scrolling');
+            clearTimeout(scrollTimer);
+            scrollTimer = setTimeout(() => {
+                isFastScrolling = false;
+                document.body.classList.remove('scrolling');
+            }, 120);
+            scrollFramePending = false;
+        });
+    }
+}
+
+document.querySelectorAll('.hub-scroll-zone').forEach(el => {
+    el.addEventListener('scroll', handleScrollEvent, { passive: true });
+    el.addEventListener('touchmove', handleScrollEvent, { passive: true });
+    el.addEventListener('wheel', handleScrollEvent, { passive: true });
+});
+
 // ================= 全局页面切换动效拦截引擎 V3 =================
 window.addEventListener('DOMContentLoaded', () => {
     // 不再干预动画, 让动画自然完成
@@ -2901,75 +3312,34 @@ window.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// ================= 全局毛玻璃 Tooltip 劫持引擎 =================
-window.addEventListener('DOMContentLoaded', () => {
-    // 1. 创建全局唯一的 Tooltip 玻璃面板
-    const tooltipNode = document.createElement('div');
-    tooltipNode.id = 'alphaTooltip';
-    document.body.appendChild(tooltipNode);
-
-    // 2. 利用事件委托, 监听全局的鼠标悬停（支持 JS 动态生成的元素）
-    document.addEventListener('mouseover', (e) => {
-        // 寻找当前鼠标下带有 title 或 data-tooltip 的最近元素
-        const target = e.target.closest('[title], [data-tooltip]');
-        if (!target) return;
-
-        // 核心: 瞬间没收原生 title, 防止浏览器自带的生硬黑框弹出来
-        if (target.hasAttribute('title')) {
-            target.setAttribute('data-tooltip', target.getAttribute('title'));
-            target.removeAttribute('title'); 
-        }
-
-        const tipText = target.getAttribute('data-tooltip');
-        if (tipText) {
-            tooltipNode.textContent = tipText;
-            tooltipNode.classList.add('visible');
-            updateTooltipPosition(e); // 立刻计算一次位置, 防止动画乱飞
-        }
-    });
-
-    // 3. 鼠标移动时, 玻璃板柔性跟随
-    let tooltipRafId = null;
-    document.addEventListener('mousemove', (e) => {
-        const target = e.target.closest('[data-tooltip]');
-        if (!target) {
-            // 鼠标不在任何触发元素上, 隐藏 Tooltip
-            tooltipNode.classList.remove('visible');
-            return;
-        }
-        if (!tooltipNode.classList.contains('visible')) return;
-        if (tooltipRafId !== null) return;            // 上一帧尚未执行, 跳过
-        tooltipRafId = requestAnimationFrame(() => {
-            updateTooltipPosition(e);
-            tooltipRafId = null;
-        });
-    });
-
-    // 5. 点击时主动隐藏（防遮挡视线优化）
-    document.addEventListener('mousedown', () => {
-        tooltipNode.classList.remove('visible');
-    });
-
-    // 💡 定位计算函数（附带屏幕边缘防溢出系统）
-    function updateTooltipPosition(e) {
-        const offsetX = 14; // 距离鼠标的横向距离
-        const offsetY = 18; // 距离鼠标的纵向距离
+// ================= 全局背景双击全屏引擎 (仅限计时器开启状态) =================
+document.addEventListener('dblclick', (e) => {
+    const timerPanelEl = document.getElementById('timerPanel');
+    const pipModal = document.getElementById('sphereModal');
+    
+    // 1. 判断：计时器面板必须处于激活显示状态（去掉了 hidden 类）
+    // 2. 判定：同时不能是在弹窗之上双击
+    if (!timerPanelEl.classList.contains('hidden') && 
+        (pipModal ? pipModal.classList.contains('hidden') : true)) {
         
-        let x = e.clientX + offsetX;
-        let y = e.clientY + offsetY;
-
-        // 右侧边界碰撞检测: 如果超出版面, 就翻转到鼠标左侧
-        if (x + tooltipNode.offsetWidth > window.innerWidth) {
-            x = e.clientX - tooltipNode.offsetWidth - 8;
+        // 3. 判断：双击的目标不能是 timerPanel 本身，也不能在 timerPanel 内部（即纯净的背景区域）
+        if (!timerPanelEl.contains(e.target)) {
+            
+            // 4. 执行原生的毛玻璃沉浸全屏切换
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.warn('ALPHA 全屏请求被拒绝:', err);
+                });
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+            
+            // 5. 体验优化：清除双击背景时浏览器默认的蓝色文本选中高光，保持视觉极简
+            e.preventDefault();
+            window.getSelection().removeAllRanges();
         }
-        
-        // 底部边界碰撞检测: 如果超出底部, 就翻转到鼠标上方
-        if (y + tooltipNode.offsetHeight > window.innerHeight) {
-            y = e.clientY - tooltipNode.offsetHeight - 8;
-        }
-
-        tooltipNode.style.left = `${x}px`;
-        tooltipNode.style.top = `${y}px`;
     }
 });
 </script>
@@ -2983,7 +3353,7 @@ window.addEventListener('DOMContentLoaded', () => {
         <h3 style="margin-bottom: 12px; color: #0f172a; font-size: 20px;">使用提示</h3>
         <div style="color: #64748b; font-size: 15px; line-height: 1.8; margin-bottom: 24px;">
             欢迎使用 TaskTimer: <br>
-            • <b>数据深层联动</b>: 不仅会自动生成复盘记录至 TaskFlow, 一旦专注结束, 还会自动为您将 TaskHub 内的原定计划“一笔划销”!
+            • <b>数据深层联动</b>: 不仅会自动生成复盘记录至 TaskFlow, 若专注结束, 还会自动将 TaskHub 内的原定计划“一笔勾销”
         </div>
         <button class="primary" style="width: 100% !important;" onclick="document.getElementById('sphereModal').classList.add('hidden')">我知道了</button>
     </div>

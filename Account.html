@@ -3,14 +3,34 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>账户 | Tasks</title>
+<title>账户</title>
 <link rel="icon" href="Account.ico" type="image/x-icon">
 <script src="https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/cropperjs@1.5.13/dist/cropper.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/cropperjs@1.5.13/dist/cropper.min.js"></script>
 <base href="./">
 <style>
 /* ================== 全局与色彩体系 ================== */
 ::selection { background-color: #d4ebff; color: #0f172a; }
 ::-moz-selection { background-color: #9DD2FF; color: #0f172a; }
+
+@font-face {
+    font-family: 'Monaspace Neon Var';
+    src: url('./fonts/Monaspace Neon Var.ttf') format('truetype');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+
+/* 中文字体回退 */
+@font-face {
+    font-family: 'OPPO Sans 4.0';
+    /* 建议对 URL 中的空格进行标准的 %20 转义，增加兼容性 */
+    src: url('./fonts/OPPO%20Sans%204.0.ttf') format('truetype');
+    font-weight: 1 999;
+    font-style: normal;
+    font-display: swap;
+}
 
 :root {
     --text:#0f172a; --sub:#64748b;
@@ -42,8 +62,10 @@
 
 * {
     margin: 0; padding: 0; box-sizing: border-box;
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", sans-serif;
     -webkit-tap-highlight-color: transparent; outline: none !important;
+}
+body, input, button, textarea, select {
+    font-family: 'OPPO Sans 4.0', -apple-system, BlinkMacSystemFont, "Segoe UI Variable", "SF Pro Display", "PingFang SC", "Microsoft YaHei", sans-serif;
 }
 
 html { scroll-behavior: smooth; }
@@ -76,21 +98,6 @@ body {
     overflow: hidden;
     background-color: #f2f5f9; /* 恢复你原版极其微弱的冷灰蓝底色 */
     pointer-events: none;
-}
-
-/* 真正的一抹微光 (极度克制的丁达尔斜射光) */
-.sunbeam {
-    position: absolute;
-    top: -10%;
-    right: -5%;
-    width: 35vw; /* 大幅缩小范围, 真的是“一抹” */
-    height: 80vh;
-    /* 极度降低透明度, 瞬间融入原本的冷色环境中 */
-    background: linear-gradient(155deg, rgba(255, 245, 225, 0.12) 0%, rgba(255, 235, 200, 0.03) 30%, transparent 55%);
-    transform-origin: top right;
-    filter: blur(60px);
-    will-change: transform, opacity;
-    animation: sunbeam-pulse 12s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* ================== 环境光优化版 ================== */
@@ -219,7 +226,7 @@ body::after {
 }
 
 .user-name-display { font-size: 28px; font-weight: 800; color: #0f172a; margin-bottom: 8px; display: flex; align-items: center; justify-content: center; gap: 8px;}
-.user-id-display { font-size: 14px; color: #64748b; font-weight: 600; font-family: monospace;}
+.user-id-display { font-size: 14px; color: #64748b; font-weight: 600; font-family: 'Monaspace Neon Var', 'OPPO Sans 4.0', monospace; }
 
 /* ================== 表单与输入 ================== */
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-card); }
@@ -563,10 +570,10 @@ button:active { transform: scale(0.96) !important; }
 /* ================== 同步模块 ================== */
 .sync-code-box {
     width: 100%; height: 120px; padding: 16px; 
-    border-radius: var(--radius-element); /* 👈 修正为 L3 圆角 */
+    border-radius: var(--radius-element); /* 修正为 L3 圆角 */
     border: 1px solid rgba(255, 255, 255, 0.62); background: rgba(255, 255, 255, 0.5);
     color: #0f172a;
-    font-family: "SF Mono", SFMono-Regular, Consolas, monospace; font-size: 13px; line-height: 1.5; 
+    font-family: 'Monaspace Neon Var', 'OPPO Sans 4.0', "SF Mono", SFMono-Regular, Consolas, monospace; font-size: 13px; line-height: 1.5;
     resize: none; margin-bottom: 16px; 
     word-break: break-all;
     overflow-y: auto; 
@@ -652,6 +659,110 @@ button:active { transform: scale(0.96) !important; }
 /* 彩带画布 */
 #confettiCanvas { position: fixed; inset: 0; pointer-events: none; z-index: 9999;}
 
+/* 裁切容器 (精细化 1:1 缩小版) */
+.crop-wrapper {
+    width: 300px;
+    height: 300px;
+    margin: 0 auto var(--spacing-card);
+    border-radius: var(--radius-element); /* 外层容器维持 L3 级规范圆角 */
+    overflow: hidden;
+    background: rgba(15, 23, 42, 0.04);
+    box-shadow: inset 0 2px 8px rgba(15, 23, 42, 0.08);
+    transform: translate3d(0, 0, 0); /* 强制开启独立复合层 */
+    position: relative;
+}
+.crop-wrapper img {
+    display: block;
+    max-width: 100%;
+}
+
+/* Cropper.js 极客白精细化重绘 (强制圆形与毛玻璃) */
+.cropper-view-box,
+.cropper-face {
+    border-radius: 50% !important; /* 【核心】将中心裁切选区强制削为圆形 */
+    outline: 2px solid rgba(255, 255, 255, 0.95) !important; /* 霜纯白发光边框 */
+}
+
+/* 隐藏自带的辅助虚线，但【保留】四个角的等比例裁切拖拽点 */
+.cropper-line { display: none !important; }
+
+/* 隐藏上下左右四个中间的拖拽点，防止非等比例拉伸破坏圆形 */
+.cropper-point.point-e, .cropper-point.point-n, .cropper-point.point-w, .cropper-point.point-s { 
+    display: none !important; 
+}
+
+/* 极致美化：苹果原生级 L 型裁切护角 (药丸状圆润结尾 + 更细小精致) */
+.cropper-point {
+    width: 16px !important;
+    height: 16px !important;
+    background-color: transparent !important;
+    opacity: 0.85 !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M22 2 L8 2 A6 6 0 0 0 2 8 L2 22' fill='none' stroke='%23ffffff' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
+    background-size: contain !important;
+    background-repeat: no-repeat !important;
+    background-position: center !important;
+    filter: drop-shadow(0 2px 5px rgba(15, 23, 42, 0.35)) !important;
+    /* 核心动效：注入 iOS 风格的弹性阻尼过渡动画，接管位置、透明度与缩放 */
+    transition: 
+        top 0.32s cubic-bezier(0.25, 1, 0.5, 1),
+        bottom 0.32s cubic-bezier(0.25, 1, 0.5, 1),
+        left 0.32s cubic-bezier(0.25, 1, 0.5, 1),
+        right 0.32s cubic-bezier(0.25, 1, 0.5, 1),
+        scale 0.32s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+        opacity 0.25s ease !important;
+}
+
+/* 利用 transform 旋转同一个高精度 SVG，完美贴合四个角 */
+.cropper-point.point-nw { top: -4px !important; left: -4px !important; transform: rotate(0deg) !important; }
+.cropper-point.point-ne { top: -4px !important; right: -4px !important; transform: rotate(90deg) !important; }
+.cropper-point.point-sw { bottom: -4px !important; left: -4px !important; transform: rotate(270deg) !important; }
+.cropper-point.point-se { bottom: -4px !important; right: -4px !important; transform: rotate(180deg) !important; }
+
+/* ================= 核心新增：触边激活动效逻辑 ================= */
+
+/* 当检测到贴边时，允许外层大圆角矩形溢出显示，确保外部能完整看到放大的 SVG */
+.crop-wrapper.edge-reached {
+    overflow: visible !important;
+}
+
+/* 释放内部容器限制 */
+.crop-wrapper.edge-reached .cropper-container {
+    overflow: visible !important;
+}
+
+/* 精准锁定底图层与毛玻璃层，强行为它们单独赋予圆角 */
+.crop-wrapper.edge-reached .cropper-wrap-box,
+.crop-wrapper.edge-reached .cropper-modal {
+    border-radius: var(--radius-element) !important;
+}
+
+/* 核心：只对图片层进行内部隐藏，完美削掉溢出的直角，而绝不切掉外面的 L 型护角 */
+.crop-wrapper.edge-reached .cropper-wrap-box {
+    overflow: hidden !important; 
+}
+
+/* 贴边时，提升护角的不透明度，并触发弹性放大 1.25 倍 */
+.crop-wrapper.edge-reached .cropper-point {
+    opacity: 1 !important;
+    scale: 1.25; /* 现代 CSS 独立缩放属性，绝不干扰原有的 transform 旋转 */
+    filter: drop-shadow(0 4px 10px rgba(15, 23, 42, 0.45)) !important;
+}
+
+/* 贴边时，让 4 个护角向外轻微弹射扩张 6px，完美包裹在 300x300 外层圆角矩形的物理边缘上方 */
+.crop-wrapper.edge-reached .cropper-point.point-nw { top: -10px !important; left: -10px !important; }
+.crop-wrapper.edge-reached .cropper-point.point-ne { top: -10px !important; right: -10px !important; }
+.crop-wrapper.edge-reached .cropper-point.point-sw { bottom: -10px !important; left: -10px !important; }
+.crop-wrapper.edge-reached .cropper-point.point-se { bottom: -10px !important; right: -10px !important; }
+
+.cropper-bg { background-image: none !important; background-color: transparent !important; }
+
+/* 【核心】利用原生的 modal 层，实现未选中区域的“淡淡毛玻璃模糊” */
+.cropper-modal {
+    background-color: rgba(255, 255, 255, 0.15) !important; /* 极浅的透白色 */
+    backdrop-filter: blur(4px) saturate(120%) !important; /* 淡淡的模糊与色彩加成 */
+    opacity: 1 !important;
+}
+
 /* ================== 响应式布局引擎 ================== */
 @media (max-width: 960px) {
     .app { 
@@ -713,48 +824,6 @@ button:active { transform: scale(0.96) !important; }
     z-index: 1; 
 }
 
-/* ================== 全局 Alpha Tooltip (极致液态毛玻璃增强版) ================== */
-#alphaTooltip {
-    position: fixed;
-    top: 0;
-    left: 0;
-    padding: 6px 12px;
-    
-    /* 1. 材质重塑: 大幅降低白色浓度 (从 0.65 降至 0.35), 让底层画面透过来 */
-    background: rgba(255, 255, 255, 0.65);
-    
-    /* 2. 景深增强: 提升模糊半径至 24px, 并拉高 200% 的色彩饱和度, 形成“丁达尔折射” */
-    backdrop-filter: blur(24px) saturate(200%);
-    -webkit-backdrop-filter: blur(24px) saturate(200%);
-    
-    /* 3. 物理切边: 四周使用半透明边框, 但顶部保留高亮, 模拟顶光打在玻璃边缘 */
-    border: 1px solid rgba(255, 255, 255, 0.4);
-    border-top-color: rgba(255, 255, 255, 0.85); 
-    
-    /* 4. 体积光影: 外侧加深悬浮投影, 内部注入两层发光感（边缘锐利折射 + 内部柔和泛光） */
-    box-shadow: 
-        0 8px 24px rgba(15, 23, 42, 0.12),         /* 更具浮空感的外阴影 */
-        inset 0 1px 1px rgba(255, 255, 255, 0.9),  /* 顶部边缘的极限高光 */
-        inset 0 0 12px rgba(255, 255, 255, 0.4);   /* 玻璃内部的均匀泛光厚度 */
-        
-    border-radius: var(--radius-sm);
-    font-size: 12px;
-    color: var(--text, #0f172a);
-    font-weight: 500;
-    pointer-events: none;
-    z-index: 10000;
-    opacity: 0;
-    transform: translateY(6px) scale(0.94);
-    transition: opacity 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), 
-                transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-    will-change: transform, opacity, left, top;
-    white-space: nowrap;
-}
-
-#alphaTooltip.visible {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-}
 </style>
 </head>
 <body>
@@ -771,7 +840,7 @@ button:active { transform: scale(0.96) !important; }
 
 <div class="app">
     <aside class="sidebar">
-        <div class="logo-area" onclick="window.location.href='Home.html'" title="返回主页">
+        <div class="logo-area" onclick="window.parent.ALPHA.back()" class="glass-btn" title="返回主页">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
         </div>
 
@@ -836,21 +905,19 @@ button:active { transform: scale(0.96) !important; }
         <section class="panel">
             <div class="section-title">数据跨端同步与备份</div>
             <div style="font-size: 14px; color: #64748b; line-height: 1.1; margin-bottom: 16px;">
-                利用底层算法将账号与任务数据打包为同步码, 或直接通过 <b>.txt</b> 文件进行完整的跨端迁移与本地备份
+                利用底层算法将账号与任务数据打包为同步码, 或直接通过 <b>TXT</b> 文件进行完整的跨端迁移与本地备份
             </div>
 
                 <textarea id="syncCodeArea" class="sync-code-box" placeholder="点击下方「生成加密同步码」打包数据, 或在此粘贴同步码进行覆写导入..."></textarea>
                 
-                <input type="file" id="txtFileInput" accept=".txt" style="display: none;" onchange="importFromTxt(event)">
+                <input type="file" id="txtFileInput" accept="TXT" style="display: none;" onchange="importFromTxt(event)">
 
                 <div class="toolbar" style="margin-top: 0; margin-bottom: 6px;">
                     <button class="primary" onclick="generateSyncCode()">生成同步码</button>
                     <button class="secondary" onclick="showImportOptions()">📥 覆写数据</button>
                     <button class="secondary" onclick="showExportOptions()">📦 导出</button>
                 </div>
-</div>
-
-<div id="customDialog" class="sphere-modal hidden">
+            </section> </main> </div> <div id="customDialog" class="sphere-modal hidden">
     <div class="modal-content" style="width: 360px; text-align: center;">
         <div id="dialogIcon" style="font-size: 48px; margin-bottom: 16px; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.1));">⚠️</div>
         <h3 id="dialogTitle" style="margin-bottom: 12px; color: #0f172a; font-size: 20px;">提示</h3>
@@ -862,6 +929,19 @@ button:active { transform: scale(0.96) !important; }
         </div>
 
         <button class="secondary" id="dialogBottomCancelBtn" style="width: 100%; margin-top: 12px; display: none;" onclick="document.getElementById('customDialog').classList.add('hidden')">取消</button>
+    </div>
+</div>
+
+<div id="cropDialog" class="sphere-modal hidden">
+    <div class="modal-content" style="width: 364px; text-align: center; padding: var(--spacing-main);">
+        <h3 style="margin-bottom: var(--spacing-card); color: #0f172a; font-size: 22px; font-weight: 700; letter-spacing: -0.5px;">调整头像</h3>
+        <div class="crop-wrapper">
+            <img id="cropImage" src="">
+        </div>
+        <div style="display: flex; gap: 12px; justify-content: center;">
+            <button class="secondary" style="flex: 1;" onclick="closeCropDialog()">取消</button>
+            <button class="primary" style="flex: 1;" onclick="confirmCrop()">确定</button>
+        </div>
     </div>
 </div>
 <script>
@@ -940,20 +1020,20 @@ function customConfirm(msg, onConfirm, title = "请确认", isDanger = false, ic
 /* ================== 整合后的导入/导出分流器 ================== */
 function showImportOptions() {
     customChoice(
-        "请选择您要使用的数据覆写方式<br><b>注意: 此操作将不可逆地抹除当前设备数据</b>", 
+        "请选择你要使用的数据覆写方式<br><b>注意: 此操作将不可逆地抹除当前设备数据</b>", 
         "导入方式", 
         "粘贴同步码", () => importSyncCode(), 
-        "从 .txt 导入", () => document.getElementById('txtFileInput').click(),
+        "从 TXT 导入", () => document.getElementById('txtFileInput').click(),
         "📥"
     );
 }
 
 function showExportOptions() {
     customChoice(
-        "提示: 如果尚未生成同步码, 将自动为您生成", 
+        "提示: 如果尚未生成同步码, 将自动为你生成", 
         "导出方式", 
         "复制同步码", () => copySyncCode(), 
-        "导出为 .txt", () => exportToTxt(),
+        "导出为 TXT", () => exportToTxt(),
         "📦"
     );
 }
@@ -1009,23 +1089,18 @@ function adjustTextareaHeight(el) {
     if (!clone) {
         clone = document.createElement('textarea');
         clone.id = 'bio-hidden-clone';
+        // 仅在创建时获取并固定样式，此后复用
+        clone.style.cssText = window.getComputedStyle(el).cssText;
+        clone.style.position = 'absolute';
+        clone.style.top = '-9999px';
+        clone.style.left = '-9999px';
+        clone.style.visibility = 'hidden';
+        clone.style.transition = 'none';
         document.body.appendChild(clone);
     }
-    
-    // 镜像原文本框的核心样式, 确保测量精准
-    clone.style.cssText = window.getComputedStyle(el).cssText;
-    clone.style.position = 'absolute';
-    
-    // 将克隆体彻底移出物理视口, 防止撑开页面高度
-    clone.style.top = '-9999px';
-    clone.style.left = '-9999px';
-    
-    clone.style.visibility = 'hidden';
-    clone.style.height = '52px'; // 重置为单行基准高度
-    clone.style.transition = 'none'; // 克隆体无需动画
+    // 每次只需重置高度与内容，无需再次读取样式
+    clone.style.height = '52px';
     clone.value = el.value;
-    
-    // 在不可见的克隆体上获取真实物理高度
     let targetHeight = clone.scrollHeight;
     
     // 极值限制
@@ -1173,52 +1248,97 @@ function clearProfileData() {
     }, "重置档案", true);
 }
 
+let cropperInstance = null;
+
 document.getElementById('avatarUpload').addEventListener('change', function(e) {
     const file = e.target.files[0];
     if (!file) return;
 
     const reader = new FileReader();
     reader.onload = function(event) {
-        const img = new Image();
-        img.onload = function() {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            const maxSize = 400; 
-            let width = img.width; let height = img.height;
+        const cropDialog = document.getElementById('cropDialog');
+        const cropImage = document.getElementById('cropImage');
+        
+        cropImage.src = event.target.result;
+        cropDialog.classList.remove('hidden');
+
+        if (cropperInstance) {
+            cropperInstance.destroy();
+        }
+        
+        // 挂载 Cropper.js 并配置 1:1 强制圆形毛玻璃限制与边缘动态拦截
+        cropperInstance = new Cropper(cropImage, {
+            aspectRatio: 1, 
+            viewMode: 1, 
+            dragMode: 'move', 
+            autoCropArea: 0.8, 
+            cropBoxResizable: true, 
+            cropBoxMovable: true, 
+            center: true, 
+            background: false,
+            guides: false,
+            highlight: false,
             
-            if (width > height && width > maxSize) { height *= maxSize / width; width = maxSize; }
-            else if (height > maxSize) { width *= maxSize / height; height = maxSize; }
-            
-            canvas.width = width; canvas.height = height;
-            ctx.drawImage(img, 0, 0, width, height);
-            
-            accountData.avatar = canvas.toDataURL('image/jpeg', 0.85);
-            saveProfileData();
-        };
-        img.src = event.target.result;
+            // 核心新增：监听裁切选框在每一帧的变化
+            crop(event) {
+                const wrapper = document.querySelector('.crop-wrapper');
+                if (!wrapper || !cropperInstance) return;
+
+                // 物理测绘：获取当前画布容器尺寸与当前选框的相对空间数据
+                const container = cropperInstance.getContainerData();
+                const cropBox = cropperInstance.getCropBoxData();
+
+                // 设定 3 像素的高阶容差补丁，防止高分屏（Retina）下出现缩放亚像素不精准问题
+                const tolerance = 3; 
+
+                // 校验：若选区任意一条边界无限逼近或等于外层大框边缘
+                const isTouchingEdge = (
+                    cropBox.left <= tolerance ||
+                    cropBox.top <= tolerance ||
+                    (cropBox.left + cropBox.width) >= (container.width - tolerance) ||
+                    (cropBox.top + cropBox.height) >= (container.height - tolerance)
+                );
+
+                // 触发状态机切换，交由 CSS 硬件加速层去渲染平滑变化
+                if (isTouchingEdge) {
+                    wrapper.classList.add('edge-reached');
+                } else {
+                    wrapper.classList.remove('edge-reached');
+                }
+            }
+        });
     };
     reader.readAsDataURL(file);
+    e.target.value = ''; // 清空 input, 保证下次仍能选同一张图触发 change
 });
+
+function confirmCrop() {
+    if (!cropperInstance) return;
+    
+    // 生成 400x400 的高清裁切结果画布
+    const canvas = cropperInstance.getCroppedCanvas({
+        width: 400,
+        height: 400,
+        imageSmoothingEnabled: true,
+        imageSmoothingQuality: 'high',
+    });
+    
+    accountData.avatar = canvas.toDataURL('image/jpeg', 0.85);
+    saveProfileData();
+    closeCropDialog();
+    showSyncStatus("📸 头像更新成功!", "var(--monet-text)");
+}
+
+function closeCropDialog() {
+    document.getElementById('cropDialog').classList.add('hidden');
+    if (cropperInstance) {
+        cropperInstance.destroy();
+        cropperInstance = null;
+    }
+}
 
 let confettiInterval = null;
 let confettiTimeout = null;
-
-function checkBirthdayConfetti() {
-    if (!accountData.birthday) return;
-    const today = new Date();
-    const currentMMDD = String(today.getMonth() + 1).padStart(2, '0') + "-" + String(today.getDate()).padStart(2, '0');
-    const bdayMMDD = accountData.birthday.substring(5); 
-    
-    if (currentMMDD === bdayMMDD) {
-        if (!confettiInterval) launchConfetti();
-    } else {
-        confettiInterval = false; 
-        if (confettiTimeout) clearTimeout(confettiTimeout);
-        const canvas = document.getElementById('confettiCanvas');
-        const ctx = canvas.getContext('2d');
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-    }
-}
 
 // ================= 生日彩带 =================
 // 全局的 resize 处理函数, 避免匿名函数导致的移除失败
@@ -1358,14 +1478,15 @@ function base64ToUint8(base64) {
 
 /* ================== 文件级跨端与备份引擎 ================== */
 
-// 导出为 .txt 文件
+// 导出为 TXT 文件
 function exportToTxt() {
     try {
         const payload = {
             account: localStorage.getItem(ACCOUNT_KEY) || "{}",
             taskflow: localStorage.getItem("taskflow_data") || "{}",
             taskhub: localStorage.getItem("taskhub_data") || "[]",
-            tasktimer: localStorage.getItem("tasktimer_data") || "[]"
+            tasktimer: localStorage.getItem("tasktimer_data") || "[]",
+            wallpaper: localStorage.getItem("alpha_wallpaper") || "" // 纳入壁纸数据
         };
         
         // 将数据格式化为带有缩进的优美 JSON 结构, 方便用户用记事本查看
@@ -1377,7 +1498,7 @@ function exportToTxt() {
         const a = document.createElement('a');
         const dateStr = new Date().toISOString().slice(0,10).replace(/-/g, ""); // 获取当前日期如 20260703
         a.href = url;
-        a.download = `Tasks_Data_${dateStr}.txt`;
+        a.download = `Tasks_Data_${dateStr}TXT`;
         
         document.body.appendChild(a);
         a.click();
@@ -1391,7 +1512,7 @@ function exportToTxt() {
     }
 }
 
-// 从 .txt 文件读取并导入
+// 从 TXT 文件读取并导入
 function importFromTxt(event) {
     const file = event.target.files[0];
     if (!file) return;
@@ -1410,6 +1531,7 @@ function importFromTxt(event) {
                 if (payload.taskflow) localStorage.setItem("taskflow_data", typeof payload.taskflow === 'object' ? JSON.stringify(payload.taskflow) : payload.taskflow);
                 if (payload.taskhub) localStorage.setItem("taskhub_data", typeof payload.taskhub === 'object' ? JSON.stringify(payload.taskhub) : payload.taskhub);
                 if (payload.tasktimer) localStorage.setItem("tasktimer_data", typeof payload.tasktimer === 'object' ? JSON.stringify(payload.tasktimer) : payload.tasktimer);
+                if (payload.wallpaper) localStorage.setItem("alpha_wallpaper", typeof payload.wallpaper === 'object' ? JSON.stringify(payload.wallpaper) : payload.wallpaper);
                 
                 customAlert("设备数据已从备份文件复原, 即将刷新页面以载入最新数据", "导入成功", "🎉");
                 setTimeout(() => window.location.reload(), 2000);
@@ -1427,29 +1549,79 @@ function importFromTxt(event) {
     reader.readAsText(file);
 }
 
-/* ================== 全生态同步引擎 (fflate Level 9 极限压缩版) ================== */
+/* ================== 全生态同步引擎 (含 1080P 壁纸智能压缩引擎) ================== */
 function generateSyncCode() {
-    try {
-        const payload = {
-            account: localStorage.getItem(ACCOUNT_KEY) || "{}",
-            taskflow: localStorage.getItem("taskflow_data") || "{}",
-            taskhub: localStorage.getItem("taskhub_data") || "[]",
-            tasktimer: localStorage.getItem("tasktimer_data") || "[]"
-        };
-        
-        // 去除字符串中无意义的空格和换行
-        const jsonString = JSON.stringify(payload).replace(/\s+(?=(?:(?:[^"]*"){2})*[^"]*"[^"]*$)/g, '');
+    showSyncStatus("⏳ 引擎全速运转压缩中...", "var(--monet-blue)");
+    
+    const rawWallpaper = localStorage.getItem("alpha_wallpaper");
 
-        // 核心优化 2: 使用 fflate 进行 Level 9 最高级别 zlib 压缩
-        const buf = fflate.strToU8(jsonString);
-        const compressed = fflate.zlibSync(buf, { level: 9 }); 
-        const encoded = uint8ToBase64(compressed);
-        
-        document.getElementById('syncCodeArea').value = encoded;
-        showSyncStatus("📦 同步码已生成!", "var(--monet-text)");
-    } catch (e) {
-        console.error(e);
-        customAlert("数据处理失败, 请确认本地数据结构是否完整", "生成失败", "❌");
+    // 定义核心的数据打包函数
+    const packData = (processedWallpaper) => {
+        setTimeout(() => {
+            try {
+                const payload = {
+                    account: localStorage.getItem(ACCOUNT_KEY),
+                    taskflow: localStorage.getItem("taskflow_data"),
+                    taskhub: localStorage.getItem("taskhub_data"),
+                    tasktimer: localStorage.getItem("tasktimer_data"),
+                    wallpaper: processedWallpaper // 写入已压缩或原本的壁纸
+                };
+                
+                // 剔除无意义的空结构，极简出包
+                Object.keys(payload).forEach(key => {
+                    if (!payload[key] || payload[key] === "{}" || payload[key] === "[]") {
+                        delete payload[key];
+                    }
+                });
+                
+                const jsonString = JSON.stringify(payload);
+                const compressedBytes = fflate.zlibSync(fflate.strToU8(jsonString), { level: 9 });
+                const encoded = "FFL|" + uint8ToBase64(compressedBytes);
+                
+                const area = document.getElementById('syncCodeArea');
+                area.value = encoded;
+                
+                if (encoded.length > 50000) {
+                    customAlert("同步码长度超过常规设备剪切板长度上限<br><b>建议导出为 <b>txt 文本</b>格式", "同步码过长", "⚠️");
+                    showSyncStatus("📦 打包完毕，建议使用 TXT 导出", "var(--monet-text)");
+                } else {
+                    showSyncStatus("📦 同步码已生成!", "var(--monet-text)");
+                }
+            } catch (e) {
+                console.error(e);
+                customAlert("数据处理失败, 请确认设备内存是否充足", "生成失败", "❌");
+            }
+        }, 100);
+    };
+
+    // 智能拦截壁纸并进行 1080P Canvas 重绘压缩
+    if (rawWallpaper && rawWallpaper.startsWith('data:image/')) {
+        showSyncStatus("🗞️ 正在压缩壁纸至 1080P 级别...", "var(--monet-text)");
+        const img = new Image();
+        img.onload = () => {
+            let w = img.width;
+            let h = img.height;
+            const max = 1920; // 锁定最高 1920px (1080P 级别)
+            
+            // 等比例缩放计算
+            if (w > max || h > max) {
+                if (w > h) { h = Math.round(h * max / w); w = max; } 
+                else { w = Math.round(w * max / h); h = max; }
+            }
+            
+            const canvas = document.createElement('canvas');
+            canvas.width = w; 
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, w, h);
+            
+            // 【核心降维】：强转为 JPEG 格式，保留 60% 画质。肉眼看不出明显糊感，但体积可暴跌 90%
+            packData(canvas.toDataURL('image/jpeg', 0.6));
+        };
+        img.onerror = () => packData(rawWallpaper); // 容错处理：若绘制失败，原图输出
+        img.src = rawWallpaper;
+    } else {
+        packData(rawWallpaper); // 无壁纸或非图片数据直接进行下一步
     }
 }
 
@@ -1457,61 +1629,69 @@ function copySyncCode() {
     const area = document.getElementById('syncCodeArea');
     if (!area.value) { customAlert("请先生成或粘贴同步码", "操作无效", "⚠️"); return; }
     area.select();
-    generateSyncCode();
     document.execCommand('copy');
     showSyncStatus("📋 同步码已复制到剪贴板!", "var(--monet-text)");
 }
 
 function importSyncCode() {
     const area = document.getElementById('syncCodeArea');
-    const code = area.value.trim().replace(/\s+/g, '');
+    let code = area.value.trim();
+    
+    // 兼容老版本的去空格处理
+    if (!code.startsWith("LZ16|")) {
+        code = code.replace(/\s+/g, '');
+    }
+    
     if (!code) { customAlert("请在此处粘贴来自其他设备的同步码", "无数据", "⚠️"); return; }
 
     customConfirm("警告: 导入操作将不可逆地覆盖当前设备的所有数据, 确定继续吗?", () => {
-        let jsonString = null;
+        showSyncStatus("⏳ 正在解包数据, 请稍候...", "var(--monet-blue)");
         
-        // 三重防线: 优雅降级解析引擎
-        try {
-            // 尝试 1: 使用最新的 fflate 引擎解压
-            const compressedBytes = base64ToUint8(code);
-            const decompressedBytes = fflate.unzlibSync(compressedBytes);
-            jsonString = fflate.strFromU8(decompressedBytes);
-        } catch(e1) {
-            try {
-                // 尝试 2: 向下兼容, 尝试使用上一版的 LZString 引擎解压
-                if (typeof LZString !== 'undefined') {
-                    jsonString = LZString.decompressFromBase64(code);
-                    if (!jsonString) throw new Error("LZ-String parse failed");
-                } else {
-                    throw new Error("LZ-String library not loaded");
-                }
-            } catch(e2) {
-                try {
-                    // 尝试 3: 终极兜底, 尝试解析最原始的 Base64 明文
-                    jsonString = decodeURIComponent(escape(atob(code)));
-                } catch (e3) {
-                    jsonString = null; // 彻底宣告失败
-                }
-            }
-        }
-
-        if (!jsonString) {
-            customAlert("无法解析该同步码, 格式可能已损坏", "导入失败", "❌");
-            return;
-        }
-
-        try {
-            const payload = JSON.parse(jsonString);
-            if (payload.account) localStorage.setItem(ACCOUNT_KEY, payload.account);
-            if (payload.taskflow) localStorage.setItem("taskflow_data", payload.taskflow);
-            if (payload.taskhub) localStorage.setItem("taskhub_data", payload.taskhub);
-            if (payload.tasktimer) localStorage.setItem("tasktimer_data", payload.tasktimer);
+        // 同样使用异步宏任务，防止解压海量数据期间弹窗动画卡在半空
+        setTimeout(() => {
+            let jsonString = null;
             
-            customAlert("设备数据已完美同步!页面即将刷新", "同步成功", "🎉");
-            setTimeout(() => window.location.reload(), 2000);
-        } catch(e) {
-            customAlert("数据内容损坏, 解析 JSON 失败", "导入失败", "❌");
-        }
+            try {
+                if (code.startsWith("LZ16|")) {
+                    // 兼容你之前因为测试而生成的 LZ16 格式 (前提是 head 里的 lz-string 标签还在)
+                    jsonString = LZString.decompressFromUTF16(code.substring(5));
+                } else if (code.startsWith("FFL|")) {
+                    // 标准 FFLate 格式
+                    const compressedBytes = base64ToUint8(code.substring(4));
+                    jsonString = fflate.strFromU8(fflate.unzlibSync(compressedBytes));
+                } else {
+                    // 远古版本兜底解析引擎
+                    try {
+                        const compressedBytes = base64ToUint8(code);
+                        jsonString = fflate.strFromU8(fflate.unzlibSync(compressedBytes));
+                    } catch(e1) {
+                        if (typeof LZString !== 'undefined') jsonString = LZString.decompressFromBase64(code);
+                        if (!jsonString) jsonString = decodeURIComponent(escape(atob(code)));
+                    }
+                }
+            } catch(err) {
+                jsonString = null;
+            }
+
+            if (!jsonString) {
+                customAlert("无法解析该同步码, 格式可能已损坏或复制不完整", "导入失败", "❌");
+                return;
+            }
+
+            try {
+                const payload = JSON.parse(jsonString);
+                if (payload.account) localStorage.setItem(ACCOUNT_KEY, payload.account);
+                if (payload.taskflow) localStorage.setItem("taskflow_data", payload.taskflow);
+                if (payload.taskhub) localStorage.setItem("taskhub_data", payload.taskhub);
+                if (payload.tasktimer) localStorage.setItem("tasktimer_data", payload.tasktimer);
+                if (payload.wallpaper) localStorage.setItem("alpha_wallpaper", payload.wallpaper); 
+                
+                customAlert("设备数据已完美同步! 页面即将刷新", "同步成功", "🎉");
+                setTimeout(() => window.location.reload(), 2000);
+            } catch(e) {
+                customAlert("数据内容损坏, 解析 JSON 失败", "导入失败", "❌");
+            }
+        }, 100);
     }, "高危操作确认", true);
 }
 
@@ -1535,6 +1715,15 @@ window.addEventListener('storage', (e) => {
 });
 
 loadProfileData();
+
+// 页面隐藏时暂停背景动画，恢复时继续播放
+function handleVisibilityChange() {
+    const ambientEls = document.querySelectorAll('.orb, .sunbeam');
+    ambientEls.forEach(el => {
+        el.style.animationPlayState = document.hidden ? 'paused' : 'running';
+    });
+}
+document.addEventListener('visibilitychange', handleVisibilityChange);
 
 // ================= 全局页面切换动效拦截引擎 V2 =================
 window.addEventListener('DOMContentLoaded', () => {
@@ -1577,99 +1766,6 @@ window.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// ================= 全局毛玻璃 Tooltip 劫持引擎（性能优化版） =================
-window.addEventListener('DOMContentLoaded', () => {
-    // 创建 tooltip 节点
-    const tooltipNode = document.createElement('div');
-    tooltipNode.id = 'alphaTooltip';
-    document.body.appendChild(tooltipNode);
-
-    // 尺寸缓存（内容改变时更新）
-    let tooltipWidth = 0, tooltipHeight = 0;
-    function measureTooltip() {
-        // 强制读取一次尺寸并缓存, 后续移动不再读取 DOM
-        tooltipWidth = tooltipNode.offsetWidth;
-        tooltipHeight = tooltipNode.offsetHeight;
-    }
-
-    // 鼠标位置缓存与 rAF 节流
-    let lastMouseX = 0, lastMouseY = 0;
-    let tooltipRafId = null;
-
-    function updateTooltipPosition(x, y) {
-        const offsetX = 14;
-        const offsetY = 18;
-        let tx = x + offsetX;
-        let ty = y + offsetY;
-
-        // 边界碰撞检测, 使用缓存尺寸, 避免回流
-        if (tx + tooltipWidth > window.innerWidth) {
-            tx = x - tooltipWidth - 8;
-        }
-        if (ty + tooltipHeight > window.innerHeight) {
-            ty = y - tooltipHeight - 8;
-        }
-
-        // 关键优化: 使用 transform 代替 left/top, 触发合成层而非重排
-        tooltipNode.style.transform = `translate(${tx}px, ${ty}px)`;
-    }
-
-    // 事件委托: 鼠标悬停
-    document.addEventListener('mouseover', (e) => {
-        const target = e.target.closest('[title], [data-tooltip]');
-        if (!target) return;
-
-        // 劫持原生 title
-        if (target.hasAttribute('title')) {
-            target.setAttribute('data-tooltip', target.getAttribute('title'));
-            target.removeAttribute('title');
-        }
-
-        const tipText = target.getAttribute('data-tooltip');
-        if (tipText) {
-            tooltipNode.textContent = tipText;
-            tooltipNode.classList.add('visible');
-            measureTooltip();                 // 新内容出现时重新测量尺寸
-            // 立即定位一次, 避免闪现
-            lastMouseX = e.clientX;
-            lastMouseY = e.clientY;
-            updateTooltipPosition(e.clientX, e.clientY);
-        }
-    });
-
-    // 鼠标移动: rAF 节流, 只记录最新坐标并异步更新
-    document.addEventListener('mousemove', (e) => {
-        lastMouseX = e.clientX;
-        lastMouseY = e.clientY;
-        if (tooltipNode.classList.contains('visible') && !tooltipRafId) {
-            tooltipRafId = requestAnimationFrame(() => {
-                updateTooltipPosition(lastMouseX, lastMouseY);
-                tooltipRafId = null;
-            });
-        }
-    });
-
-    // 鼠标离开 / 按下时隐藏
-    document.addEventListener('mouseout', (e) => {
-        const target = e.target.closest('[data-tooltip]');
-        if (target) {
-            tooltipNode.classList.remove('visible');
-            // 清理 rAF, 避免隐藏后仍触发更新
-            if (tooltipRafId) {
-                cancelAnimationFrame(tooltipRafId);
-                tooltipRafId = null;
-            }
-        }
-    });
-
-    document.addEventListener('mousedown', () => {
-        tooltipNode.classList.remove('visible');
-        if (tooltipRafId) {
-            cancelAnimationFrame(tooltipRafId);
-            tooltipRafId = null;
-        }
-    });
-});
 </script>
 </body>
 </html>

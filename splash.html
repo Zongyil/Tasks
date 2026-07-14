@@ -7,289 +7,98 @@
 <style>
 /* ================== 全局与色彩体系 ================== */
 :root {
-    --text: #0f172a; 
-    --sub: #64748b;
-    --monet-blue: #9DD2FF;
-    --glass: rgba(255, 255, 255, 0.45);
-    --glass-border: rgba(255, 255, 255, 0.85);
-    --shadow-xl: 0 40px 80px rgba(15,23,42,.12);
-    --splash-padding: 24px;
-    --radius-card: 32px;
-    --radius-inside: 16px;
     --ease-spring: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 html, body {
-    margin: 0;
-    padding: 0;
-    width: 100%;
-    height: 100%;
-    background: transparent;
-    overflow: hidden;
-    user-select: none;
-    font-family: "OPPO Sans 4.0", "Segoe UI Variable", "Segoe UI", -apple-system, BlinkMacSystemFont, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif;
-    font-feature-settings: "emoji";
-}
-
-* {
-    margin: 0; padding: 0; box-sizing: border-box;
-}
-
-body {
-    width: 100vw; 
-    height: 100vh;
+    margin: 0; padding: 0;
+    width: 100%; height: 100%;
+    /* 彻底透明！从而完美透出底层 mainWindow 的云母/物理毛玻璃材质 */
     background-color: transparent; 
-    color: var(--text);
     overflow: hidden;
     user-select: none;
-}
-
-@font-face {
-    font-family: 'OPPO Sans 4.0';
-    src: url('./fonts/OPPO Sans 4.0.ttf') format('truetype');
-    font-weight: 1 999;
-    font-style: normal;
-}
-
-/* 外层视窗容器 (Panel 层级) */
-.splash-window {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    background-color: #f2f5f9; 
-    overflow: hidden; 
-    display: flex;
-    align-items: stretch;
-    justify-content: stretch;
-    padding: var(--splash-padding);
-    /* 使用 outline 替代 box-shadow, 绘制成本略低且视觉效果一致 */
-    outline: 1px solid rgba(15, 23, 42, 0.05);
-    outline-offset: -1px;
-    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.9);
-}
-
-/* ================== 环境光场 ================== */
-.alpha-ambient-bg {
-    position: absolute; inset: 0; z-index: 0;
-    overflow: hidden; pointer-events: none;
-}
-
-.sunbeam {
-    position: absolute; top: -10%; right: -5%; width: 40vw; height: 80vh;
-    background: radial-gradient(ellipse at top right, rgba(255, 245, 225, 0.15) 0%, rgba(255, 235, 200, 0.05) 40%, transparent 65%);
-    transform-origin: top right;
-    animation: sunbeam-pulse 8s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
-    /* 强制 GPU 加速 */
-    will-change: transform, opacity;
-    backface-visibility: hidden;
-    transform: translateZ(0);
-}
-
-.orb { 
-    position: absolute; border-radius: 50%; 
-    will-change: transform; 
-    opacity: 0.85; 
-    backface-visibility: hidden;
-    transform: translateZ(0);
-}
-.orb-1 { width: 50vw; height: 50vw; background: radial-gradient(circle, rgba(178, 219, 255, 0.4) 0%, transparent 60%); top: -10%; right: -10%; animation: orb-drift-1 12s infinite alternate cubic-bezier(0.4, 0, 0.2, 1); }
-.orb-2 { width: 60vw; height: 60vw; background: radial-gradient(circle, rgba(212, 206, 255, 0.45) 0%, transparent 60%); bottom: -15%; left: -15%; animation: orb-drift-2 15s infinite alternate-reverse cubic-bezier(0.4, 0, 0.2, 1); }
-.orb-3 { width: 40vw; height: 40vw; background: radial-gradient(circle, rgba(255, 204, 194, 0.3) 0%, transparent 60%); top: 30%; left: 20%; animation: orb-drift-3 14s infinite alternate cubic-bezier(0.4, 0, 0.2, 1); }
-
-@keyframes orb-drift-1 { 0% { transform: translate3d(0, 0, 0) scale(1); } 100% { transform: translate3d(-10vw, 8vh, 0) scale(1.1); } }
-@keyframes orb-drift-2 { 0% { transform: translate3d(0, 0, 0) scale(1); } 100% { transform: translate3d(8vw, -8vh, 0) scale(0.9); } }
-@keyframes orb-drift-3 { 0% { transform: translate3d(0, 0, 0) scale(1); } 100% { transform: translate3d(-8vw, -10vh, 0) scale(1.15); } }
-@keyframes sunbeam-pulse { 0% { transform: rotate(0deg) scale(1); opacity: 0.6; } 100% { transform: rotate(-2deg) scale(1.05); opacity: 1; } }
-
-/* ================== Liquid Glass 主卡片 ================== */
-.splash-card-wrapper {
-    position: relative;
-    z-index: 10;
-    flex: 1;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
-.splash-card {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 32px;
-    text-align: center;
-    border-radius: var(--radius-card); 
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0.2) 100%);
-    backdrop-filter: blur(48px) saturate(200%);
-    -webkit-backdrop-filter: blur(48px) saturate(200%);
-    border: 1px solid var(--glass-border);
-    box-shadow: 
-        var(--shadow-xl), 
-        inset 0 2px 6px rgba(255, 255, 255, 0.8), 
-        inset 0 -1px 2px rgba(255, 255, 255, 0.3);
-    opacity: 0;
-    transform: scale(0.96); 
-    animation: card-enter 0.6s var(--ease-spring) forwards;
-    /* 明确声明将在动画中变化的属性, 帮助浏览器优化 */
+/* ================== 迎风飘扬的 Logo 容器 ================== */
+.logo-container {
+    position: relative;
+    width: 50px; /* Logo 大小 */
+    height: 50px;
+    animation: flutter 4s ease-in-out infinite;
+    /* 退出动画状态时的平滑过渡 */
+    transition: opacity 0.6s var(--ease-spring), transform 0.6s var(--ease-spring), filter 0.6s var(--ease-spring);
     will-change: transform, opacity, filter;
-    backface-visibility: hidden;
-    transform: translateZ(0); /* 强制 GPU 层 */
 }
 
-.logo-wrap { 
-    margin-bottom: 8px; 
-    animation: inner-float 4s infinite alternate cubic-bezier(0.45, 0, 0.55, 1);
+.logo-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    /* 赋予其柔和的悬浮光影 */
+    filter: drop-shadow(0 8px 24px rgba(15, 23, 42, 0.12));
+}
+
+/* ================== 模拟阳光拂过 (核心光学引擎) ================== */
+.light-sweep {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    /* 暖光渐变：透明 -> 暖金/暖白 -> 透明 */
+    background: linear-gradient(
+        135deg, 
+        transparent 35%, 
+        rgba(255, 245, 220, 0.6) 50%, 
+        transparent 65%
+    );
+    background-size: 250% 250%;
+    animation: sweep 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    /* 【黑魔法】让光线只在 PNG Logo 的不透明实体上渲染！不会溢出到方框外 */
+    mask-image: url('./Tasks_Flat.png');
+    mask-size: contain;
+    mask-position: center;
+    mask-repeat: no-repeat;
+    pointer-events: none;
+    z-index: 2;
 }
 
 /* ================== 关键帧动效 ================== */
-@keyframes card-enter {
-    0% { opacity: 0; transform: translateY(32px) scale(0.92); filter: blur(8px); }
-    100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+/* 迎风飘扬：轻微的呼吸放大与极细微的倾斜 */
+@keyframes flutter {
+    0% { transform: scale(1) rotate(0deg) translateY(0px); }
+    50% { transform: scale(1.03) rotate(0.8deg) translateY(-4px); }
+    100% { transform: scale(1) rotate(0deg) translateY(0px); }
 }
 
-@keyframes inner-float {
-    0% { transform: translateY(0px); }
-    100% { transform: translateY(-6px); }
+/* 阳光对角线扫射 */
+@keyframes sweep {
+    0% { background-position: 150% 150%; }
+    100% { background-position: -50% -50%; }
 }
 
-.logo {
-    font-size: 48px;
-    font-weight: 800;
-    letter-spacing: -1.5px;
-    color: var(--text);
-    text-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
-    line-height: 1.1;
-}
-
-.logo span {
-    background: linear-gradient(135deg, #7abaffe6, #98cfffc7);
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    text-shadow: 0 4px 12px #9dd1ff80;
-}
-
-.subtitle {
-    font-size: 15px;
-    color: var(--sub);
-    font-weight: 600;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    opacity: 0.8;
-}
-
-/* ================== 流光加载轨道 ================== */
-.loader-container {
-    margin-top: 36px;
-    width: 140px;
-    height: 4px;
-    margin-left: auto;
-    margin-right: auto;
-    border-radius: var(--radius-inside);
-    background: rgba(15, 23, 42, 0.06);
-    position: relative;
-    overflow: hidden;
-    box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.05), 0 1px 1px rgba(255, 255, 255, 0.9);
-}
-
-.loader-bar {
-    position: absolute;
-    top: 0;
-    left: 0;
-    height: 100%;
-    width: 50%;
-    border-radius: var(--radius-inside);
-    background: linear-gradient(90deg, transparent, var(--monet-blue), transparent);
-    animation: scan 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-    /* 扫描条本身也是动画, 加入 GPU 加速 */
-    will-change: transform;
-    backface-visibility: hidden;
-    transform: translateZ(0);
-}
-
-@keyframes scan {
-    0% { transform: translateX(-100%); }
-    100% { transform: translateX(200%); }
-}
-
-/* 退出动画类 */
-.splash-exit {
-    pointer-events: none;
-    animation: card-exit 0.6s var(--ease-spring) forwards !important;
-}
-
-@keyframes card-exit {
-    0% { opacity: 1; transform: scale(1) translateY(0); filter: blur(0); }
-    100% { opacity: 0; transform: scale(1.05) translateY(-16px); filter: blur(12px); }
+/* 退场状态类：向后缩小淡出并模糊 */
+.exit-state .logo-container {
+    opacity: 0;
+    transform: scale(0.8) translateY(-20px);
+    filter: blur(12px);
 }
 </style>
 </head>
 <body>
 
-    <div class="splash-window">
-        <div class="alpha-ambient-bg">
-            <div class="sunbeam"></div>
-            <div class="orb orb-1"></div>
-            <div class="orb orb-2"></div>
-            <div class="orb orb-3"></div>
-        </div>
-
-        <div class="splash-card-wrapper" id="splashWrapper">
-            <div class="splash-card" id="splashCard">
-                <div class="logo-wrap">
-                    <div class="logo">Task<span>s</span></div>
-                </div>
-                <div class="subtitle">加载中</div>
-                
-                <div class="loader-container">
-                    <div class="loader-bar"></div>
-                </div>
-            </div>
-        </div>
+    <div class="logo-container">
+        <img src="./Tasks_Flat.png" class="logo-img" alt="Tasks Logo" />
+        <div class="light-sweep"></div>
     </div>
 
 <script>
-    let exitStarted = false; // 防止重复触发退出
-
-    window.addEventListener('DOMContentLoaded', () => {
-        // 2 秒后通知主进程加载完成
-        const readyTimer = setTimeout(() => {
-            if (!exitStarted && window.electronAPI && window.electronAPI.splashReady) {
-                window.electronAPI.splashReady();
-            }
-        }, 2000);
-
-        // 监听主进程发出的退出指令
-        if (window.electronAPI && window.electronAPI.onStartExit) {
-            window.electronAPI.onStartExit(() => {
-                if (exitStarted) return;
-                exitStarted = true;
-                clearTimeout(readyTimer); // 不再重复通知
-
-                const card = document.getElementById('splashCard');
-                if (!card) {
-                    // 无卡片则直接通知完成
-                    if (window.electronAPI.splashExitDone) {
-                        window.electronAPI.splashExitDone();
-                    }
-                    return;
-                }
-
-            const onAnimationEnd = (e) => {
-                    if (e.animationName === 'card-exit') {
-                        card.removeEventListener('animationend', onAnimationEnd);
-                        if (window.electronAPI.splashExitDone) {
-                            window.electronAPI.splashExitDone();
-                        }
-                    }
-                };
-
-                card.addEventListener('animationend', onAnimationEnd);
-                // 触发退出动效
-                card.classList.add('splash-exit');
-            });
+    // 监听主界面 wrapper.html 下达的退场指令
+    window.addEventListener('message', (event) => {
+        if (event.data === 'start-exit') {
+            document.body.classList.add('exit-state');
         }
     });
 </script>
+</body>
 </html>

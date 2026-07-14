@@ -1,4 +1,4 @@
-感谢安装 Tasks!
+﻿感谢安装 Tasks!
 Tasks 是一款基于 GPL 3.0 协议开源的时间管理助手，基于 Electron 构建，并使用了 © 2026, 广东 OPPO 移动通信有限公司 的字体系列 OPPO Sans 4.0.
 Tasks 离不开 Chromium, Node.js 等开源项目。
 

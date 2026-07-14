@@ -3,12 +3,36 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>主页 | Tasks</title>
+<title>主页</title>
 <link rel="icon" href="Home.ico" type="image/x-icon">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 <base href="./">
 <style>
 /* ================== 全局与动态色彩体系 ================== */
+/* ================== 全局动态色彩引擎动画补丁 ================== */
+@property --theme-hue {
+    syntax: '<number>';
+    inherits: true;
+    initial-value: 210;
+}
+@property --theme-sat {
+    syntax: '<percentage>';
+    inherits: true;
+    initial-value: 20%;
+}
+@property --theme-light {
+    syntax: '<percentage>';
+    inherits: true;
+    initial-value: 85%;
+}
+
+:root {
+    /* 当 JS 改变这些变量时，触发 0.8s 的平滑过渡 */
+    transition: --theme-hue 0.8s cubic-bezier(0.22, 1, 0.36, 1), 
+                --theme-sat 0.8s cubic-bezier(0.22, 1, 0.36, 1), 
+                --theme-light 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 :root {
     /* 默认主题色 (可通过壁纸取色动态修改) */
     --theme-hue: 210;
@@ -47,7 +71,7 @@
 
 * {
     margin: 0; padding: 0; box-sizing: border-box;
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+    font-family: 'OPPO Sans 4.0', -apple-system, BlinkMacSystemFont, "Segoe UI Variable", "SF Pro Display", "PingFang SC", "Microsoft YaHei", sans-serif;
     outline: none !important; -webkit-tap-highlight-color: transparent;
 }
 
@@ -64,6 +88,9 @@ body {
     transition: background 1s ease;
     display: flex; flex-direction: column;
     scrollbar-width: none; -ms-overflow-style: none;
+    transform: translate3d(0, 0, 0);
+    backface-visibility: hidden;
+    perspective: 1000;
 }
 
 body > *:not(script):not(style):not(link):not(.sphere-modal):not(.flatpickr-calendar):not(#alphaTooltip) {
@@ -113,6 +140,12 @@ body > *:not(script):not(style):not(link):not(.sphere-modal):not(.flatpickr-cale
     position: relative; z-index: 10;
 }
 @media(max-width: 1000px) { .home-layout { grid-template-columns: 1fr; } }
+
+.panel, .nav-card, #todoPanel {
+  will-change: transform, opacity;
+  transform: translateZ(0); /* 迫使显卡在独立缓存区渲染 blur(50px)，不参与主线程布局计算 */
+  contain: paint, layout;   /* 局限化重绘边界，防止渲染溢出 */
+}
 
 .panel {
     /* 采用更具液态光泽的渐变半透明, 代替单一的纯色 */
@@ -658,53 +691,6 @@ button:active { transform: scale(0.96) !important; }
                 opacity 0.3s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* ================== 全局 Alpha Tooltip ================== */
-#alphaTooltip {
-    position: fixed;
-    top: 0;
-    left: 0;
-    padding: 6px 12px;
-    background: rgba(255, 255, 255, 0.65);
-    backdrop-filter: blur(24px) saturate(200%);
-    -webkit-backdrop-filter: blur(24px) saturate(200%);
-    border: 1px solid rgba(255, 255, 255, 0.4);
-    border-top-color: rgba(255, 255, 255, 0.85); 
-    box-shadow: 
-        0 8px 24px rgba(15, 23, 42, 0.12),
-        inset 0 1px 1px rgba(255, 255, 255, 0.9),
-        inset 0 0 12px rgba(255, 255, 255, 0.4);
-    border-radius: var(--radius-sm);
-    font-size: 12px;
-    color: var(--text, #0f172a);
-    font-weight: 500;
-    pointer-events: none;
-    z-index: 10000;
-    white-space: nowrap;
-
-    /* 1. 基础隐藏状态 */
-    opacity: 0;
-    visibility: hidden;
-    transform: translateY(6px) scale(0.94);
-
-    transition: opacity 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), 
-                transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
-                visibility 0s linear 0.25s; 
-    
-    will-change: transform, opacity; /* 移除 left/top 避免引发渲染管线抖动 */
-}
-
-#alphaTooltip.visible {
-    /* 2. 悬停展示状态 */
-    opacity: 1;
-    visibility: visible;
-    transform: translateY(0) scale(1);
-
-    /* visibility 延迟 0s 立刻生效（瞬间可见）, 
-       此时 opacity 和 transform 再播放 0.25s 动画 */
-    transition: opacity 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), 
-                transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
-                visibility 0s linear 0s;
-}
 </style>
 </head>
 <body>
@@ -762,6 +748,19 @@ button:active { transform: scale(0.96) !important; }
                 <div class="icon">🗃️</div><h3>TaskFlow</h3><p>数据复盘</p>
             </a>
         </div>
+    </div>
+</div>
+
+<div id="welcomeModal" class="sphere-modal hidden">
+    <div class="modal-content">
+        <h3 style="margin-bottom: 12px; color: #0f172a; font-size: 20px;">欢迎使用 Tasks</h3>
+        <div style="color: #64748b; font-size: 15px; line-height: 1.8; margin-bottom: 24px;">
+            在开始前请知悉: <br>
+            • <b>开源信息</b>: 严格遵循 <b>GPL-3.0</b> 协议开源<br>
+            • <b>版权信息</b>: 界面使用 <b>OPPO Sans 4.0</b> 系列字体, 版权归广东 OPPO 移动通信有限公司所有<br>
+            <div style="margin-top: 8px; font-size: 14px; opacity: 0.85;">*该信息将不再提示</div>
+        </div>
+        <button class="primary" style="width: 100% !important;" onclick="document.getElementById('welcomeModal').classList.add('hidden')">我知道了</button>
     </div>
 </div>
 
@@ -852,7 +851,72 @@ wpInput.addEventListener('change', (e) => {
             const compressed = canvas.toDataURL('image/jpeg', 0.85);
             try {
                 localStorage.setItem('alpha_wallpaper', compressed);
-                heroWallpaper.style.backgroundImage = `url(${compressed})`;
+
+                const oldWpUrl = getComputedStyle(heroWallpaper).backgroundImage.replace(/^url\(['"]?(.+?)['"]?\)$/, '$1');
+                const newWpUrl = compressed;
+
+                if (oldWpUrl && oldWpUrl !== 'none') {
+                    // 💡 采用 iOS 风格景深模糊过渡：旧壁纸模糊远去，新壁纸清晰浮现
+                    runIOSBlurTransition(oldWpUrl, newWpUrl, heroWallpaper);
+                } else {
+                    heroWallpaper.style.backgroundImage = `url("${compressed}")`;
+                }
+
+                function runIOSBlurTransition(oldUrl, newUrl, parentEl) {
+                    const container = document.createElement('div');
+                    // 💡 修复1：z-index 改为 -1，让临时过渡图层永远垫在原有遮罩（如 ::after 蒙版）和UI元素的下方
+                    container.style = `position:absolute; inset:0; z-index:-1; overflow:hidden; pointer-events:none; border-radius:inherit;`;
+
+                    const oldLayer = document.createElement('div');
+                    oldLayer.style = `
+                        position:absolute; inset:0; background:url("${oldUrl}") center/cover; 
+                        opacity: 1; filter: blur(0px); transform: scale(1);
+                        transition: opacity 0.6s ease, filter 0.6s ease, transform 0.8s cubic-bezier(0.22, 1, 0.36, 1); 
+                        z-index: 1;
+                    `;
+                    
+                    const newLayer = document.createElement('div');
+                    newLayer.style = `
+                        position:absolute; inset:0; background:url("${newUrl}") center/cover; 
+                        opacity: 0; filter: blur(24px); transform: scale(1.08);
+                        transition: opacity 0.6s ease, filter 0.6s ease, transform 0.8s cubic-bezier(0.22, 1, 0.36, 1); 
+                        z-index: 2;
+                    `;
+
+                    container.appendChild(oldLayer);
+                    container.appendChild(newLayer);
+                    parentEl.insertBefore(container, parentEl.firstChild);
+
+                    // 💡 修复2：开启 isolation 隔离，防止 z-index:-1 穿透到背后，将动画精准封印在父容器内
+                    const originalIsolation = parentEl.style.isolation || '';
+                    parentEl.style.isolation = 'isolate';
+
+                    const originalTransition = parentEl.style.transition;
+                    parentEl.style.transition = 'none';
+                    parentEl.style.backgroundImage = 'none';
+
+                    requestAnimationFrame(() => {
+                        requestAnimationFrame(() => {
+                            oldLayer.style.opacity = '0';
+                            oldLayer.style.filter = 'blur(16px)';
+                            oldLayer.style.transform = 'scale(0.96)';
+
+                            newLayer.style.opacity = '1';
+                            newLayer.style.filter = 'blur(0px)';
+                            newLayer.style.transform = 'scale(1)';
+                        });
+                    });
+
+                    setTimeout(() => {
+                        parentEl.style.backgroundImage = `url("${newUrl}")`;
+                        void parentEl.offsetHeight; 
+                        parentEl.style.transition = originalTransition;
+                        // 动画结束，恢复原本的隔离层状态
+                        parentEl.style.isolation = originalIsolation;
+                        container.remove();
+                    }, 850); 
+                }
+                
                 extractThemeColor(img);
             } catch(err) {
                 customAlert("壁纸文件过大, 无法存入本地缓存, 请裁剪后重试", "壁纸保存失败", "⚠️");
@@ -946,7 +1010,6 @@ const flatpickrEnterHook = function(e) {
             setTimeout(() => alarmNameInput.focus(), 60);
         }
     } else if (e.key !== 'Tab') {
-        // 只要不是 Tab 键, 任何输入 (如 1222) 在到达 Flatpickr 前被直接就地拦截没收
         e.stopImmediatePropagation();
     }
 };
@@ -962,13 +1025,24 @@ const fpInstance = flatpickr("#alarmTimeWrap", {
     minuteIncrement: 1,
     
     onReady: function(selectedDates, dateStr, instance) {
-        // 确保我们在事件捕获阶段 (true) 优先拿到控制权
-        ['input', 'keyup', 'keydown'].forEach(evt => {
-            instance.input.addEventListener(evt, flatpickrEnterHook, true);
-        });
+    instance.__rawTimeValue = "";
+        // 确保在事件捕获阶段 (true) 优先拿到控制权
+        instance.input.addEventListener("keydown", flatpickrEnterHook, true);
 
-        instance.input.addEventListener('blur', function(e) { 
-            forceTimeFormat(instance, this.value); 
+        instance.input.addEventListener("input", function () {
+            instance.__rawTimeValue = this.value;
+        }, true);
+
+        instance.input.addEventListener('blur', function() {
+            const raw = instance.__rawTimeValue;
+
+            if (/^\d{3,4}$/.test(raw)) {
+                forceTimeFormat(instance, raw);
+            } else {
+                forceTimeFormat(instance, this.value);
+            }
+
+            instance.__rawTimeValue = "";
         }, true);
     }
 });
@@ -984,6 +1058,40 @@ alarmNameInput.addEventListener('keydown', function(e) {
 // ================== 自定义闹钟铃声功能 ==================
 const defaultRingtoneUrl = "https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3";
 const alarmAudio = new Audio(defaultRingtoneUrl);
+
+let alarmPlayCount = 1; // 从 1 开始计数，逻辑更清晰
+const MAX_PLAY_COUNT = 3;
+
+// 适配 iframe: 获取顶层 wrapper 的 electronAPI
+const electronAPI = window.electronAPI || window.top?.electronAPI || window.parent?.electronAPI;
+
+function stopAlarmAudio() {
+    alarmAudio.pause();
+    alarmAudio.currentTime = 0;
+    alarmPlayCount = 1; // 恢复初始状态
+    
+    // 移除所有正在闪烁的红框视觉特效
+    document.querySelectorAll('.alarm-item.ringing').forEach(el => el.classList.remove('ringing'));
+}
+
+// 监听当前音频播放完毕，进行计数与重播
+alarmAudio.addEventListener('ended', () => {
+    if (alarmPlayCount < MAX_PLAY_COUNT) {
+        alarmPlayCount++;
+        alarmAudio.currentTime = 0; // 核心修复：强制重置播放进度，防止部分音频格式后续 play() 失败
+        alarmAudio.play().catch(e => console.error("音频重播被拦截:", e));
+    } else {
+        stopAlarmAudio();
+    }
+});
+
+// 监听来自 Electron 主进程的“关闭铃声”事件 (通过任务栏按钮触发)
+if (electronAPI && electronAPI.onStopAlarm) {
+    electronAPI.onStopAlarm(() => {
+        stopAlarmAudio();
+    });
+}
+
 const savedRingtone = localStorage.getItem('alpha_home_ringtone');
 const savedRingtoneName = localStorage.getItem('alpha_home_ringtone_name');
 const ringtoneBtn = DOM.ringtoneBtn;
@@ -1120,10 +1228,16 @@ function parseToDo() {
         }
     }
 
-    localStorage.setItem('taskhub_data', JSON.stringify(hubData));
+localStorage.setItem('taskhub_data', JSON.stringify(hubData));
     localStorage.setItem('taskflow_data', JSON.stringify(flowData));
     
     DOM.todoInput.value = '';
+    
+    // 💡 修复 ②：彻底重置输入框的自适应高度与用户拖拽状态，配合 CSS 触发回弹阻尼动画
+    DOM.todoInput.style.height = '200px'; 
+    delete DOM.todoInput.dataset.userResized; 
+    delete DOM.todoInput.dataset.lastTargetHeight;
+    
     customAlert(`✅ 解析完成!<br><br>新增待办计划 (Hub): <b>${addedHub}</b> 项<br>新增已完结记录 (Flow): <b>${addedFlow}</b> 项`, "导入成功", "🎉");
 }
 
@@ -1192,7 +1306,6 @@ setInterval(() => {
     const now = new Date();
     const currentHM = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
     const todayStr = `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}`;
-    
     alarms.forEach(al => {
         if (al.time === currentHM && al.triggeredDay !== todayStr) {
             al.triggeredDay = todayStr;
@@ -1200,11 +1313,24 @@ setInterval(() => {
             
             const itemEl = document.getElementById(`alarm-${al.id}`);
             if (itemEl) itemEl.classList.add('ringing');
+            
+            // 👇 核心修复：每次全新触发前，强制归零计数并拨回进度条起点
+            alarmPlayCount = 1; 
+            alarmAudio.currentTime = 0; 
             try { alarmAudio.play(); } catch(e){}
             
+            // 触发 Electron 任务栏持续通知
+            if (electronAPI && electronAPI.showAlarmNotification) {
+                electronAPI.showAlarmNotification({
+                    title: `日程提醒: ${al.time} 到了!`,
+                    body: al.name
+                });
+            }
+            
+            // 网页端 毛玻璃 全局弹窗
             customAlert(`⏰ <b>${al.time}</b> 到了!<br><br>${al.name}`, "日程提醒", "🔔", () => {
-                alarmAudio.pause(); alarmAudio.currentTime = 0;
-                if (itemEl) itemEl.classList.remove('ringing');
+                // 回调函数：用户在页面点击“我知道了”时，同步关闭铃声
+                stopAlarmAudio();
             });
         }
     });
@@ -1422,125 +1548,16 @@ window.addEventListener('wheel', (e) => {
     }
 }, { passive: true });
 
-// ================= 全局毛玻璃 Tooltip 劫持引擎 (rAF 性能优化版) =================
-window.addEventListener('DOMContentLoaded', () => {
-    const tooltipNode = document.createElement('div');
-    tooltipNode.id = 'alphaTooltip';
-    document.body.appendChild(tooltipNode);
-
-    // 🎯 缓存 Tooltip 尺寸, 避免在 rAF 中反复读取 offsetWidth/Height 触发强制重排
-    let tooltipWidth = 0;
-    let tooltipHeight = 0;
-    let pendingX = -9999;
-    let pendingY = -9999;
-    let rafId = null;
-    let tooltipVisible = false;
-
-    // 🎯 仅在内容变更时更新尺寸缓存
-    function cacheTooltipSize() {
-        tooltipWidth = tooltipNode.offsetWidth;
-        tooltipHeight = tooltipNode.offsetHeight;
-    }
-
-    // 🎯 纯计算 + 写入, 统一在 rAF 内完成, 一帧只跑一次
-    function flushTooltipPosition() {
-        rafId = null;
-        if (!tooltipVisible) return;
-
-        const offsetX = 14;
-        const offsetY = 18;
-        let x = pendingX + offsetX;
-        let y = pendingY + offsetY;
-
-        // 右侧碰撞检测
-        if (x + tooltipWidth > window.innerWidth) {
-            x = pendingX - tooltipWidth - 8;
-        }
-        // 底部碰撞检测
-        if (y + tooltipHeight > window.innerHeight) {
-            y = pendingY - tooltipHeight - 8;
-        }
-
-        tooltipNode.style.left = `${x}px`;
-        tooltipNode.style.top = `${y}px`;
-    }
-
-    document.addEventListener('mouseover', (e) => {
-        const target = e.target.closest('[title], [data-tooltip]');
-        if (!target) return;
-
-        if (target.hasAttribute('title')) {
-            target.setAttribute('data-tooltip', target.getAttribute('title'));
-            target.removeAttribute('title');
-        }
-
-        const tipText = target.getAttribute('data-tooltip');
-        if (tipText) {
-            tooltipNode.textContent = tipText;
-            cacheTooltipSize();           // 内容变更时更新尺寸缓存
-            pendingX = e.clientX;
-            pendingY = e.clientY;
-            void tooltipNode.offsetWidth; // 强制浏览器结算文字变动, 确保动画第 0 帧被捕获
-            tooltipNode.classList.add('visible');
-            tooltipVisible = true;
-        }
-    });
-
-    document.addEventListener('mousemove', (e) => {
-        if (!tooltipVisible) return;
-        pendingX = e.clientX;
-        pendingY = e.clientY;
-        // 🎯 关键优化: 用 rAF 节流, 合并同一帧内的多次 mousemove
-        if (!rafId) {
-            rafId = requestAnimationFrame(flushTooltipPosition);
-        }
-    });
-
-    document.addEventListener('mouseout', (e) => {
-        const target = e.target.closest('[data-tooltip]');
-        if (target) {
-            if (!e.relatedTarget || !target.contains(e.relatedTarget)) {
-                tooltipNode.classList.remove('visible');
-                tooltipVisible = false;
-                if (rafId) {
-                    cancelAnimationFrame(rafId);
-                    rafId = null;
-                }
-            }
-        }
-    });
-
-    document.addEventListener('mousedown', () => {
-        tooltipNode.classList.remove('visible');
-        tooltipVisible = false;
-        if (rafId) {
-            cancelAnimationFrame(rafId);
-            rafId = null;
-        }
-    });
-});
-
 // ================== 首次启动版权提示 ==================
 function checkFirstLaunch() {
     // 检查是否已经显示过
     if (localStorage.getItem('alpha_welcome_shown')) return;
 
-    // 组装弹窗内容（支持 HTML）
-    const msg = `
-        <div style="text-align: left; font-size: 15px; line-height: 1.8;">
-            <p style="margin-bottom: 12px;"><b>欢迎使用 Tasks!</b></p>
-            <p style="margin-bottom: 12px;">
-                本产品基于 <b>GPL-3.0</b> 协议开源, 但请知悉其中使用的字体为 
-                <b>OPPO Sans 4.0</b> 系列, 版权归广东 OPPO 公司所有
-            </p>
-            <p style="margin-bottom: 0; color: #64748b; font-size: 14px;">
-                该信息将不再提示, 请务必知悉
-            </p>
-        </div>
-    `;
-
-    // 调用 Home.html 中已有的 customAlert
-    customAlert(msg, '提示', '📜');
+    // 直接唤出新的毛玻璃欢迎弹窗
+    const welcomeModal = document.getElementById('welcomeModal');
+    if (welcomeModal) {
+        welcomeModal.classList.remove('hidden');
+    }
 
     // 标记已显示, 下次不再弹出
     localStorage.setItem('alpha_welcome_shown', 'true');
