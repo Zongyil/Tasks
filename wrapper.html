@@ -30,14 +30,12 @@
       -webkit-app-region: drag;
       display: flex; align-items: center;
       padding-left: 12px;
-      /* 【优化】：将右侧安全区从 184px 扩大至 192px (增加 8px)。
-          这样当标签溢出、加号按钮被推到最右侧时，会自然与“更多”按钮保持 8px 的间距。*/
       padding-right: 192px; 
       z-index: 99999;
     }
 
     .app-icon {
-      width: 18px; height: 18px;
+      width: 18px; height: 19px;
       margin-right: 14px;
       -webkit-app-region: drag;
       pointer-events: none;
@@ -46,7 +44,7 @@
 
     .tabs-wrapper {
       display: flex; align-items: center;
-      /* 未满时紧贴包裹卡片；溢出时被限制最大宽度，触发渐隐 */
+      /* 未满时紧贴包裹卡片；溢出时被限制最大宽度, 触发渐隐 */
       flex: 0 1 auto; 
       min-width: 0; height: 100%;
       overflow: hidden;
@@ -65,7 +63,7 @@
       display: flex; align-items: center; 
       overflow-x: auto; overflow-y: hidden;
       height: 100%;
-      padding: 0 4px; /* 彻底移除之前乱加的 padding，恢复精准的溢出计算 */
+      padding: 0 4px; /* 彻底移除之前乱加的 padding, 恢复精准的溢出计算 */
       -webkit-app-region: no-drag;
       scroll-behavior: smooth;
     }
@@ -77,13 +75,13 @@
       height: 32px; padding: 0 10px 0 14px; margin-right: 6px; 
       border-radius: 8px; font-size: 13px;
       cursor: pointer; position: relative;
-      /* 【修复】：放弃 flex-basis，转用 width 承接 CSS 变量，激活平滑过渡 */
+      /* 放弃 flex-basis, 转用 width 承接 CSS 变量, 激活平滑过渡 */
       flex: 0 0 auto;
       width: var(--alpha-tab-width, 120px);
       min-width: 120px;
       max-width: 240px;
       
-      transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease, font-weight 0.3s ease,
+      transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease, font-weight 0.3s ease,
                   transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
                   width 0.4s cubic-bezier(0.16, 1, 0.3, 1),
                   min-width 0.4s cubic-bezier(0.16, 1, 0.3, 1),
@@ -101,33 +99,47 @@
       padding-left: 0 !important; padding-right: 0 !important;
       margin-right: 0 !important; opacity: 0 !important; border-width: 0 !important;
     }
-    /* 微调初始物理形态，配合已有的布局阻尼曲线与视觉回弹曲线，达成完美的液态充气感 */
+    /* 微调初始物理形态, 配合已有的布局阻尼曲线与视觉回弹曲线, 达成完美的液态充气感 */
     .tab.entering { transform: translate3d(0, 14px, 0) scale(0.72); }
     .tab.closing  { transform: translate3d(0, -10px, 0) scale(0.85); }
 
     /* 选中状态 (高亮纯白发光态) */
     .tab.active {
-      background-color: rgba(255, 255, 255, 0.78);
-      backdrop-filter: blur(24px) saturate(200%); -webkit-backdrop-filter: blur(24px) saturate(200%);
-      border: 1px solid rgba(255, 255, 255, 0.95);
-      box-shadow: 0 6px 20px rgba(255, 255, 255, 0.45), inset 0 1px 2px rgba(255, 255, 255, 0.95);
+      background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0.25) 100%);
+      backdrop-filter: blur(40px) saturate(130%) brightness(1.05); -webkit-backdrop-filter: blur(40px) saturate(130%) brightness(1.05);
+      border-top: 1.5px solid rgba(255, 255, 255, 0.95);
+      border-left: 1px solid rgba(255, 255, 255, 0.8);
+      border-right: 1px solid rgba(255, 255, 255, 0.35);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.25);
+      box-shadow: 0 12px 28px rgba(15, 23, 42, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.08), inset 2px 3px 10px rgba(255, 255, 255, 0.35), inset -2px -3px 10px rgba(0, 0, 0, 0.03), inset 4px 6px 20px rgba(255, 255, 255, 0.15);
       font-weight: 700; color: #0f172a; z-index: 2;
       transform: translate3d(0, 0, 0) scale(1.03) !important; /* 物理级充气浮现感 */
     }
 
     /* 未选中状态 (幽灵玻璃态) */
     .tab.inactive {
-      background-color: rgba(255, 255, 255, 0.22);
-      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.25);
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0); 
+      background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.05) 100%);
+      backdrop-filter: blur(24px) saturate(130%); -webkit-backdrop-filter: blur(24px) saturate(130%);
+      border-top: 1px solid rgba(255, 255, 255, 0.5);
+      border-left: 1px solid rgba(255, 255, 255, 0.4);
+      border-right: 1px solid rgba(255, 255, 255, 0.1);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05), inset 0 1px 2px rgba(255, 255, 255, 0.2);
       font-weight: 600; color: #475569; z-index: 1;
       transform: translate3d(0, 0, 0) scale(0.97); /* 空间退后感 */
     }
     .tab.inactive:hover {
-      background-color: rgba(255, 255, 255, 0.45);
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0.15) 100%);
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08), inset 0 2px 4px rgba(255, 255, 255, 0.35);
+      border-top: 1px solid rgba(255, 255, 255, 0.75);
+      border-left: 1px solid rgba(255, 255, 255, 0.6);
       transform: translate3d(0, 0, 0) scale(1.0);
+    }
+    .tab.inactive:active {
+      background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0.3) 100%);
+      transform: translate3d(0, 0, 0) scale(0.98);
+      border-top: 1.5px solid rgba(255, 255, 255, 0.85);
+      border-left: 1px solid rgba(255, 255, 255, 0.75);
     }
 
     .tab-title {
@@ -149,31 +161,60 @@
 
     /* 加号按键动态置顶 */
     .add-tab-btn {
-      /* 核心逻辑：绝对坚硬，绝不缩小！未满时贴着左边容器跑，满了时被一路推到最右侧钉死 */
+      /* 未满时贴着左边容器跑, 满了时推到最右侧钉死 */
       flex: 0 0 auto; 
-      margin-left: 8px; /* 留出一点空隙，让渐隐卡片与加号有呼吸感 */
+      margin-left: 8px; /* 留出一点空隙, 让渐隐卡片与加号有呼吸感 */
       position: relative; z-index: 10;
       display: flex; justify-content: center; align-items: center;
       width: 32px; height: 32px; border-radius: 8px;
-      background-color: rgba(255, 255, 255, 0.45); 
-      backdrop-filter: blur(16px) saturate(200%); -webkit-backdrop-filter: blur(16px) saturate(200%);
-      border: 1px solid rgba(255, 255, 255, 0.55);
+      background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0.15) 100%);
+      backdrop-filter: blur(40px) saturate(130%); -webkit-backdrop-filter: blur(40px) saturate(130%);
+      border-top: 1px solid rgba(255, 255, 255, 0.85);
+      border-left: 1px solid rgba(255, 255, 255, 0.65);
+      border-right: 1px solid rgba(255, 255, 255, 0.25);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05), inset 0 1px 2px rgba(255, 255, 255, 0.35);
       color: #0f172a; cursor: pointer;
-      transition: background-color 0.2s, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+      transition: background 0.2s, box-shadow 0.2s, border-color 0.2s, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
       -webkit-app-region: no-drag;
     }
-    .add-tab-btn:hover { background-color: rgba(255, 255, 255, 0.65); box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-    .add-tab-btn:active { transform: scale(0.90); }
+    .add-tab-btn:hover { 
+      background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.65) 0%, rgba(255, 255, 255, 0.25) 100%);
+      border-top: 1px solid rgba(255, 255, 255, 0.95);
+      border-left: 1px solid rgba(255, 255, 255, 0.8);
+      box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08), inset 0 2px 4px rgba(255, 255, 255, 0.5); 
+    }
+    .add-tab-btn:active { 
+      background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.4) 100%);
+      transform: scale(0.90); 
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.05), inset 0 2px 5px rgba(255, 255, 255, 0.6);
+      border-top: 1.5px solid rgba(255, 255, 255, 1);
+      border-left: 1px solid rgba(255, 255, 255, 0.9);
+    }
 
     .more-btn {
-      position: absolute; right: 138px; top: 0;
-      width: 46px; height: 44px;
+      position: absolute; right: 138px; top: 6px;
+      width: 32px; height: 32px;
+      border-radius: 8px;
       display: flex; justify-content: center; align-items: center;
       cursor: pointer; color: #334155;
       -webkit-app-region: no-drag;
-      transition: background 0.12s ease;
+      transition: background 0.2s, box-shadow 0.2s, border-color 0.2s, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+      border: 1px solid transparent;
     }
-    .more-btn:hover { background: rgba(0, 0, 0, 0.07); }
+    .more-btn:hover { 
+      background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0.25) 100%);
+      backdrop-filter: blur(24px) saturate(150%); -webkit-backdrop-filter: blur(24px) saturate(150%);
+      border-top: 1px solid rgba(255, 255, 255, 0.85);
+      border-left: 1px solid rgba(255, 255, 255, 0.65);
+      border-right: 1px solid rgba(255, 255, 255, 0.25);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05), inset 0 1px 2px rgba(255, 255, 255, 0.35);
+    }
+    .more-btn:active {
+      transform: scale(0.90);
+      background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.75) 0%, rgba(255, 255, 255, 0.35) 100%);
+    }
 
     /* ========== 内容容器 ========== */
     #iframe-container {
@@ -188,54 +229,65 @@
       visibility: hidden; opacity: 0; pointer-events: none;
       background: transparent;
       transform: translate3d(0, 0, 0) scale(1);
-      will-change: transform, opacity;
-      /* 混合过渡：位移使用高阶视差阻尼曲线，透明度保持自然流畅 */
+      filter: blur(0px);
+      will-change: transform, opacity, filter;
+      /* 混合过渡: 位移使用高阶视差阻尼曲线, 透明度保持自然流畅 */
       transition: opacity 0.35s cubic-bezier(0.25, 1, 0.5, 1),
                   transform 0.42s cubic-bezier(0.16, 1, 0.3, 1),
+                  filter 0.42s cubic-bezier(0.16, 1, 0.3, 1),
                   visibility 0.42s;
       contain: layout paint size;
     }
-    .content-frame.enter-right { transform: translate3d(40px, 0, 0) scale(0.97); opacity: 0; }
-    .content-frame.enter-left  { transform: translate3d(-40px, 0, 0) scale(0.97); opacity: 0; }
+    .content-frame.enter-right { transform: translate3d(40px, 0, 0) scale(0.97); opacity: 0; filter: blur(16px); }
+    .content-frame.enter-left  { transform: translate3d(-40px, 0, 0) scale(0.97); opacity: 0; filter: blur(16px); }
     
-    .content-frame.exit-left   { transform: translate3d(-40px, 0, 0) scale(0.97); opacity: 0; }
-    .content-frame.exit-right  { transform: translate3d(40px, 0, 0) scale(0.97); opacity: 0; }
+    .content-frame.exit-left   { transform: translate3d(-40px, 0, 0) scale(0.97); opacity: 0; filter: blur(16px); }
+    .content-frame.exit-right  { transform: translate3d(40px, 0, 0) scale(0.97); opacity: 0; filter: blur(16px); }
     
     .content-frame.active { 
       visibility: visible; opacity: 1; pointer-events: auto;
       z-index: 2; 
       transform: translate3d(0, 0, 0) scale(1); /* 回归舞台中央 */
+      filter: blur(0px);
+    }
+    
+    .content-frame.stationary {
+      transform: translate3d(0, 0, 0) scale(1) !important;
+      filter: blur(0px) !important;
     }
     
     #alphaTooltip {
       position: fixed; top: 0; left: 0; padding: 6px 12px;
-      background: rgba(255, 255, 255, 0.65);
-      backdrop-filter: blur(24px) saturate(200%); -webkit-backdrop-filter: blur(24px) saturate(200%);
-      border: 1px solid rgba(255, 255, 255, 0.4); border-top-color: rgba(255, 255, 255, 0.85);
-      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12), inset 0 1px 1px rgba(255, 255, 255, 0.9), inset 0 0 12px rgba(255, 255, 255, 0.4);
+      background: radial-gradient(ellipse at top left, rgba(255, 255, 255, 0.65) 0%, rgba(255, 255, 255, 0.35) 100%);
+      backdrop-filter: blur(40px) saturate(130%) brightness(1.05); -webkit-backdrop-filter: blur(40px) saturate(130%) brightness(1.05);
+      border-top: 1.5px solid rgba(255, 255, 255, 0.95);
+      border-left: 1px solid rgba(255, 255, 255, 0.8);
+      border-right: 1px solid rgba(255, 255, 255, 0.35);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.25);
+      box-shadow: 0 12px 32px rgba(15, 23, 42, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.08), inset 2px 3px 10px rgba(255, 255, 255, 0.35), inset -2px -3px 10px rgba(0, 0, 0, 0.03), inset 4px 6px 20px rgba(255, 255, 255, 0.15);
       border-radius: 10px; font-size: 12px; color: #0f172a; font-weight: 500;
       pointer-events: none; z-index: 100000; opacity: 0;
       transform: translateY(6px) scale(0.94);
       transition: opacity 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-      will-change: transform, opacity, left, top; white-space: nowrap;
+      will-change: transform, opacity; white-space: nowrap;
     }
     #alphaTooltip.visible { opacity: 1; transform: translateY(0) scale(1); }
 
-    /* ===== 性能优化：限制布局/样式重算范围 ===== */
+    /* ===== 限制布局/样式重算范围 ===== */
   .tabs-container {
     contain: layout style;
   }
   .tab {
     contain: layout style;
-    will-change: transform;            /* 提前提升到合成层，动画更丝滑 */
+    will-change: transform;            /* 提前提升到合成层, 动画更丝滑 */
   }
   </style>
 </head>
 <body>
-<iframe id="splashFrame" src="splash.html" style="position:fixed; top:0; left:0; width:100%; height:100%; z-index:999999; border:none; pointer-events:all; background-color: transparent; transition: opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1);"></iframe>
+<iframe id="splashFrame" src="splash.html" style="position:fixed; top:0; left:0; width:100%; height:100%; z-index:999999; border:none; pointer-events:all; background-color: transparent; transition: opacity 1.0s cubic-bezier(0.16, 1, 0.3, 1);"></iframe>
 
   <div id="title-bar">
-    <img src="Tasks.ico" class="app-icon" alt="Alpha" onerror="this.style.opacity='0'">
+    <img src="./Icon.png" class="app-icon" alt="Alpha" onerror="this.style.opacity='0'">
     
     <div class="tabs-wrapper mask-none" id="tabsWrapper">
         <div class="tabs-container" id="tabsContainer">
@@ -259,6 +311,8 @@
   <div class="alpha-tooltip" id="alphaTooltip"></div>
 
   <script>
+    let currentTabWidth = 120; // 缓存的全局标签宽度
+
     function ensureTabVisible(tab, trackingStartTime = null) {
         const wrapper = tabsContainer;
         if (!wrapper || !tab) return;
@@ -268,9 +322,8 @@
         const index = tabs.findIndex(t => t.id === tabId);
         if (index === -1) return;
 
-        // 2. 获取动态计算的标准标签宽度
-        const rootStyle = getComputedStyle(document.documentElement);
-        const expectedWidth = parseFloat(rootStyle.getPropertyValue('--alpha-tab-width')) || 120;
+        // 2. 获取动态计算的标准标签宽度 (使用 JS 缓存, 避免 getComputedStyle 导致的强制重排)
+        const expectedWidth = currentTabWidth;
         
         // 3. 核心物理空间常数
         const GAP = 6;            
@@ -281,9 +334,9 @@
         const finalLeft = PADDING_LEFT + index * (expectedWidth + GAP);
         const finalRight = finalLeft + expectedWidth;
 
-        // 5. 获取当前视口状态
+        // 5. 获取当前视口状态 (使用 ResizeObserver 缓存的容器宽度, 避免 clientWidth 强制重排)
         const scrollLeft = wrapper.scrollLeft;
-        const wrapperWidth = wrapper.clientWidth;
+        const wrapperWidth = tabsContainerWidth || wrapper.clientWidth;
         const visibleLeft = scrollLeft;
         const visibleRight = scrollLeft + wrapperWidth;
 
@@ -302,13 +355,13 @@
         if (targetLeft !== null) {
             wrapper.scrollTo({
                 left: targetLeft,
-                // 🔥 核心魔法：如果是高频追踪状态，使用 'auto' 瞬间贴合，打破 scrollWidth 钳制！
+                // 如果是高频追踪状态, 使用 'auto' 瞬间贴合, 打破 scrollWidth 钳制
                 // 普通的点击切换则继续使用 'smooth' 保持丝滑
                 behavior: isTracking ? 'auto' : 'smooth'
             });
         }
 
-        // 8. 启动 rAF 动画帧循环，完美贴合 CSS width 的 cubic-bezier 过渡周期 (400ms)
+        // 8. 启动 rAF 动画帧循环, 完美贴合 CSS width 的 cubic-bezier 过渡周期 (400ms)
         if (isTracking) {
             const elapsed = Date.now() - trackingStartTime;
             if (elapsed < 400) { 
@@ -323,7 +376,7 @@
     const iframeMap = new Map();
     const tabDataMap = new Map();
 
-    // 缓存常用 DOM 元素（此时已解析完成，可直接获取）
+    // 缓存常用 DOM 元素（此时已解析完成, 可直接获取）
     const tabsContainer = document.getElementById('tabsContainer');
     const tabsWrapper = document.getElementById('tabsWrapper');
     const iframeContainer = document.getElementById('iframe-container');
@@ -333,17 +386,16 @@
     const MIN_TAB_WIDTH = 120;
     const MAX_TAB_WIDTH = 240;
 
-    // 缓存上次计算的 tab 数量和容器宽度，避免无谓的重复计算
+    // 缓存上次计算的 tab 数量和容器宽度, 避免无谓的重复计算
     let cachedTabCount = 0;
     let lastContainerWidth = 0;
 
-    // 性能优化：缓存当前活动标签/iframe的 DOM 引用，避免全量遍历
+    //缓存当前活动标签/iframe的 DOM 引用, 避免全量遍历
     let activeTabElCache = null;
     let activeFrameCache = null;
 
-    // 性能优化：ResizeObserver 缓存容器尺寸，避免 scroll 事件中强制回流
+    // ResizeObserver 缓存容器尺寸, 避免 scroll 事件中强制回流
     let tabsContainerWidth = 0;
-    let tabsContainerScrollWidth = 0;
 
     // ================= ① 开放式自定义路由与【原生物理历史引擎】 =================
     window.ALPHA = {
@@ -355,7 +407,7 @@
         if (finalMode === 'new') {
           requestAnimationFrame(() => createNewTab(url, "加载中..."));
         } else {
-          // 对于外部直接 JS 调用的跳转，记录历史指针并使用原生跳转
+          // 对于外部直接 JS 调用的跳转, 记录历史指针并使用原生跳转
           const tab = tabDataMap.get(activeTabId);
           if (tab) tab.historyIndex++;
           
@@ -367,24 +419,37 @@
       },
 
       /**
-       * 【修复①与②】：完美的物理级原路返回引擎
+       * 「原路返回」接口
        */
       back: function() {
         const tab = tabDataMap.get(activeTabId);
         if (!tab) return;
         
+        const activeFrame = iframeMap.get(activeTabId);
+        const win = activeFrame ? activeFrame.contentWindow : null;
+
         if (tab.historyIndex > 0) {
           tab.historyIndex--;
-          const activeFrame = iframeMap.get(activeTabId);
-          if (activeFrame && activeFrame.contentWindow) {
-            // 呼叫浏览器底层历史堆栈后退。不销毁 DOM，瞬间丝滑闪回！
-            activeFrame.contentWindow.history.back();
+          if (win && win.history) {
+            try { win.history.back(); return; } catch(_) {}
           }
-        } else if (tab.parentId) {
-          // 如果原生历史已空，且它是由其他标签创建的子页，则安全关闭并退回父页
+        }
+
+        if (win && win.history && win.history.length > 1) {
+          try {
+            win.history.back();
+            return;
+          } catch(_) {}
+        }
+
+        if (tab.parentId) {
           const parentExists = tabs.find(t => t.id === tab.parentId);
+          closeTabWithAnim(activeTabId, parentExists ? tab.parentId : null);
+          return;
+        }
+
+        if (tabs.length > 1) {
           closeTabWithAnim(activeTabId);
-          if (parentExists) switchTab(tab.parentId);
         }
       }
     };
@@ -414,7 +479,7 @@
       iframeMap.set(tabId, iframe); 
 
       // 放弃等待极其缓慢的原生 load 事件（会被字体/图片等静态资源严重阻塞）。
-      // 采用高频智能探测，一旦子页面的 DOM 树解析完毕 (interactive)，立刻进行标题读取与事件注入！
+      // 采用高频智能探测, 一旦子页面的 DOM 树解析完毕 (interactive), 立刻进行标题读取与事件注入
       const initAlphaChild = () => {
         if (window.electronAPI && window.electronAPI.splashReady) { window.electronAPI.splashReady(); }
         try {
@@ -486,22 +551,26 @@
         } catch (_) {}
       };
 
-      // 1. 高频轮询 readyState：完美解决 iframe 初始化阶段 DOM 频繁被替换导致的事件丢失问题。
+      // 1. 高频轮询 readyState: 完美解决 iframe 初始化阶段 DOM 频繁被替换导致的事件丢失问题。
+      let pollCount = 0;
       const readyTimer = setInterval(() => {
         try {
             const doc = iframe.contentDocument || (iframe.contentWindow ? iframe.contentWindow.document : null);
-            // 只要跳过了初始的 about:blank，且 DOM 处于 interactive（可交互）或 complete，立即劫持！
+            // 只要跳过了初始的 about:blank, 且 DOM 处于 interactive（可交互）或 complete, 立即劫持
             if (doc && doc.readyState !== 'loading' && doc.URL !== 'about:blank') {
                 clearInterval(readyTimer);
                 initAlphaChild();
+            } else if (++pollCount > 500) {
+                // 增加 10s 超时保护, 避免无响应页面导致定时器永久泄漏
+                clearInterval(readyTimer);
             }
         } catch (e) {
-            // 遇到跨域安全限制等异常时，直接清理定时器
+            // 遇到跨域安全限制等异常时, 直接清理定时器
             clearInterval(readyTimer); 
         }
-      }, 15); // 15ms 极速探测帧率
+      }, 20); // 降频至 20ms, 降低 CPU 空转负担
 
-      // 2. 兜底策略：保留 load 事件，防止遇到极其畸形的页面没有触发 interactive 状态
+      // 2. 兜底策略: 保留 load 事件, 防止遇到极其畸形的页面没有触发 interactive 状态
       iframe.addEventListener('load', () => {
           clearInterval(readyTimer);
           initAlphaChild();
@@ -540,7 +609,7 @@
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           tabEl.classList.remove('entering');
-          // 拔除进入动画的瞬间，立刻启动 400ms 的视觉追踪引擎
+          // 拔除进入动画的瞬间, 立刻启动 400ms 的视觉追踪引擎
           // 它会以 60FPS 的频率死死咬住正在膨胀的标签页边缘
           ensureTabVisible(tabEl, Date.now());
         });
@@ -549,17 +618,35 @@
       requestOverlayUpdate();
     }
 
+    function isHomeTab(tabId) {
+      if (!tabId) return false;
+      const tab = tabDataMap.get(tabId);
+      const frame = iframeMap.get(tabId);
+      let url = tab ? (tab.url || '') : '';
+      if (frame) {
+        try {
+          if (frame.contentWindow && frame.contentWindow.location && frame.contentWindow.location.pathname) {
+            url = frame.contentWindow.location.pathname;
+          } else if (frame.src) {
+            url = frame.src;
+          }
+        } catch (_) {}
+      }
+      return url.toLowerCase().includes('home');
+    }
+
     function switchTab(tabId) {
-      // 已是当前标签：只需确保可见
+      // 已是当前标签: 只需确保可见
       if (activeTabId === tabId && activeTabElCache && activeTabElCache.getAttribute('data-id') === tabId) {
         ensureTabVisible(activeTabElCache);
         return;
       }
 
+      const prevTabId = activeTabId;
       const prevTabEl = activeTabElCache;
       const prevFrame = activeFrameCache;
 
-      // 🚀 核心升级：智能计算多标签页切换的相对方向（判定向左还是向右漫游）
+      // 智能计算多标签页切换的相对方向（判定向左还是向右漫游）
       const prevIndex = tabs.findIndex(t => t.id === activeTabId);
       const newIndex = tabs.findIndex(t => t.id === tabId);
       const direction = (prevIndex !== -1 && newIndex !== -1) ? (newIndex > prevIndex ? 'right' : 'left') : 'right';
@@ -567,18 +654,26 @@
       // 更新全局状态
       activeTabId = tabId;
 
+      const isHomeTransition = isHomeTab(prevTabId) || isHomeTab(tabId);
+
       // 1. 将旧活动标签设为 inactive
       if (prevTabEl) {
         prevTabEl.classList.remove('active');
         prevTabEl.classList.add('inactive');
       }
 
-      // 2. 将旧 iframe 卸载激活态，并赋予符合方向感的退场动效
+      // 2. 将旧 iframe 卸载激活态, 并赋予符合方向感的退场动效
       if (prevFrame) {
-        prevFrame.className = 'content-frame ' + (direction === 'right' ? 'exit-left' : 'exit-right');
-        // 动画结束后隐藏以释放合成层，并【立刻休眠】后台页面，停止毛玻璃 GPU 渲染
+        if (isHomeTransition) {
+          prevFrame.className = 'content-frame ' + (direction === 'right' ? 'exit-left' : 'exit-right');
+        } else {
+          prevFrame.className = 'content-frame stationary';
+          prevFrame.style.opacity = '0';
+        }
+        // 动画结束后隐藏以释放合成层, 并【立刻休眠】后台页面, 停止毛玻璃 GPU 渲染
         const onTransitionEnd = () => {
             prevFrame.className = 'content-frame';
+            prevFrame.style.opacity = '';
             try { if (prevFrame.contentWindow) prevFrame.contentWindow.dispatchEvent(new CustomEvent('AlphaSleep')); } catch(_) {}
         };
         prevFrame.addEventListener('transitionend', onTransitionEnd, { once: true });
@@ -594,14 +689,19 @@
         newTabEl.classList.add('active');
       }
 
-      // 5. 显示新 iframe，并施加方向感视差进场动画
+      // 5. 显示新 iframe, 并施加方向感视差进场动画
       if (newFrame) {
-          newFrame.classList.remove('exit-left', 'exit-right', 'active');
-          newFrame.classList.add(direction === 'right' ? 'enter-right' : 'enter-left');
+          newFrame.classList.remove('exit-left', 'exit-right', 'active', 'enter-left', 'enter-right', 'stationary');
+          newFrame.style.opacity = '';
+          if (isHomeTransition) {
+            newFrame.classList.add(direction === 'right' ? 'enter-right' : 'enter-left');
+          } else {
+            newFrame.classList.add('stationary');
+          }
           requestAnimationFrame(() => {
               newFrame.classList.add('active');
               // 唤醒新页面的动画与 JS 轮询
-              try { if (newFrame.contentWindow) newFrame.contentWindow.dispatchEvent(new CustomEvent('AlphaWake')); } catch(_) {}
+              try { if (newFrame.contentWindow) newFrame.contentWindow.dispatchEvent(new CustomEvent('AlphaWake', { detail: { isHomeTransition } })); } catch(_) {}
           });
       }
 
@@ -615,28 +715,14 @@
       }
     }
     
-    function closeTabWithAnim(tabId) {
-      const tabEl = tabElementMap.get(tabId);
-      if (tabEl) {
-        // 触发 CSS 中已定义好的 .closing (scale(0.8) 配合 Y轴位移退场)
-        tabEl.classList.add('closing'); 
-        // 400ms 的延迟需要与 CSS 中的 cubic-bezier 动画时长完美对齐
-        setTimeout(() => {
-          closeTab(tabId);
-        }, 400);
-      } else {
-        closeTab(tabId);
-      }
-    }
-
-    function closeTabWithAnim(tabId) {
+    function closeTabWithAnim(tabId, targetTabId = null) {
       const tabEl = tabElementMap.get(tabId);
       if (!tabEl) {
         closeTab(tabId);
         return;
       }
 
-      // 在点击瞬间，立即从核心活跃数组里切除，让 updateTabWidths() 能够瞬时感知剩余数量
+      // 在点击瞬间, 立即从核心活跃数组里切除, 让 updateTabWidths() 能够瞬时感知剩余数量
       const index = tabs.findIndex(t => t.id === tabId);
       if (index !== -1) {
         tabs.splice(index, 1);
@@ -645,9 +731,11 @@
       // 立即重算宽度
       updateTabWidths();
 
-      // 在点击的瞬间立刻切换活动标签，零延迟唤醒/漫游至下一页
+      // 在点击的瞬间立刻切换活动标签, 零延迟唤醒/漫游至下一页
       if (activeTabId === tabId) {
-        if (tabs.length === 0) {
+        if (targetTabId && tabs.some(t => t.id === targetTabId)) {
+          switchTab(targetTabId);
+        } else if (tabs.length === 0) {
           createNewTab('Home.html', '主页');
         } else {
           const fallbackIndex = Math.max(0, index - 1);
@@ -663,7 +751,7 @@
       // 触发收缩及视觉退场类
       tabEl.classList.add('closing'); 
 
-      // 将沉重的 DOM/Iframe 物理销毁剥离到 400ms 动画完全结束后异步处理，保障前台动画帧率
+      // 将沉重的 DOM/Iframe 物理销毁剥离到 400ms 动画完全结束后异步处理, 保障前台动画帧率
       setTimeout(() => {
         tabDataMap.delete(tabId);
         const iframe = iframeMap.get(tabId);
@@ -688,7 +776,7 @@
       }, 400);
     }
 
-    // 兜底保留原物理 closeTab 函数，以防 Electron 内部上游生命周期或特殊边界调用断裂
+    // 兜底保留原物理 closeTab 函数, 以防 Electron 内部上游生命周期或特殊边界调用断裂
     function closeTab(tabId) {
       const index = tabs.findIndex(t => t.id === tabId);
       if (index !== -1) tabs.splice(index, 1);
@@ -735,13 +823,12 @@
       const titleEl = tabEl.querySelector('.tab-title');
       if (!titleEl) return;
 
-      // 加入 OPPO Sans，使底层文本测算更加精准
+      // 加入 OPPO Sans, 使底层文本测算更加精准
       const fontStyle = "700 13px 'OPPO Sans 4.0', -apple-system, BlinkMacSystemFont, sans-serif";
       const oldWidth = getTextWidth(oldTitle, fontStyle);
       const newWidth = getTextWidth(newTitle, fontStyle);
 
-      // 【核心修复】：如果是新建标签页的初次更名，直接硬切文字并拉伸，跳过淡出动画！
-      // 这样完美保护了背景的“字重加粗动画”不被透明度遮蔽。
+      // 如果是新建标签页的初次更名, 硬切文字并拉伸, 跳过淡出动画
       if (oldTitle === "加载中...") {
         titleEl.textContent = newTitle;
         if (newWidth > oldWidth && oldWidth < 135) {
@@ -793,11 +880,11 @@
       const count = tabs.length;
       if (!count) return;
 
-      // 【核心修复】：使用系统级别的 window.innerWidth 作为计算基准，
-      // 彻底打破以往依赖 flex 容器自身宽度所导致的“无限伸缩计算死循环”。
+      // 使用系统级别的 window.innerWidth 作为计算基准, 
+      // 彻底打破以往依赖 flex 容器自身宽度所导致的「无限伸缩计算死循环」。
       const currentWinWidth = window.innerWidth;
 
-      // 如果数量和窗口宽度均未变化，跳过计算，节约性能
+      // 如果数量和窗口宽度均未变化, 跳过计算, 节约性能
       if (cachedTabCount === count && lastContainerWidth === currentWinWidth) return;
       cachedTabCount = count;
       lastContainerWidth = currentWinWidth;
@@ -806,20 +893,21 @@
       const MIN = 120;
       const MAX = 240;
       
-      // 精确计算水平方向的固定物理像素占用：
-      // 1. 左侧控件占用：12(padding-left) + 18(app-icon) + 14(margin-right) = 44px
-      // 2. 右侧控件占用：192(padding-right安全区) + 32(add-tab-btn) + 8(margin-left) = 232px
-      // 3. 滑动容器内边距：4 * 2 (tabs-container padding) = 8px
-      // 固定空间总计：284px
+      // 精确计算水平方向的固定物理像素占用: 
+      // 1. 左侧控件占用: 12(padding-left) + 18(app-icon) + 14(margin-right) = 44px
+      // 2. 右侧控件占用: 192(padding-right安全区) + 32(add-tab-btn) + 8(margin-left) = 232px
+      // 3. 滑动容器内边距: 4 * 2 (tabs-container padding) = 8px
+      // 固定空间总计: 284px
       const RESERVED_SPACE = 284;
       
-      // 计算出属于标签卡真正的“绝对可用最大空间”
+      // 计算出属于标签卡真正的「绝对可用最大空间」
       const availableSpace = currentWinWidth - RESERVED_SPACE;
       const totalGaps = GAP * (count - 1);
       
       // 完美钳制在 [120, 240] 区间内
       const width = Math.max(MIN, Math.min(MAX, (availableSpace - totalGaps) / count));
-
+      
+      currentTabWidth = width; // 缓存宽度供动画帧无损读取
       document.documentElement.style.setProperty('--alpha-tab-width', width + 'px');
     }
 
@@ -836,13 +924,12 @@
 
     tabsContainer.addEventListener('scroll', requestOverlayUpdate, { passive: true });
 
-    // === 新增：ResizeObserver 自动同步容器尺寸，避免 scroll 事件中强制回流 ===
+    // === 新增: ResizeObserver 自动同步容器尺寸, 避免 scroll 事件中强制回流 ===
     const resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
         if (entry.target === tabsContainer) {
           tabsContainerWidth = entry.contentRect.width;          // 更新缓存宽度
-          tabsContainerScrollWidth = tabsContainer.scrollWidth;   // 更新缓存滚动宽度
-          requestOverlayUpdate();                                 // 尺寸变了，遮罩也可能变化
+          requestOverlayUpdate();                                 // 尺寸变了, 遮罩也可能变化
         }
       }
     });
@@ -854,7 +941,7 @@
         }
     };
 
-    // 窗口 resize 仍保留，作为兜底（兼容极端情况）
+    // 窗口 resize 仍保留, 作为兜底（兼容极端情况）
     window.addEventListener('resize', () => {
       updateTabWidths();
       requestOverlayUpdate();
@@ -870,7 +957,7 @@
       tooltipHeight = tooltipEl.offsetHeight;
     }
 
-    // 核心位移计算：由于在 wrapper 中，需区分来源是原生容器还是 iframe 内部
+    // 核心位移计算: 由于在 wrapper 中, 需区分来源是原生容器还是 iframe 内部
     function updateTooltipPosition(x, y, offsetX = 0, offsetY = 0) {
       const gapX = 14; const gapY = 18;
       // 将 iframe 的内部坐标系完美换算为主窗口坐标系
@@ -888,7 +975,7 @@
     let currentTooltipText = '';
     let tooltipShowTimer = null;
 
-    // 将引擎封装，支持双向绑定 (Wrapper自身 + 内部各 iframe)
+    // 将引擎封装, 支持双向绑定 (Wrapper自身 + 内部各 iframe)
     function bindAlphaTooltipEngine(targetDoc, iframeNode = null) {
       if (targetDoc.__tooltipInstalled) return; // 防重复绑定
       targetDoc.__tooltipInstalled = true;   
@@ -905,7 +992,7 @@
 
         const tipText = target.getAttribute('data-tooltip');
         if (tipText) {
-          // 🛡️ 核心修复：加入 350ms 的延迟，防止鼠标横扫右上角时触发“幽灵矩形闪烁”
+          // 加入 350ms 的延迟, 防止鼠标横扫右上角时触发「幽灵矩形闪烁」
           if (tooltipShowTimer) clearTimeout(tooltipShowTimer);
           tooltipShowTimer = setTimeout(() => {
             if (tipText !== currentTooltipText) {
@@ -920,12 +1007,12 @@
             updateTooltipPosition(lastMouseX, lastMouseY, parentOffsetX, parentOffsetY);
           }, 350); 
         }
-      });
+      }, { passive: true });
 
       targetDoc.addEventListener('mousemove', (e) => {
         lastMouseX = e.clientX; lastMouseY = e.clientY;
         if (tooltipEl.classList.contains('visible') && !tooltipRafId) {
-          // rAF 节流防抖，保障 120Hz 刷新率下的绝对丝滑
+          // rAF 节流防抖, 保障 120Hz 刷新率下的绝对丝滑
           tooltipRafId = requestAnimationFrame(() => {
             const parentOffsetX = iframeNode ? iframeNode.getBoundingClientRect().left : 0;
             const parentOffsetY = iframeNode ? iframeNode.getBoundingClientRect().top : 0;
@@ -933,7 +1020,7 @@
             tooltipRafId = null;
           });
         }
-      });
+      }, { passive: true });
 
       targetDoc.addEventListener('mouseout', (e) => {
         if (e.target.closest('[data-tooltip]')) {
@@ -941,20 +1028,20 @@
           tooltipEl.classList.remove('visible');
           if (tooltipRafId) { cancelAnimationFrame(tooltipRafId); tooltipRafId = null; }
         }
-      });
+      }, { passive: true });
 
-      // 🛡️ 核心修复：兜底策略 - 一旦鼠标离开文档范围（比如去了原生按键区），强行斩断一切 Tooltip
+      // 一旦鼠标离开文档范围（比如去了原生按键区）, 斩断 Tooltip
       targetDoc.addEventListener('mouseleave', () => {
         if (tooltipShowTimer) { clearTimeout(tooltipShowTimer); tooltipShowTimer = null; }
         tooltipEl.classList.remove('visible');
         if (tooltipRafId) { cancelAnimationFrame(tooltipRafId); tooltipRafId = null; }
-      });
+      }, { passive: true });
 
       targetDoc.addEventListener('mousedown', () => {
         if (tooltipShowTimer) { clearTimeout(tooltipShowTimer); tooltipShowTimer = null; }
         tooltipEl.classList.remove('visible');
         if (tooltipRafId) { cancelAnimationFrame(tooltipRafId); tooltipRafId = null; }
-      });
+      }, { passive: true });
     }
 
     function injectLifecycle(doc) {
@@ -1001,53 +1088,56 @@
         `;
         doc.documentElement.appendChild(script);
     }
-    // 保留原入口函数名，避免破坏上游对于 iframe load 的回调逻辑
+    // 保留原入口函数名, 避免破坏上游对于 iframe load 的回调逻辑
     function injectGlobalRuntime(doc, iframeNode) {
       bindAlphaTooltipEngine(doc, iframeNode);
       injectLifecycle(doc);
     }
 
-    // 立即为 wrapper 本身的标题栏和 UI 元素也注入液态追踪引擎！
+    // 为 wrapper 本身的标题栏和 UI 元素也注入追踪引擎
     bindAlphaTooltipEngine(document);
 
     window.addEventListener('DOMContentLoaded', () => {
-      // 1. 初始时刻：先把真实的主界面标题栏和下方容器隐藏（透明且下沉）
+      // 1. 初始时刻: 先把真实的主界面标题栏和下方容器隐藏（高阶水下形态: 透明、下沉、高模糊）
       const titleBar = document.getElementById('title-bar');
       const iframeContainer = document.getElementById('iframe-container');
       
       titleBar.style.opacity = '0';
-      titleBar.style.transform = 'translateY(-15px)';
-      titleBar.style.transition = 'opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1), transform 0.8s cubic-bezier(0.22, 1, 0.36, 1)';
+      titleBar.style.transform = 'translateY(-20px)';
+      titleBar.style.transition = 'opacity 1.2s cubic-bezier(0.16, 1, 0.3, 1), transform 1.2s cubic-bezier(0.16, 1, 0.3, 1)';
       
       iframeContainer.style.opacity = '0';
-      iframeContainer.style.transform = 'translateY(20px)';
-      iframeContainer.style.transition = 'opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1), transform 0.8s cubic-bezier(0.22, 1, 0.36, 1)';
+      iframeContainer.style.transform = 'translateY(45px) scale(0.96)';
+      iframeContainer.style.filter = 'blur(16px)';
+      iframeContainer.style.transition = 'opacity 1.5s cubic-bezier(0.16, 1, 0.3, 1), transform 1.5s cubic-bezier(0.16, 1, 0.3, 1), filter 1.5s cubic-bezier(0.16, 1, 0.3, 1)';
 
       createNewTab('Home.html', '主页');
       if (tabsContainer) {
         tabsContainerWidth = tabsContainer.clientWidth;
-        tabsContainerScrollWidth = tabsContainer.scrollWidth;
       }
       requestOverlayUpdate();
 
-      // 2. 预留 1.8 秒，确保在加载飞快的情况下，用户依然能欣赏到 Logo 的光影交错
+      // 2. 预留 1.8 秒, 确保在加载飞快的情况下, 用户依然能欣赏到 Logo 的光影交错
       setTimeout(() => {
           const splashFrame = document.getElementById('splashFrame');
           if(splashFrame) {
-              // 给启动屏发送退场指令（Logo 变模糊并淡出）
+              // 给启动屏发送退场指令（Logo 开始像水一样晕染溶解并向下沉没）
               splashFrame.contentWindow.postMessage('start-exit', '*');
               
-              // 同时，主界面伴随苹果风的弹性阻尼动画优雅上浮进场！
+              // 同时, 主界面伴随弹性阻尼动画「浮出水面」
               titleBar.style.opacity = '1';
               titleBar.style.transform = 'translateY(0)';
+              
               iframeContainer.style.opacity = '1';
-              iframeContainer.style.transform = 'translateY(0)';
+              iframeContainer.style.transform = 'translateY(0) scale(1)';
+              iframeContainer.style.filter = 'blur(0px)'; // 从高模糊平滑恢复到清澈形态
 
-              // 动画走完后，销毁启动屏释放内存
+              // 在内部 Logo 逐渐沉淀的过程中, 让整个启动页 iframe 进行平滑淡出, 以完美透出浮现完毕的主界面
               setTimeout(() => {
                   splashFrame.style.opacity = '0';
-                  setTimeout(() => splashFrame.remove(), 600);
-              }, 600);
+                  // 给 1.0s 的优雅退场时间, 动画彻底完结后销毁 iframe 释放内存
+                  setTimeout(() => splashFrame.remove(), 1000);
+              }, 400); // 400ms 后启动 iframe 整体淡出, 与内部沉淀动画形成华丽的重叠视差
           }
       }, 1800);
     });

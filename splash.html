@@ -13,7 +13,7 @@
 html, body {
     margin: 0; padding: 0;
     width: 100%; height: 100%;
-    /* 彻底透明！从而完美透出底层 mainWindow 的云母/物理毛玻璃材质 */
+    /* 窗口透明 */
     background-color: transparent; 
     overflow: hidden;
     user-select: none;
@@ -22,30 +22,39 @@ html, body {
     justify-content: center;
 }
 
-/* ================== 迎风飘扬的 Logo 容器 ================== */
+/* ================== 迎风飘扬的 Logo 容器与退场隔离层 ================== */
+.exit-wrapper {
+    /* 1. 退场动画物理引擎交由外层接管, 彻底剥离冲突 */
+    transition: opacity 1.2s cubic-bezier(0.16, 1, 0.3, 1),
+                transform 1.2s cubic-bezier(0.16, 1, 0.3, 1),
+                filter 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: transform, opacity, filter;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
 .logo-container {
     position: relative;
-    width: 50px; /* Logo 大小 */
-    height: 50px;
+    height: 50px; /* 2. 仅锁定高度, 释放宽度 */
+    /* 彻底移除 width: 50px, 使得不规则图标不再被强行拉伸为 1:1 */
     animation: flutter 4s ease-in-out infinite;
-    /* 退出动画状态时的平滑过渡 */
-    transition: opacity 0.6s var(--ease-spring), transform 0.6s var(--ease-spring), filter 0.6s var(--ease-spring);
-    will-change: transform, opacity, filter;
+    will-change: transform;
 }
 
 .logo-img {
-    width: 100%;
     height: 100%;
+    width: auto; /* 3. 宽度自适应, 保持原图完美比例 */
     object-fit: contain;
     /* 赋予其柔和的悬浮光影 */
     filter: drop-shadow(0 8px 24px rgba(15, 23, 42, 0.12));
+    display: block;
 }
 
 /* ================== 模拟阳光拂过 (核心光学引擎) ================== */
 .light-sweep {
     position: absolute;
     top: 0; left: 0; width: 100%; height: 100%;
-    /* 暖光渐变：透明 -> 暖金/暖白 -> 透明 */
     background: linear-gradient(
         135deg, 
         transparent 35%, 
@@ -54,7 +63,6 @@ html, body {
     );
     background-size: 250% 250%;
     animation: sweep 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-    /* 【黑魔法】让光线只在 PNG Logo 的不透明实体上渲染！不会溢出到方框外 */
     mask-image: url('./Tasks_Flat.png');
     mask-size: contain;
     mask-position: center;
@@ -64,32 +72,80 @@ html, body {
 }
 
 /* ================== 关键帧动效 ================== */
-/* 迎风飘扬：轻微的呼吸放大与极细微的倾斜 */
 @keyframes flutter {
     0% { transform: scale(1) rotate(0deg) translateY(0px); }
     50% { transform: scale(1.03) rotate(0.8deg) translateY(-4px); }
     100% { transform: scale(1) rotate(0deg) translateY(0px); }
 }
-
-/* 阳光对角线扫射 */
 @keyframes sweep {
     0% { background-position: 150% 150%; }
     100% { background-position: -50% -50%; }
 }
 
-/* 退场状态类：向后缩小淡出并模糊 */
-.exit-state .logo-container {
+/* ================== 退场状态类 (完美退场) ================== */
+.exit-state .exit-wrapper {
     opacity: 0;
-    transform: scale(0.8) translateY(-20px);
-    filter: blur(12px);
+    transform: scale(0.85) translateY(45px); /* 沉入水底的效果, 向下沉降并轻微缩小 */
+    filter: blur(28px) saturate(0.2) contrast(0.85); /* 水中晕染溶解 */
 }
+
+.exit-state .logo-container {
+    /* 不再暴力斩断 animation, 而是震结 (paused)
+       锁死图标退出瞬间的形变矩阵, 由外层接管缩小位移, 消除闪烁跳帧 */
+    animation-play-state: paused !important;
+}
+</style>
+
+<style id="glass-fix">
+/* Card Elements Glass Override */
+.task-card, .side-card, .nav-card, .chart-card, .chart-wrap, .stats-card, .sphere-modal, .form-container, .alpha-menu, .flatpickr-calendar, .flatpickr-innerContainer, .alarm-modal, .modal, .dropdown, .context-menu, .progress-card, .info-card {
+    background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.08) 45%, transparent 75%) !important;
+    
+      border-top: 2px solid rgba(255, 255, 255, 0.95) !important;
+      border-left: 1px solid rgba(255, 255, 255, 0.8) !important;
+      border-right: 1px solid rgba(255, 255, 255, 0.35) !important;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.25) !important;
+    
+    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.08), inset 2px 3px 10px rgba(255, 255, 255, 0.35), inset -2px -3px 10px rgba(0, 0, 0, 0.03), inset 4px 6px 20px rgba(255, 255, 255, 0.15) !important;
+    backdrop-filter: blur(32px) saturate(130%) !important;
+    -webkit-backdrop-filter: blur(32px) saturate(130%) !important;
+}
+
+/* Switch hover */
+.alpha-switch:hover:hover {
+    filter: brightness(1.25) contrast(1.1) !important;
+}
+
+/* Flatpickr Overrides */
+.flatpickr-day.selected {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.35) 0%, rgba(255, 255, 255, 0.15) 100%) !important;
+    backdrop-filter: blur(24px) saturate(120%) !important;
+    border-radius: var(--radius-element, 16px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.8) !important;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05), inset 0 2px 8px rgba(255, 255, 255, 0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.3) !important;
+}
+
+.flatpickr-time input, .flatpickr-time .numInputWrapper {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.05) 100%) !important;
+    backdrop-filter: blur(24px) saturate(120%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.7) !important;
+    border-radius: var(--radius-element, 16px) !important;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05), inset 0 2px 6px rgba(255, 255, 255, 0.4) !important;
+}
+.flatpickr-time input:focus, .flatpickr-time .numInputWrapper:focus-within {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0.2) 100%) !important;
+    border-color: rgba(255, 255, 255, 1) !important;
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.1), inset 0 2px 8px rgba(255, 255, 255, 0.7) !important;
+}
+
 </style>
 </head>
 <body>
-
-    <div class="logo-container">
-        <img src="./Tasks_Flat.png" class="logo-img" alt="Tasks Logo" />
-        <div class="light-sweep"></div>
+    <div class="exit-wrapper">
+        <div class="logo-container">
+            <img src="./Icon.png" class="logo-img" alt="Tasks Logo" />
+            <div class="light-sweep"></div>
+        </div>
     </div>
 
 <script>

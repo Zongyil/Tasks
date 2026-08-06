@@ -3,12 +3,13 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="icon" href="Icon.ico" type="image/x-icon">
 <title>专注</title>
 <base href="./">
 <style>
 /* ================== 全局与动态色彩体系 ================== */
 :root {
-    /* 默认主题色 (可通过壁纸取色动态修改) */
+    /* 默认主题色 (动态取色) */
     --theme-hue: 210;
     --theme-sat: 20%;
     --theme-light: 85%;
@@ -52,7 +53,7 @@
   src: url('./fonts/OPPO Sans 4.0.ttf') format('truetype'); 
   font-weight: medium;
   font-style: normal;
-  font-display: swap; /* 关键优化: 消除字体加载期间的不可见文本闪烁(FOIT) */
+  font-display: block; /* 消除字体加载期间的不可见文本闪烁 (FOIT) */
 }
 
 /* 全局重置与字体栈融合 */
@@ -67,7 +68,7 @@
     outline: none !important;
 }
 
-/* ⚠️ 补丁: 确保表单元素强制继承字体 */
+/*  确保表单元素强制继承字体 */
 input, textarea, button, select {
     font-family: inherit;
 }
@@ -145,49 +146,198 @@ body {
     display: flex; align-items: baseline; gap: 20px;
 }
 
-
+/* ==========================================
+   全屏沉浸专注时钟
+   ========================================== */
 .time-main {
-    font-size: 230px; font-weight: 800; letter-spacing: -6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     font-variant-numeric: tabular-nums;
-    line-height: 0.9;
-    
-    /* 恢复实体白, 但赋予 95% 的透明度, 让其带有一点底层背景的呼吸感 */
-    color: rgba(255, 255, 255, 0.95); 
-    
-    /* 玻璃边缘的锐利高光倒角 */
-    text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3),
-                 0 0 20px rgba(255, 255, 255, 0.2); 
-    
-    /* 这里是重点: 通过 drop-shadow 模拟玻璃实体的折射边缘 */
-    filter: drop-shadow(0px 10px 20px rgba(0, 0, 0, 0.4));
+    gap: 0.05em; /* 增大字与字的 gap */
+    font-size: 180px; 
+    font-weight: 800; 
+    /* 删除了之前的 letter-spacing 收缩, 让字体自然呼吸 */
 }
 
-/* 秒表: 降低透明度, 通过材质对比拉开层级 */
 .time-sec {
-    font-size: 56px; font-weight: 700; 
-    /* 将秒表颜色调成深沉的、半透明的灰白色, 体现出比主时间更远的物理层级 */
-    color: rgba(255, 255, 255, 0.5); 
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    align-self: flex-end; /* 利用 flex-end 强制向底部靠拢 */
     font-variant-numeric: tabular-nums;
+    gap: 0.06em; 
+    font-size: 80px; 
+    font-weight: 800;
+    margin-left: 12px;
+    margin-bottom: 28px; /* 精准的底边距补偿, 让「秒」的底部基线与主时间完美齐平 */
+}
+
+/* 字符固定插槽 */
+.clock-digit-slot {
+    position: relative;
+    display: flex; 
+    justify-content: center;
+    align-items: center;
+    width: 0.65em; /* 配合 gap 增大, 相应拓宽插槽体积防止裁切 */
+    height: 1.1em;
+    overflow: visible; 
+}
+
+/* 冒号专属插槽 */
+.clock-digit-slot.colon { 
+    width: 0.35em; 
+    font-size: 0.55em; /* 进一步调小冒号的体积 */
+    margin-top: -0.25em; /* 稍微上浮, 保持与主体数字视觉重心对齐 */
+}
+
+.clock-time-node {
+    position: absolute; left: 0; top: 0;
+    width: 100%; height: 100%;
+    display: flex; justify-content: center; align-items: center;
+
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent; color: transparent; 
+    -webkit-text-stroke: 1px rgba(255, 255, 255, 0.4); 
     
-    /* 折射阴影 */
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    /* 引入 Focus/Home 同款极致平滑过滤与弹簧阻尼引擎 */
+    transition: opacity 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), 
+                transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), 
+                filter 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    will-change: transform, opacity, filter; 
+}
+/* 时 (Hours) - 最高白度, 最锐利 */
+#timeMain .clock-digit-slot:nth-child(1) .clock-time-node,
+#timeMain .clock-digit-slot:nth-child(2) .clock-time-node {
+    background-image: linear-gradient(135deg, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.5) 100%);
+    -webkit-text-stroke: 1px rgba(255, 255, 255, 0.6); 
+    text-shadow: 0 4px 16px rgba(255, 255, 255, 0.25); 
+}
+
+/* 冒号 (Colon) - 脉冲呼吸效果 */
+#timeMain .clock-digit-slot.colon .clock-time-node {
+    background-image: linear-gradient(135deg, rgba(255,255,255,0.7), rgba(255,255,255,0.1));
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin: 0; 
+    animation: pulse-colon 2s infinite ease-in-out;
+}
+
+@keyframes pulse-colon {
+    0%, 100% { opacity: 0.8; transform: scale(1); }
+    50% { opacity: 0.2; transform: scale(0.85); }
+}
+
+/* 分 (Minutes) - 中等白度, 融入环境 */
+#timeMain .clock-digit-slot:nth-child(4) .clock-time-node,
+#timeMain .clock-digit-slot:nth-child(5) .clock-time-node {
+    background-image: linear-gradient(135deg, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.3) 100%);
+    -webkit-text-stroke: 0.5px rgba(255, 255, 255, 0.4); 
+    text-shadow: 0 2px 12px rgba(255, 255, 255, 0.18);
+}
+
+/* 秒 (Seconds) - 进一步柔和, 呈现深邃玻璃质感 */
+#timeSec .clock-time-node {
+    background-image: linear-gradient(135deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.2) 100%);
+    -webkit-text-stroke: 0.5px rgba(255, 255, 255, 0.3);
+    text-shadow: 0 2px 12px rgba(255, 255, 255, 0.07);
+}
+
+/* ==========================================
+    动效
+    ========================================== */
+/* 状态 1: 进场前（从底部大距离滑入缩放, 剔除多余 blur） */
+.clock-time-node.clock-enter { 
+    opacity: 0; 
+    transform: translateY(80%) scale(0.9); 
+    filter: blur(16px);
+}
+/* 状态 2: 正位展示（瞬间清透聚焦） */
+.clock-time-node.clock-enter-active { 
+    opacity: 1; 
+    transform: translateY(0) scale(1); 
+    filter: blur(0px);
+}
+/* 状态 3: 离场态（平滑上浮, 再次失焦消散融进背景） */
+.clock-time-node.clock-exit { 
+    opacity: 0; 
+    transform: translateY(-80%) scale(0.9); 
+    filter: blur(16px);
 }
 
 /* 日期文本: 保持适度的可见性 */
 .date-display {
-    margin-top: 24px; font-size: 32px; font-weight: 600;
-    color: rgba(255, 255, 255, 0.7); 
+    margin-top: 24px; font-size: 25px; font-weight: 600;
+    color: rgba(255, 255, 255, 0.5); 
     letter-spacing: 2px;
-    text-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    text-shadow: 0 4px 12px rgba(0, 0, 0, 0.09);
+}
+
+.date-sec {
+    display: none;
+    margin-left: 10px;
+    font-weight: 600;
+    opacity: 0.85;
+}
+
+.toast-short { display: none; }
+.toast-full { display: inline; }
+
+/* ==========================================
+   响应式布局引擎 (768px 窄屏自适应 - 时针分针换行与紧凑行距)
+   ========================================== */
+@media (max-width: 768px) {
+    .toast-full { display: none !important; }
+    .toast-short { display: inline !important; }
+
+    .time-wrapper {
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 0 !important;
+    }
+    .time-main {
+        display: grid !important;
+        grid-template-columns: auto auto !important;
+        grid-template-rows: auto auto !important;
+        justify-content: center !important;
+        font-size: clamp(115px, 28vw, 190px) !important; /* 增大换行后的时针/分针字号 */
+        line-height: 1 !important;
+        column-gap: 0.05em !important;
+        row-gap: 4px !important; /* 紧凑的时针与分针行间距 */
+    }
+    /* 隐藏冒号 */
+    #timeMain .clock-digit-slot.colon {
+        display: none !important;
+    }
+    /* Grid 布局分配: 时针与分针精准换行 */
+    #timeMain .clock-digit-slot:nth-child(1) { grid-column: 1; grid-row: 1; }
+    #timeMain .clock-digit-slot:nth-child(2) { grid-column: 2; grid-row: 1; }
+    #timeMain .clock-digit-slot:nth-child(4) { grid-column: 1; grid-row: 2; }
+    #timeMain .clock-digit-slot:nth-child(5) { grid-column: 2; grid-row: 2; }
+    
+    /* 隐藏原本侧边独立悬浮的秒钟 */
+    .time-sec {
+        display: none !important;
+    }
+    /* 秒钟并入日期显示 */
+    .date-display .date-sec {
+        display: inline-block !important;
+    }
+    .date-display {
+        margin-top: 24px !important;
+        font-size: 20px !important;
+        text-align: center !important;
+    }
 }
 
 /* ================== 顶部悬浮小白条 ================== */
 .apple-home-bar {
     position: absolute; top: 24px; left: 50%;
-    width: 140px; height: 5px;
-    background: rgba(255, 255, 255, 0.2);
+    width: 90px; height: 5px;
+    background: rgba(255, 255, 255, 0.3);
     border-radius: 10px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
     z-index: 100;
     
     animation: bounceY 2.5s infinite ease-in-out;
@@ -218,19 +368,70 @@ body {
 /* ================== 全局毛玻璃轻量提示 ================== */
 .hint-toast {
     position: absolute; bottom: 50px; left: 50%; transform: translateX(-50%);
-    background: rgba(0, 0, 0, 0.5); 
-    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.08); border-radius: var(--radius-element);
-    padding: 15px 20px; color: rgba(255, 255, 255, 0.85); font-size: 15px; font-weight: 600;
+    background: rgba(255, 255, 255, 0.45) !important;
+    backdrop-filter: blur(32px) saturate(140%); -webkit-backdrop-filter: blur(32px) saturate(140%);
+    border-top: 2px solid rgba(255, 255, 255, 0.3) !important;
+    border-left: 1px solid rgba(255, 255, 255, 0.25) !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.12) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+    box-shadow: 0 15px 28px rgba(0, 0, 0, 0.13), inset 0 0 0 1px rgba(255, 255, 255, 0.03), inset 0 2px 4px rgba(255, 255, 255, 0.04), inset 0 -2px 5px rgba(0, 0, 0, 0.18) !important;
+    border-radius: var(--radius-element, 16px);
+    padding: 15px 24px; color: #ffffffef; font-size: 15px; font-weight: 600;
     pointer-events: none; opacity: 1; 
-    transition: opacity 0.6s cubic-bezier(0.25, 1, 0.5, 1), transform 0.6s var(--ease);
-    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    transition: opacity 0.6s cubic-bezier(0.25, 1, 0.5, 1), transform 0.6s var(--ease), background 0.6s ease, box-shadow 0.6s ease;
+}
+.hint-toast.bright-wp {
+    background: rgba(255, 255, 255, 0.3) !important;
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.12), inset 0 0 2px 3px rgba(255, 255, 255, 0.07), inset 0 2px 3px rgba(255, 255, 255, 0.05), inset 0 -2px 4px rgba(0, 0, 0, 0.27) !important;
 }
 .hint-toast.fade-out { 
     opacity: 0; 
     transform: translateX(-50%) translateY(15px); 
 }
 
+</style>
+
+<style id="glass-fix">
+/* Card Elements Glass Override */
+.task-card, .side-card, .nav-card, .chart-card, .chart-wrap, .stats-card, .sphere-modal, .form-container, .alpha-menu, .flatpickr-calendar, .flatpickr-innerContainer, .alarm-modal, .modal, .dropdown, .context-menu, .progress-card, .info-card {
+    background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.08) 45%, transparent 75%) !important;
+    
+      border-top: 2px solid rgba(255, 255, 255, 0.95) !important;
+      border-left: 1px solid rgba(255, 255, 255, 0.8) !important;
+      border-right: 1px solid rgba(255, 255, 255, 0.35) !important;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.25) !important;
+    
+    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.08), inset 2px 3px 10px rgba(255, 255, 255, 0.35), inset -2px -3px 10px rgba(0, 0, 0, 0.03), inset 4px 6px 20px rgba(255, 255, 255, 0.15) !important;
+    backdrop-filter: blur(32px) saturate(130%) !important;
+    -webkit-backdrop-filter: blur(32px) saturate(130%) !important;
+}
+
+/* Switch hover */
+.alpha-switch:hover:hover {
+    filter: brightness(1.25) contrast(1.1) !important;
+}
+
+/* Flatpickr Overrides */
+.flatpickr-day.selected {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.35) 0%, rgba(255, 255, 255, 0.15) 100%) !important;
+    backdrop-filter: blur(24px) saturate(120%) !important;
+    border-radius: var(--radius-element, 16px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.8) !important;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05), inset 0 2px 8px rgba(255, 255, 255, 0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.3) !important;
+}
+
+.flatpickr-time input, .flatpickr-time .numInputWrapper {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.05) 100%) !important;
+    backdrop-filter: blur(24px) saturate(120%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.7) !important;
+    border-radius: var(--radius-element, 16px) !important;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05), inset 0 2px 6px rgba(255, 255, 255, 0.4) !important;
+}
+.flatpickr-time input:focus, .flatpickr-time .numInputWrapper:focus-within {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0.2) 100%) !important;
+    border-color: rgba(255, 255, 255, 1) !important;
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.1), inset 0 2px 8px rgba(255, 255, 255, 0.7) !important;
+}
 </style>
 </head>
 <body>
@@ -249,7 +450,10 @@ body {
         <div class="date-display" id="dateDisplay">加载中...</div>
     </div>
     
-    <div class="hint-toast" id="hintToast">💡 双击任意区域进入全屏 / 向上滚动返回</div>
+    <div class="hint-toast" id="hintToast">
+        <span class="toast-full">💡 双击任意位置全屏 / 上滑退出</span>
+        <span class="toast-short">💡 双击全屏</span>
+    </div>
 </div>
 
 <script>
@@ -283,7 +487,22 @@ function extractColorFromBase64(base64) {
                 r += data[i]; g += data[i+1]; b += data[i+2]; count++;
             }
             if (count === 0) return;
-            r = Math.floor(r/count)/255; g = Math.floor(g/count)/255; b = Math.floor(b/count)/255;
+            
+            const avgR = Math.floor(r/count);
+            const avgG = Math.floor(g/count);
+            const avgB = Math.floor(b/count);
+            
+            const luminance = 0.299 * avgR + 0.587 * avgG + 0.114 * avgB;
+            const hintToast = document.getElementById('hintToast');
+            if (hintToast) {
+                if (luminance > 160) {
+                    hintToast.classList.add('bright-wp');
+                } else {
+                    hintToast.classList.remove('bright-wp');
+                }
+            }
+
+            r = avgR/255; g = avgG/255; b = avgB/255;
             const max = Math.max(r, g, b), min = Math.min(r, g, b);
             let h, d = max - min;
             if (max === min) h = 0;
@@ -301,56 +520,86 @@ function extractColorFromBase64(base64) {
     img.src = base64;
 }
 
-// ================== 高精度时间渲染引擎 ==================
+// ==========================================
+// 动态时钟引擎 (全屏沉浸极致校准版)
+// ==========================================
 const timeMainEl = document.getElementById('timeMain');
 const timeSecEl = document.getElementById('timeSec');
 const dateDisplayEl = document.getElementById('dateDisplay');
-const weekdays = ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"];
 
-// ================== 高精度时间渲染引擎（优化版） ==================
-// 初始化日期（立即显示, 不等时钟首次回调）
-(function initDate() {
-    const now = new Date();
-    dateDisplayEl.textContent = `${now.getMonth() + 1}月${now.getDate()}日 ${weekdays[now.getDay()]}`;
-})();
+timeMainEl.innerHTML = ''; 
+timeSecEl.innerHTML = '';
 
-// 改为每秒更新一次（原 RAF 每帧约 60 次/秒, 其中 59 次 textContent 无变化, 纯浪费）
+let mainDigits = ['', '', '', '', ''];
+let secDigits = ['', ''];
+
+function createSlots(container, count, isMain = false) {
+    container.innerHTML = ''; // 防御性清空
+    for (let i = 0; i < count; i++) {
+        const slot = document.createElement('div');
+        slot.className = 'clock-digit-slot';
+        if (isMain && i === 2) slot.classList.add('colon');
+        container.appendChild(slot);
+    }
+}
+createSlots(timeMainEl, 5, true); 
+createSlots(timeSecEl, 2, false); 
+
+function renderDigits(container, newStr, stateArr) {
+    for (let i = 0; i < newStr.length; i++) {
+        const char = newStr[i];
+        if (char !== stateArr[i]) {
+            const slot = container.children[i];
+            if (!slot) continue;
+            
+            const isInitialRender = stateArr[i] === '';
+
+            if (!isInitialRender) {
+                const oldNodes = slot.querySelectorAll('.clock-time-node');
+                oldNodes.forEach(node => {
+                    node.classList.remove('clock-enter-active', 'clock-enter');
+                    node.classList.add('clock-exit');
+                    setTimeout(() => node.remove(), 600);
+                });
+            }
+
+            const newSpan = document.createElement('div');
+            newSpan.textContent = char;
+            
+            if (isInitialRender) {
+                newSpan.className = 'clock-time-node clock-enter-active';
+                slot.appendChild(newSpan);
+            } else {
+                newSpan.className = 'clock-time-node clock-enter';
+                slot.appendChild(newSpan);
+                
+                void newSpan.offsetWidth; // 强行触发重排
+                newSpan.classList.remove('clock-enter');
+                newSpan.classList.add('clock-enter-active');
+            }
+            stateArr[i] = char;
+        }
+    }
+}
+
 function updateClock() {
     const now = new Date();
     const hh = String(now.getHours()).padStart(2, '0');
     const mm = String(now.getMinutes()).padStart(2, '0');
     const ss = String(now.getSeconds()).padStart(2, '0');
     
-    // 分钟级内容才可能变化, 先比对再写入, 避免触发无意义的重绘
-    const newMain = `${hh}:${mm}`;
-    if (timeMainEl.textContent !== newMain) {
-        timeMainEl.textContent = newMain;
-    }
-    timeSecEl.textContent = ss;
+    renderDigits(timeMainEl, `${hh}:${mm}`, mainDigits);
+    renderDigits(timeSecEl, ss, secDigits);
     
-    // 日期每日更新一次（午夜零点触发）
-    if (hh === '00' && mm === '00' && ss === '00') {
-        dateDisplayEl.textContent = `${now.getMonth() + 1}月${now.getDate()}日 ${weekdays[now.getDay()]}`;
-    }
+    const weekdays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+    const month = now.getMonth() + 1;
+    const date = now.getDate();
+    const day = weekdays[now.getDay()];
+    dateDisplayEl.innerHTML = `${month}月${date}日 ${day}<span class="date-sec">${ss}秒</span>`;
 }
 
-// 立即执行第一次, 然后每秒更新
 updateClock();
 setInterval(updateClock, 1000);
-
-// ================== 全屏系统控制 ==================
-document.addEventListener('dblclick', () => {
-    if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen().catch(err => console.log(err.message));
-    } else {
-        document.exitFullscreen();
-    }
-});
-
-// 精准控制: 提示显示2s后以阻尼曲率自动向下滑出隐藏
-setTimeout(() => {
-    document.getElementById('hintToast').classList.add('fade-out');
-}, 2000);
 
 // 退出逻辑
 let isTransitioningToHome = false;
@@ -373,6 +622,38 @@ window.addEventListener('wheel', (e) => {
     }
 }, { passive: true });
 
+// 1. 全局双击全屏监听
+document.addEventListener('dblclick', (e) => {
+    // 拦截器: 防止用户在双击按钮或交互控件时误触全屏
+    if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
+    
+    if (!document.fullscreenElement) {
+        // 进入全屏
+        document.documentElement.requestFullscreen().catch(err => {
+            console.warn(`全屏请求被拒绝: ${err.message}`);
+        });
+    } else {
+        // 退出全屏
+        document.exitFullscreen();
+    }
+});
+
+// 2. 提示文字优雅退场
+window.addEventListener('DOMContentLoaded', () => {
+    const hintToast = document.querySelector('.hint-toast') || document.querySelector('.fullscreen-hint');
+    
+    if (hintToast) {
+        // 延迟 3.5 秒后触发 iOS 级别的阻尼消隐动画
+        setTimeout(() => {
+            hintToast.style.transition = 'opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1), transform 0.8s cubic-bezier(0.22, 1, 0.36, 1)';
+            hintToast.style.opacity = '0';
+            // 配合微微下沉和缩小的空间感退场
+            hintToast.style.transform = 'translate(-50%, 10px) scale(0.95)'; 
+            // 彻底剥离鼠标事件, 防止变成隐形的遮罩层阻挡底层点击
+            hintToast.style.pointerEvents = 'none'; 
+        }, 3500);
+    }
+});
 </script>
 </body>
 </html>

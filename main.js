@@ -64,6 +64,9 @@ function createWindow() {
         }
       }
     }
+    if (details.url && (details.url.startsWith('blob:') || details.url.startsWith('data:'))) {
+      return { action: 'deny' }
+    }
     return { action: 'allow' }
   })
 
@@ -90,7 +93,7 @@ function createWindow() {
   })
 }
 
-// ======= 小窗拖拽逻辑（基于缓存的 pipWindow 引用, 性能更优） =======
+// ======= 小窗拖拽逻辑 =======
 ipcMain.on('start-pip-drag', () => {
   if (pipWindow && !pipWindow.isDestroyed()) {
     const bounds = pipWindow.getBounds()
@@ -160,7 +163,7 @@ ipcMain.on('bring-main-to-front', () => {
 })
 
 app.whenReady().then(() => {
-  // 注册协议：保证字体正常加载
+  // 注册协议:保证字体正常加载
   protocol.handle('local-font', (request) => {
     let fileName = decodeURIComponent(request.url.slice('local-font://'.length));
     fileName = path.basename(fileName);
@@ -168,7 +171,7 @@ app.whenReady().then(() => {
     return net.fetch(pathToFileURL(filePath).href);
   });
 
-  // 万象归一：直接建立唯一的带有系统材质的主窗口！
+  // 建立唯一的带有系统材质的主窗口
   createWindow(); 
 })
 
@@ -179,19 +182,19 @@ ipcMain.on('show-alarm-notification', (event, { title, body }) => {
   const notification = new Notification({
     title: title || 'TaskHub 日程提醒',
     body: body,
-    // 👈 彻底移除 actions 数组，绝不给 Windows 拼装双按钮的机会，回归纯净原生视觉
+    // 已移除 actions 数组
     urgency: 'critical', // Windows/Linux: 提高优先级
     timeoutType: 'never' // Windows: 保持通知不自动消失
   });
 
-  // 1. 核心修复：点击通知的文本/主体任意地方 -> 仅静音，【绝对不】执行窗口恢复或置顶
+  // 点击通知的文本/主体任意地方 → 仅静音, 【绝对不】执行窗口恢复或置顶
   notification.on('click', () => {
     if (mainWindow) {
       mainWindow.webContents.send('stop-alarm');
     }
   });
 
-  // 2. 核心修复：点击系统自带的唯一“关闭”按钮（或划走通知） -> 仅静音，【绝对不】打开软件
+  // 点击系统自带“关闭”按钮（或划走通知）→ 仅静音, 【绝对不】打开软件
   notification.on('close', () => {
     if (mainWindow) {
       mainWindow.webContents.send('stop-alarm');

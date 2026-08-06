@@ -4,10 +4,10 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>账户</title>
-<link rel="icon" href="Account.ico" type="image/x-icon">
-<script src="https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js"></script>
-<link href="https://cdn.jsdelivr.net/npm/cropperjs@1.5.13/dist/cropper.min.css" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/cropperjs@1.5.13/dist/cropper.min.js"></script>
+<link rel="icon" href="Icon.ico" type="image/x-icon">
+<script src="assets/fflate.min.js"></script>
+<link href="assets/cropper.min.css" rel="stylesheet">
+<script src="assets/cropper.min.js"></script>
 <base href="./">
 <style>
 /* ================== 全局与色彩体系 ================== */
@@ -19,17 +19,16 @@
     src: url('./fonts/Monaspace Neon Var.ttf') format('truetype');
     font-weight: 400;
     font-style: normal;
-    font-display: swap;
+    font-display: block;
 }
 
 /* 中文字体回退 */
 @font-face {
     font-family: 'OPPO Sans 4.0';
-    /* 建议对 URL 中的空格进行标准的 %20 转义，增加兼容性 */
     src: url('./fonts/OPPO%20Sans%204.0.ttf') format('truetype');
     font-weight: 1 999;
     font-style: normal;
-    font-display: swap;
+    font-display: block;
 }
 
 :root {
@@ -38,8 +37,8 @@
     --monet-text: #2F354F;
     --monet-danger: #e3605d;
     
-    --glass: rgba(255, 255, 255, 0.35);
-    --glass-border: rgba(255, 255, 255, 0.6);
+    --glass: rgba(255, 255, 255, 0.18);
+    --glass-border: rgba(255, 255, 255, 0.46);
 
     --shadow-xl: 0 40px 80px rgba(15,23,42,.12);
     --shadow-lg: 0 24px 64px rgba(15,23,42,.06);
@@ -51,19 +50,20 @@
     --spacing-inside: 16px; /* 元素级内边距 */
     
     /* 4 级同心圆角体系 (Concentric Radius System) */
-    --radius-panel: 32px;   /* L1: 主面板、侧边栏、全局弹窗 (原 main) */
+    --radius-panel: 32px;   /* L1: 主面板、侧边栏、全局弹窗 */
     --radius-card: 24px;    /* L2: 任务卡片、图表容器、侧边小卡 */
-    --radius-element: 16px; /* L3: 按钮、输入框、视图切换器 (独立出来) */
+    --radius-element: 16px; /* L3: 按钮、输入框、视图切换器 */
     --radius-sub: 14px;
     --radius-sm: 10px;      /* L4: 内部小标签、日历箭头、下拉项 */
 
     --ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-* {
+*, *::before, *::after {
     margin: 0; padding: 0; box-sizing: border-box;
     -webkit-tap-highlight-color: transparent; outline: none !important;
 }
+
 body, input, button, textarea, select {
     font-family: 'OPPO Sans 4.0', -apple-system, BlinkMacSystemFont, "Segoe UI Variable", "SF Pro Display", "PingFang SC", "Microsoft YaHei", sans-serif;
 }
@@ -72,13 +72,12 @@ html { scroll-behavior: smooth; }
 
 ::-webkit-scrollbar { width: 0; height: 0; background: transparent; }
 
-body {
+body { 
     min-height: 100vh;
     margin: 0;
     padding: 32px; 
     color: var(--text);
     color-scheme: light;
-    /* 将底色剥离到 body, 作为最安全的托底, 防止动画穿帮 */
     background-color: #f6f8fa; 
     position: relative;
     box-sizing: border-box;
@@ -86,37 +85,94 @@ body {
     scrollbar-width: none; -ms-overflow-style: none; 
 }
 
-*, *::before, *::after {
-    box-sizing: border-box;
-}
-
-/* 赋予流光容器生命 - 恢复原版清冷灰蓝底色 */
-.alpha-ambient-bg {
-    position: fixed;
+/* 2. 赋予流光容器生命 - 恢复原版清冷灰蓝底色 */
+.alpha-ambient-bg { position: fixed;
     inset: 0;
     z-index: -3;
     overflow: hidden;
-    background-color: #f2f5f9; /* 恢复你原版极其微弱的冷灰蓝底色 */
+    background-color: #f4f8fc; /* 恢复你原版极其微弱的冷灰蓝底色 */
+    opacity: 0.97;
     pointer-events: none;
+    contain: layout paint;
+    isolation: isolate;
 }
 
-/* ================== 环境光优化版 ================== */
-.sunbeam {
-    position: absolute; top: -10%; right: -5%; width: 35vw; height: 80vh;
-    /* 移除 filter: blur, 直接在渐变中实现柔和过渡 */
-    background: radial-gradient(ellipse at top right, rgba(255, 245, 225, 0.12) 0%, rgba(255, 235, 200, 0.05) 40%, transparent 65%);
-    transform-origin: top right; will-change: transform, opacity;
+/* ================== 环境光合成优化版 ==================
+   柔焦渐变保持在静态子层，只有外层负责 transform / opacity。
+   这样浏览器可以复用已光栅化的模糊纹理，避免每帧重新计算大型 blur。 */
+.ambient-motion-stage {
+    position: absolute;
+    pointer-events: none;
+    will-change: transform, opacity;
+    transform: translate3d(0, 0, 0);
+    backface-visibility: hidden;
+}
+
+.stage-sunbeam {
+    top: -10%; right: -5%; width: 35vw; height: 80vh;
+    transform-origin: top right;
     animation: sunbeam-pulse 12s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
 }
-.orb { 
-    position: absolute; border-radius: 50%; 
-    /* 彻底移除 filter: blur(110px); */
-    will-change: transform; opacity: 0.85; 
+
+.stage-orb-1 {
+    top: -15%; right: -15%; width: 68vw; height: 58vw;
+    animation: orb-drift-1 18s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
 }
-/* 渐变的结尾必须是完全透明, 自然形成毛边光晕 */
-.orb-1 { width: 60vw; height: 60vw; background: radial-gradient(circle, rgba(178, 219, 255, 0.3) 0%, transparent 60%); top: -15%; right: -15%; animation: orb-drift-1 18s infinite alternate cubic-bezier(0.4, 0, 0.2, 1); }
-.orb-2 { width: 70vw; height: 70vw; background: radial-gradient(circle, rgba(212, 206, 255, 0.4) 0%, transparent 60%); bottom: -20%; left: -20%; animation: orb-drift-2 22s infinite alternate-reverse cubic-bezier(0.4, 0, 0.2, 1); }
-.orb-3 { width: 50vw; height: 50vw; background: radial-gradient(circle, rgba(255, 204, 194, 0.3) 0%, transparent 60%); top: 20%; left: 30%; animation: orb-drift-3 20s infinite alternate cubic-bezier(0.4, 0, 0.2, 1); }
+
+.stage-orb-2 {
+    bottom: -20%; left: -20%; width: 76vw; height: 64vw;
+    animation: orb-drift-2 22s infinite alternate-reverse cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.stage-orb-3 {
+    top: 20%; left: 30%; width: 58vw; height: 48vw;
+    animation: orb-drift-3 20s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sunbeam {
+    position: absolute; inset: 0;
+    /* 更密的暖色明暗波带：保持原色，只拉开透明度差 */
+    background:
+        radial-gradient(ellipse 102% 17% at 82% 10%, rgba(255, 245, 210, 0.32) 0 17%, rgba(255, 245, 210, 0.07) 43%, transparent 70%),
+        radial-gradient(ellipse 94% 16% at 69% 27%, rgba(255, 235, 190, 0.05) 0 15%, rgba(255, 235, 190, 0.25) 33%, rgba(255, 235, 190, 0.05) 53%, transparent 73%),
+        radial-gradient(ellipse 110% 18% at 84% 44%, rgba(255, 245, 210, 0.27) 0 16%, rgba(255, 245, 210, 0.06) 42%, transparent 72%),
+        radial-gradient(ellipse 96% 16% at 66% 61%, rgba(255, 235, 190, 0.04) 0 14%, rgba(255, 235, 190, 0.22) 34%, rgba(255, 235, 190, 0.04) 55%, transparent 75%),
+        radial-gradient(ellipse 104% 19% at 86% 77%, rgba(255, 245, 210, 0.22) 0 17%, rgba(255, 245, 210, 0.05) 44%, transparent 74%);
+    filter: blur(16px);
+}
+.orb { 
+    position: absolute;
+    inset: 0;
+    border-radius: 46% 54% 52% 48% / 42% 48% 52% 58%;
+    /* 适度收窄模糊，让波带可被隐约察觉，但仍保持烟雾般柔软 */
+    filter: blur(17px);
+    opacity: 0.84;
+}
+/* 每个光团只重复自己的原色；五条主波带与一层薄雾底光交错 */
+.orb-1 { background:
+    radial-gradient(ellipse 104% 17% at 72% 12%, rgba(157, 210, 255, 0.40) 0 16%, rgba(157, 210, 255, 0.07) 43%, transparent 69%),
+    radial-gradient(ellipse 92% 16% at 50% 30%, rgba(157, 210, 255, 0.05) 0 14%, rgba(157, 210, 255, 0.34) 32%, rgba(157, 210, 255, 0.05) 53%, transparent 72%),
+    radial-gradient(ellipse 108% 18% at 74% 47%, rgba(157, 210, 255, 0.35) 0 16%, rgba(157, 210, 255, 0.06) 43%, transparent 71%),
+    radial-gradient(ellipse 96% 16% at 48% 64%, rgba(157, 210, 255, 0.04) 0 14%, rgba(157, 210, 255, 0.30) 33%, rgba(157, 210, 255, 0.05) 54%, transparent 73%),
+    radial-gradient(ellipse 102% 18% at 69% 81%, rgba(157, 210, 255, 0.31) 0 16%, rgba(157, 210, 255, 0.05) 44%, transparent 72%),
+    radial-gradient(ellipse at 59% 48%, rgba(157, 210, 255, 0.10) 0%, transparent 82%);
+    }
+.orb-2 { background:
+    radial-gradient(ellipse 106% 17% at 31% 12%, rgba(220, 210, 255, 0.36) 0 16%, rgba(220, 210, 255, 0.06) 43%, transparent 70%),
+    radial-gradient(ellipse 94% 16% at 57% 30%, rgba(220, 210, 255, 0.04) 0 14%, rgba(220, 210, 255, 0.32) 32%, rgba(220, 210, 255, 0.05) 53%, transparent 72%),
+    radial-gradient(ellipse 110% 18% at 35% 47%, rgba(220, 210, 255, 0.32) 0 16%, rgba(220, 210, 255, 0.05) 43%, transparent 71%),
+    radial-gradient(ellipse 98% 16% at 60% 64%, rgba(220, 210, 255, 0.04) 0 14%, rgba(220, 210, 255, 0.28) 33%, rgba(220, 210, 255, 0.04) 54%, transparent 73%),
+    radial-gradient(ellipse 104% 18% at 38% 81%, rgba(220, 210, 255, 0.28) 0 16%, rgba(220, 210, 255, 0.05) 44%, transparent 72%),
+    radial-gradient(ellipse at 46% 50%, rgba(220, 210, 255, 0.10) 0%, transparent 83%);
+    }
+.orb-3 { background:
+    radial-gradient(ellipse 102% 17% at 65% 12%, rgba(255, 230, 190, 0.35) 0 16%, rgba(255, 230, 190, 0.06) 43%, transparent 69%),
+    radial-gradient(ellipse 92% 16% at 42% 30%, rgba(255, 230, 190, 0.04) 0 14%, rgba(255, 230, 190, 0.30) 32%, rgba(255, 230, 190, 0.04) 53%, transparent 72%),
+    radial-gradient(ellipse 108% 18% at 68% 47%, rgba(255, 230, 190, 0.30) 0 16%, rgba(255, 230, 190, 0.05) 43%, transparent 71%),
+    radial-gradient(ellipse 96% 16% at 41% 64%, rgba(255, 230, 190, 0.04) 0 14%, rgba(255, 230, 190, 0.26) 33%, rgba(255, 230, 190, 0.04) 54%, transparent 73%),
+    radial-gradient(ellipse 102% 18% at 66% 81%, rgba(255, 230, 190, 0.27) 0 16%, rgba(255, 230, 190, 0.05) 44%, transparent 72%),
+    radial-gradient(ellipse at 53% 49%, rgba(255, 230, 190, 0.09) 0%, transparent 82%);
+    }
 
 /* 错落有致的非线性运动轨迹 (加入了 translate3d 强制触发 GPU 渲染防静止) */
 @keyframes orb-drift-1 {
@@ -136,7 +192,12 @@ body {
     100% { transform: rotate(-3deg) scale(1.02) translate3d(-1vw, 1vh, 0); opacity: 1; }
 }
 
-/* Glass Reflection - 液态高光微折射层 (保持静止) */
+.alpha-ambient-bg.is-paused .ambient-motion-stage,
+body.scrolling .alpha-ambient-bg .ambient-motion-stage {
+    animation-play-state: paused !important;
+}
+
+/* Glass Reflection - 液态高光微折射层 */
 body::after {
     content: "";
     position: fixed;
@@ -153,30 +214,40 @@ body::after {
             rgba(255, 255, 255, 0.03) 100%
         );
 }
-/* ================== 侧边栏与主面板 (宽度自适应) ================== */
+
+/* ================== 侧边栏与主面板 ================== */
 .app { 
     display: grid; 
-    /* 宽度放宽到 1600px 匹配 TaskFlow, 且拉宽了左侧的基准占比 */
     grid-template-columns: 320px minmax(0, 1fr); 
     gap: var(--spacing-main); 
     max-width: 1600px; 
     margin: 0 auto; 
-    align-items: stretch; /* 允许高度拉伸 */
+    align-items: stretch;
+    animation: alphaPageIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) backwards;
 }
 
 .sidebar, .panel {
     background: var(--glass); 
-    border: 1px solid var(--glass-border);
-    backdrop-filter: blur(48px) saturate(200%); 
-    -webkit-backdrop-filter: blur(48px) saturate(200%);
-    box-shadow: var(--shadow-lg), inset 0 1.5px 2px rgba(255,255,255,0.9), inset 1.5px 0 2px rgba(255,255,255,0.3);
-    border-radius: var(--radius-panel);
+
+    border-top: 1.5px solid var(--glass-border);
+    border-left: 1px solid var(--glass-border);
+    border-right: 1px solid var(--glass-border);
+    border-bottom: 1px solid var(--glass-border);
+    
+    backdrop-filter: blur(40px) saturate(130%); 
+    -webkit-backdrop-filter: blur(40px) saturate(130%);
+    box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.18),
+        0 18px 52px rgba(255, 255, 255, 0.22),
+        0 24px 64px rgba(15, 23, 42, 0.045),
+        inset 0 2px 7px rgba(255, 255, 255, 0.48),
+        inset 0 1px 1px rgba(255, 255, 255, 0.92),
+        inset 1.5px 0 2px rgba(255, 255, 255, 0.12) !important;
+    border-radius: var(--radius-panel); 
     padding: var(--spacing-main);
-    position: relative;
     z-index: 10;
 }
 
-/* 左侧个人信息栏撑满整屏高度 */
 .sidebar { 
     position: sticky; top: var(--spacing-main); 
     height: calc(100vh - (var(--spacing-main) * 2));
@@ -186,16 +257,24 @@ body::after {
 
 .main { display: flex; flex-direction: column; gap: var(--spacing-main); min-width: 0; }
 
-/* 删除返回文字, 仅保留极简箭头 */
-.logo-area { 
-    display: inline-flex; align-items: center; justify-content: center;
-    width: 44px; height: 44px; border-radius: 16px;
-    cursor: pointer; transition: all 0.3s var(--ease);
-    background: rgba(255, 255, 255, 0.4); border: 1px solid rgba(255, 255, 255, 0.6);
-    color: var(--sub); margin-bottom: auto; /* 靠上 */
-    align-self: flex-start;
+.logo-area {
+    width: 44px; height: 44px; padding: 0; 
+    border-radius: var(--radius-element); 
+    background: rgba(255, 255, 255, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.75);
+    backdrop-filter: blur(40px) saturate(130%);
+    -webkit-backdrop-filter: blur(40px) saturate(130%);
+    box-shadow: 0 4px 12px rgba(15,23,42,0.04), inset 0 2px 4px rgba(255,255,255,0.8);
+    display: flex; align-items: center; justify-content: center;
+    color: #475569; 
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    cursor: pointer;
 }
-.logo-area:hover { background: rgba(255, 255, 255, 0.8); transform: translateX(-4px); color: var(--monet-text);}
+.logo-area:hover { 
+    background: rgba(255, 255, 255, 0.85); transform: translateX(-2px) scale(1.05); 
+    color: #0f172a; box-shadow: 0 8px 24px rgba(15,23,42,0.06), inset 0 2px 4px rgba(255,255,255,1);
+}
+.logo-area:active { transform: scale(0.95); }
 
 .section-title { font-size: 26px; font-weight: 800; margin-bottom: var(--spacing-card); display: flex; align-items: center; gap: 12px;}
 
@@ -205,9 +284,10 @@ body::after {
     border-radius: 50%; padding: 6px;
     background: linear-gradient(135deg, rgba(255,255,255,0.8), rgba(255,255,255,0.2));
     box-shadow: 0 24px 48px rgba(15,23,42,0.1), inset 0 2px 4px rgba(255,255,255,1);
-    cursor: pointer; transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    cursor: pointer; transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 .avatar-wrap:hover { transform: scale(1.05); }
+.avatar-wrap:active { transform: scale(0.92); transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1); }
 .avatar-wrap img {
     width: 100%; height: 100%; border-radius: 50%; object-fit: cover;
     box-shadow: inset 0 0 0 1px rgba(0,0,0,0.05);
@@ -217,12 +297,12 @@ body::after {
     display: flex; align-items: center; justify-content: center; font-size: 48px; color: #cbd5e1;
 }
 
-/* 缩小相机图标, 更精致 */
 .avatar-badge {
-    position: absolute; bottom: 8px; right: 12px; width: 28px; height: 28px;
+    position: absolute; bottom: 6px; right: 6px; width: 28px; height: 28px;
     background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(8px);
     border-radius: 50%; display: flex; align-items: center; justify-content: center;
     box-shadow: 0 4px 12px rgba(15,23,42,0.1); font-size: 14px; border: 1px solid rgba(255,255,255,1);
+    line-height: 0;
 }
 
 .user-name-display { font-size: 28px; font-weight: 800; color: #0f172a; margin-bottom: 8px; display: flex; align-items: center; justify-content: center; gap: 8px;}
@@ -236,66 +316,61 @@ label { font-size: 14px; font-weight: 700; color: #334155; }
 
 input[type="text"], input[type="number"] {
     width: 100%; padding: 0 20px; border-radius: var(--radius-element); height:50px;
-    border: 1px solid rgba(255, 255, 255, 0.62); background: rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.75); background: rgba(255, 255, 255, 0.30);
     color: #0f172a; font-size: 15px; font-weight: 600; line-height: 1.6;
-    box-shadow: inset 0 2px 5px rgba(15, 23, 42, 0.05), inset 0 -1px 1.5px rgba(255, 255, 255, 0.65); transition: background 0.3s var(--ease), border-color 0.3s var(--ease), box-shadow 0.3s var(--ease);
+    box-shadow: inset 0 2px 5px rgba(15, 23, 42, 0.05), inset 0 -1px 1.5px rgba(255, 255, 255, 0.45); transition: background 0.3s var(--ease), border-color 0.3s var(--ease), box-shadow 0.3s var(--ease);
     resize: none;
 }
 input::placeholder, textarea::placeholder { color: #748091; font-weight: 500; }
 input:hover, textarea:hover { background: rgba(255, 255, 255, 0.9); }
 input:focus, textarea:focus {
-    background: #ffffff; border-color: var(--monet-blue) !important;
-    box-shadow: 0 0 0 4px rgba(157, 210, 255, 0.25), 0 12px 24px rgba(15, 23, 42, 0.08) !important;
+    background: #ffffff !important;
+    border-color: rgba(157, 210, 255, 0.4) !important;
+    box-shadow: 
+        inset 0 2px 4px rgba(255, 255, 255, 1), 
+        inset 0 -1px 2px rgba(157, 210, 255, 0.1),
+        0 0 0 1px rgba(157, 210, 255, 0.2), 
+        0 0 8px 3px rgba(157, 210, 255, 0.15),
+        0 8px 20px rgba(157, 210, 255, 0.1),
+        0 12px 24px rgba(15, 23, 42, 0.08) !important;
 }
 textarea {
     width: 100%; 
     padding: 14px 20px; 
     border-radius: var(--radius-element);
     height: 52px;
-    border: 1px solid rgba(255, 255, 255, 0.62); 
-    background: rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.75); 
+    background: rgba(255, 255, 255, 0.30);
     color: #0f172a; font-size: 15px; font-weight: 600; line-height: 1.6;
-    box-shadow: inset 0 2px 5px rgba(15, 23, 42, 0.05), inset 0 -1px 1.5px rgba(255, 255, 255, 0.65);
+    box-shadow: inset 0 2px 5px rgba(15, 23, 42, 0.05), inset 0 -1px 1.5px rgba(255, 255, 255, 0.45);
     resize: none;
     overflow-y: auto;
     transition: height 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.3s var(--ease), border-color 0.3s var(--ease), box-shadow 0.3s var(--ease);
 }
 
-/* ===================================================
-   性别选择标签 (Liquid Glass 同步重构版)
-=================================================== */
+/* ================== 性别选择标签 ================== */
 .gender-box { display: flex; flex-wrap: wrap; gap: 12px; }
 .gender-item { position: relative; cursor: pointer; }
 .gender-item input { display: none; }
 
-/* 基础状态: 彻底对齐 Subject 的低饱和度隐退质感 */
 .gender-item span {
     display: flex;
     align-items: center; justify-content: center;
     padding: 10px 16px; 
     min-width: 64px; 
-    border-radius: var(--radius-sub, 12px);
-    
-    /* 降低基础白度, 增强隐退感 */
-    background-color: rgba(255, 255, 255, 0.25); 
-    border: 1px solid rgba(255, 255, 255, 0.4);
-    
-    /* 强化毛玻璃模糊度, 对齐 subject-item */
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
-    
-    /* 增强内阴影高光, 弥补背景变暗后的质感流失 */
-    box-shadow: 
-        0 4px 10px rgba(15, 23, 42, 0.02), 
-        inset 0 1px 2px rgba(255, 255, 255, 0.7),
-        inset 0 -1px 2px rgba(255, 255, 255, 0.1);
-        
-    /* 性能优化: 明确指定过渡属性 */
+    border-radius: var(--radius-sub);
+    background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.08) 45%, transparent 75%) !important;
+    border-top: 2px solid rgba(255, 255, 255, 0.95) !important;
+    border-left: 1px solid rgba(255, 255, 255, 0.8) !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.35) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.25) !important;
+    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.08), inset 2px 3px 10px rgba(255, 255, 255, 0.35), inset -2px -3px 10px rgba(0, 0, 0, 0.03), inset 4px 6px 20px rgba(255, 255, 255, 0.15) !important;
+    backdrop-filter: blur(40px) saturate(130%) !important;
+    -webkit-backdrop-filter: blur(40px) saturate(130%) !important;
     transition: transform 0.3s var(--ease, cubic-bezier(0.16, 1, 0.3, 1)), 
                 background-color 0.3s var(--ease, cubic-bezier(0.16, 1, 0.3, 1)), 
                 box-shadow 0.3s var(--ease, cubic-bezier(0.16, 1, 0.3, 1)), 
                 border-color 0.3s var(--ease, cubic-bezier(0.16, 1, 0.3, 1));
-                
     font-size: 14px; font-weight: 700; color: #475569;
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif !important;
     letter-spacing: 0.04em !important;
@@ -303,9 +378,8 @@ textarea {
     user-select: none;
 }
 
-/* 悬浮与按压阻尼联动 (对齐 Subject) */
 .gender-item:hover span {
-    background-color: rgba(255, 255, 255, 0.45);
+    background-color: rgba(255, 255, 255, 0.25);
     transform: translateY(-2px);
     box-shadow: 
         0 8px 16px rgba(15, 23, 42, 0.05), 
@@ -315,25 +389,24 @@ textarea {
 }
 .gender-item:active span {
     transform: translateY(1px) scale(0.94);
-    background-color: rgba(255, 255, 255, 0.45);
+    background-color: rgba(255, 255, 255, 0.25);
     box-shadow: 
         0 2px 4px rgba(15, 23, 42, 0.04), 
         inset 0 2px 6px rgba(0, 0, 0, 0.02);
     transition-duration: 0.1s; 
 }
 
-/* ===================================================
-   选中态 (Checked): 极简清透, 色彩转至边框与内环境光
-=================================================== */
-
 /* 男: 莫奈蓝 */
 .gender-item input[value="male"]:checked + span { 
-    background-color: rgba(157, 210, 255, 0.25) !important; /* 降低背景浓度 */
+    background-color: rgba(157, 210, 255, 0.25) !important;
     color: #0f172a !important; 
-    border-color: rgba(157, 210, 255, 0.7) !important;      /* 边框注入色彩折射 */
+    border-top: 2px solid rgba(157, 210, 255, 0.7) !important;
+    border-left: 1.75px solid rgba(157, 210, 255, 0.5) !important;
+    border-right: 1.75px solid rgba(157, 210, 255, 0.5) !important;
+    border-bottom: 1.75px solid rgba(157, 210, 255, 0.41) !important;
     box-shadow: 
-        0 8px 20px rgba(140, 185, 225, 0.15),               /* 减弱外部光晕 */
-        inset 0 2px 4px rgba(255, 255, 255, 0.95),          /* 维持顶部强高光 */
+        0 8px 20px rgba(140, 185, 225, 0.15),
+        inset 0 2px 4px rgba(255, 255, 255, 0.95),
         inset 0 -2px 6px rgba(140, 185, 225, 0.2) !important;
     transform: translateY(-2px) scale(1.02);
 }
@@ -342,7 +415,10 @@ textarea {
 .gender-item input[value="female"]:checked + span { 
     background-color: rgba(243, 184, 221, 0.25) !important;
     color: #0f172a !important; 
-    border-color: rgba(243, 184, 221, 0.7) !important; 
+    border-top: 2px solid rgba(243, 184, 221, 0.7) !important; 
+    border-left: 1.75px solid rgba(243, 184, 221, 0.5) !important;
+    border-right: 1.75px solid rgba(243, 184, 221, 0.5) !important;
+    border-bottom: 1.75px solid rgba(243, 184, 221, 0.41) !important;
     box-shadow: 
         0 8px 20px rgba(255, 142, 180, 0.15), 
         inset 0 2px 4px rgba(255, 255, 255, 0.95), 
@@ -354,7 +430,10 @@ textarea {
 .gender-item input[value*="custom"]:checked + span { 
     background-color: rgba(190, 170, 240, 0.25) !important;
     color: #0f172a !important; 
-    border-color: rgba(190, 170, 240, 0.7) !important;
+    border-top: 2px solid rgba(190, 170, 240, 0.7) !important;
+    border-left: 1.75px solid rgba(190, 170, 240, 0.5) !important;
+    border-right: 1.75px solid rgba(190, 170, 240, 0.5) !important;
+    border-bottom: 1.75px solid rgba(190, 170, 240, 0.41) !important;
     box-shadow: 
         0 8px 20px rgba(190, 170, 240, 0.15), 
         inset 0 2px 4px rgba(255, 255, 255, 0.95), 
@@ -362,9 +441,7 @@ textarea {
     transform: translateY(-2px) scale(1.02);
 }
 
-/* ===================================================
-   已保存的静态 Tag 标签
-=================================================== */
+/* ================== 已保存静态 Tag 标签 ================== */
 .gender-tag {
     display: inline-flex; 
     align-items: center; justify-content: center;
@@ -373,31 +450,23 @@ textarea {
     font-size: 13px; 
     font-weight: 800; 
     color: #1e293b;
-    
-    /* 文本底部白阴影: 模拟在玻璃内部的物理雕刻/凸版印刷感 */
     text-shadow: 0 1px 1px rgba(255, 255, 255, 0.95);
-    
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    backdrop-filter: blur(40px) saturate(130%);
+    -webkit-backdrop-filter: blur(40px) saturate(130%);
     white-space: nowrap;
-    
-    /* 边框泛白: 弃用主题色描边, 改用高透明度的纯白边框, 强化边缘物理高光 */
     border: 1px solid rgba(255, 255, 255, 0.75) !important; 
 }
 
-/* 男生 Tag (莫奈蓝) */
+/* 男生 Tag */
 .gender-tag.male {
-    /* 色彩淡化且右侧最淡: 从左上角的 0.35 浓度, 过渡到右下角极淡的纯白环境光 (0.05) */
     background: linear-gradient(135deg, rgba(157, 210, 255, 0.35), rgba(255, 255, 255, 0.05)) !important; 
-    
     box-shadow: 
-        /* 阴影淡化: 大幅削弱外侧弥散光晕 */
         0 4px 10px rgba(157, 210, 255, 0.33),                 
         inset 0 1.5px 2px rgba(255, 255, 255, 0.9),           
         inset 0 -1px 2px rgba(157, 210, 255, 0.15) !important; 
 }
 
-/* 女生 Tag (莫奈红) */
+/* 女生 Tag */
 .gender-tag.female {
     background: linear-gradient(135deg, rgba(243, 184, 221, 0.35), rgba(255, 255, 255, 0.05)) !important; 
     box-shadow: 
@@ -406,7 +475,7 @@ textarea {
         inset 0 -1px 2px rgba(243, 184, 221, 0.15) !important;
 }
 
-/* 其他 Tag (莫奈紫) */
+/* 其他 Tag */
 .gender-tag.custom {
     background: linear-gradient(135deg, rgba(190, 170, 240, 0.35), rgba(255, 255, 255, 0.05)) !important;
     box-shadow: 
@@ -414,47 +483,43 @@ textarea {
         inset 0 1.5px 2px rgba(255, 255, 255, 0.9),
         inset 0 -1px 2px rgba(190, 170, 240, 0.15) !important;
 }
+
 /* ================== 按钮与工具栏 ================== */
 .toolbar { 
     display: flex; 
     flex-wrap: wrap; 
     gap: 16px; 
     align-items: center; 
-    margin-top: var(--spacing-main); /* 引入 32px 的主间距隔离表单与按钮 */
+    margin-top: var(--spacing-main);
     position: relative; 
     z-index: 1;
 }
 .toolbar button { height: 52px; }
 
-/* 按钮 */
 button, upload-label {
     position: relative; overflow: hidden; display: inline-flex; height: 52px; border: none;
     align-items: center; justify-content: center; padding: 0 24px;
     border-radius: var(--radius-element); cursor: pointer; font-size: 16px !important; font-weight: 700 !important; 
-    /* 极致顺滑的过渡: 使用弹性阻尼曲线, 保留 transform 硬件加速 */
     transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), background 0.3s ease, box-shadow 0.3s ease; 
     outline: none; letter-spacing: 0.5px;
-    will-change: transform, box-shadow; 
+    will-change: transform; 
 }
 
-/* 废弃原先粗暴的 ::before 伪元素高光, 改用更优雅的多重 background */
 button::before { display: none; }
 button:active { transform: scale(0.96) !important; }
 
-/* ------------------------------------------------
-   1. Primary (莫奈蓝) - 同色边缘折射版
------------------------------------------------- */
-.primary { 
+/* Primary (莫奈蓝) */
+.primary {
+    border: 1px solid rgba(217, 237, 254, 0.85);
     background: 
         radial-gradient(circle at 85% 15%, rgba(255, 250, 240, 0.35) 0%, transparent 60%),
-        linear-gradient(135deg, rgba(145, 205, 255, 0.85) 0%, rgba(115, 185, 255, 0.45) 100%);
+        linear-gradient(135deg, rgba(145, 205, 255, 0.65) 0%, rgba(115, 185, 255, 0.35) 100%);
     color: #0f172a; 
     box-shadow: 
-        0 6px 16px rgba(120, 175, 225, 0.2), 
-        inset 0 1.5px 2px rgba(255, 255, 255, 0.95), 
+        0 6px 20px rgba(88, 135, 179, 0.2), 
+        inset 0 1.5px 2px rgba(255, 255, 255, 0.75), 
         inset -1px -1px 2px rgba(255, 255, 255, 0.3), 
-        /* 💡 将白边改为高透冰蓝色: 完美融入基底, 边缘像纯净的蓝水晶 */
-        0 0 0 1px rgba(217, 237, 254, 0.85); 
+        0 0 0 0.5px rgba(211, 234, 255, 0.95); 
     backdrop-filter: blur(16px) saturate(180%); 
     -webkit-backdrop-filter: blur(16px) saturate(180%);
 }
@@ -467,8 +532,7 @@ button:active { transform: scale(0.96) !important; }
     box-shadow: 
         0 12px 24px rgba(120, 175, 225, 0.3), 
         inset 0 2px 3px rgba(255, 255, 255, 1), 
-        inset -1px -1px 2px rgba(255, 255, 255, 0.5),
-        /* 将刺眼的蓝色霓虹边, 改为霜白色 */
+        inset -1px -1px 2px rgba(255, 255, 255, 0.30),
         0 0 0 1.5px rgba(240, 248, 255, 0.9); 
 }
 
@@ -479,66 +543,54 @@ button:active { transform: scale(0.96) !important; }
     box-shadow: 
         0 2px 6px rgba(120, 175, 225, 0.1), 
         inset 0 3px 6px rgba(15, 23, 42, 0.08), 
-        inset 0 1px 1px rgba(255, 255, 255, 0.5),
-        /* 💡 按下时蓝边暗淡, 贴合物理阴影 */
+        inset 0 1px 1px rgba(255, 255, 255, 0.30),
         0 0 0 1px rgba(145, 205, 255, 0.6);
 }
 
-/* ------------------------------------------------
-   2. Secondary (清透玻璃) - 微调适配
------------------------------------------------- */
-.secondary { 
-    background: 
-        radial-gradient(circle at 85% 15%, rgba(255, 252, 245, 0.5) 0%, transparent 50%),
-        linear-gradient(135deg, rgba(255, 255, 255, 0.5) 0%, rgba(240, 248, 255, 0.15) 100%); 
-    color: var(--monet-text);
-    box-shadow: 
-        0 6px 16px rgba(15, 23, 42, 0.04), 
-        inset 0 1.5px 2px rgba(255, 255, 255, 0.95), 
-        inset -1px -1px 2px rgba(255, 255, 255, 0.3), 
-        /* 💡 将死白改为带有淡淡冷灰/冷蓝的珍珠白, 消除锐利感 */
-        0 0 0 1px rgba(241, 245, 249, 0.85);
-    backdrop-filter: blur(16px) saturate(180%); 
-    -webkit-backdrop-filter: blur(16px) saturate(180%);
+/* Secondary (清透玻璃) */
+.secondary {
+    background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0.11) 45%, transparent 75%) !important;
+    border-top: 2px solid rgba(255, 255, 255, 0.95) !important;
+    border-left: 1px solid rgba(255, 255, 255, 0.8) !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.35) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.25) !important;
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.08), inset 2px 3px 10px rgba(255, 255, 255, 0.35), inset -2px -3px 10px rgba(0, 0, 0, 0.03), inset 4px 6px 20px rgba(255, 255, 255, 0.15) !important;
+    backdrop-filter: blur(40px) saturate(130%) !important; -webkit-backdrop-filter: blur(40px) saturate(130%) !important;
+    color: var(--monet-text, #2F354F);
+    transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), background 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
 }
 
-.secondary:hover { 
-    background: 
-        radial-gradient(circle at 85% 15%, rgba(255, 252, 245, 0.7) 0%, transparent 60%),
-        linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(245, 250, 255, 0.35) 100%); 
+.secondary:hover {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0.3) 100%) !important;
     transform: translateY(-2px);
+    border-color: rgba(255, 255, 255, 0.40); border-width: 1.5px;
     box-shadow: 
-        0 10px 24px rgba(15, 23, 42, 0.08), 
-        inset 0 2px 3px rgba(255, 255, 255, 1), 
-        inset -1px -1px 2px rgba(255, 255, 255, 0.5), 
-        0 0 0 1.5px rgba(255, 255, 255, 0.95); 
+        0 12px 28px rgba(15, 23, 42, 0.07), 
+        inset 0 2px 3.5px rgba(255, 255, 255, 1), 
+        inset 0 -1px 2px rgba(255, 255, 255, 0.20), 
+        0 0 0 1.25px rgba(255, 255, 255, 0.95);
 }
 
-.secondary:active {
-    background: 
-        radial-gradient(circle at 85% 15%, rgba(255, 252, 245, 0.3) 0%, transparent 40%),
-        linear-gradient(135deg, rgba(245, 250, 255, 0.4) 0%, rgba(230, 240, 255, 0.1) 100%);
+.secondary:active { background: linear-gradient(135deg, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0.3) 100%);
+    transform: scale(0.96) translateY(0px);
     box-shadow: 
         0 2px 6px rgba(15, 23, 42, 0.03), 
-        inset 0 3px 6px rgba(15, 23, 42, 0.04), 
-        inset 0 1px 1px rgba(255, 255, 255, 0.6),
-        0 0 0 1px rgba(226, 232, 240, 0.7);
+        inset 0 3px 6px rgba(15, 23, 42, 0.05), 
+        inset 0 1px 1px rgba(255, 255, 255, 0.30),
+        0 0 0 1px rgba(226, 232, 240, 0.6);
 }
 
-/* ------------------------------------------------
-   3. Danger (警示红) - 同色边缘折射版
------------------------------------------------- */
-.danger { 
+/* Danger (警示红) */
+.danger {
     background: 
         radial-gradient(circle at 85% 15%, rgba(255, 235, 230, 0.2) 0%, transparent 50%),
-        linear-gradient(135deg, rgba(250, 66, 62, 0.75) 0%, rgba(220, 38, 38, 0.55) 100%); 
-    color: #ffffff; 
+        linear-gradient(135deg, rgba(250, 66, 62, 0.75) 0%, rgba(220, 38, 38, 0.45) 100%); 
+    color: #ffffffeb; 
     box-shadow: 
-        0 6px 16px rgba(239, 68, 68, 0.2), 
+        0 6px 20px rgba(174, 46, 46, 0.2), 
         inset 0 1.5px 2px rgba(255, 255, 255, 0.5), 
         inset -1px -1px 2px rgba(0, 0, 0, 0.08),
-        /* 💡 将白边改为高透珊瑚红: 红玻璃的边缘就应该是透亮的红色 */
-        0 0 0 1px rgba(255, 199, 199, 0.75); 
+        0 0 0 0.5px rgba(255, 199, 199, 0.75); 
     backdrop-filter: blur(16px) saturate(180%); 
     -webkit-backdrop-filter: blur(16px) saturate(180%);
 }
@@ -552,7 +604,6 @@ button:active { transform: scale(0.96) !important; }
         0 10px 24px rgba(239, 68, 68, 0.3), 
         inset 0 2px 3px rgba(255, 255, 255, 0.75), 
         inset -1px -1px 2px rgba(0, 0, 0, 0.12),
-        /* 将刺眼的亮红边, 改为带有一丝微粉的珍珠白 */
         0 0 0 1.5px rgba(255, 240, 240, 0.9); 
 }
 
@@ -562,52 +613,50 @@ button:active { transform: scale(0.96) !important; }
     box-shadow: 
         0 2px 6px rgba(239, 68, 68, 0.1), 
         inset 0 3px 6px rgba(0, 0, 0, 0.15), 
-        inset 0 1px 1px rgba(255, 255, 255, 0.3),
-        /* 💡 按下时压暗边缘红色 */
+        inset 0 1px 1px rgba(255, 255, 255, 0.10),
         0 0 0 1px rgba(220, 38, 38, 0.5);
 }
 
 /* ================== 同步模块 ================== */
 .sync-code-box {
     width: 100%; height: 120px; padding: 16px; 
-    border-radius: var(--radius-element); /* 修正为 L3 圆角 */
-    border: 1px solid rgba(255, 255, 255, 0.62); background: rgba(255, 255, 255, 0.5);
+    border-radius: var(--radius-element); 
+    border: 1px solid rgba(255, 255, 255, 0.75); background: rgba(255, 255, 255, 0.30);
     color: #0f172a;
     font-family: 'Monaspace Neon Var', 'OPPO Sans 4.0', "SF Mono", SFMono-Regular, Consolas, monospace; font-size: 13px; line-height: 1.5;
     resize: none; margin-bottom: 16px; 
     word-break: break-all;
     overflow-y: auto; 
     outline: none;
-    box-shadow: inset 0 2px 5px rgba(15, 23, 42, 0.05), inset 0 -1px 1.5px rgba(255, 255, 255, 0.65); 
+    box-shadow: inset 0 2px 5px rgba(15, 23, 42, 0.05), inset 0 -1px 1.5px rgba(255, 255, 255, 0.45); 
     transition: background 0.3s var(--ease), border-color 0.3s var(--ease), box-shadow 0.3s var(--ease);
 }
 .sync-code-box:focus { 
-    background: #ffffff; 
-    /* 焦点同步: 无缝继承全站通用的高抗压聚焦呼吸光晕 */
-    border-color: var(--monet-blue) !important;
-    box-shadow: 0 0 0 4px rgba(157, 210, 255, 0.25), 0 12px 24px rgba(15, 23, 42, 0.08) !important; 
+    background-color: #ffffff !important; 
+    border-color: rgba(157, 210, 255, 0.4) !important;
+    box-shadow: 
+        inset 0 2px 4px rgba(255, 255, 255, 1), 
+        inset 0 -1px 2px rgba(157, 210, 255, 0.1),
+        0 0 0 1px rgba(157, 210, 255, 0.2), 
+        0 0 8px 3px rgba(157, 210, 255, 0.15),
+        0 8px 20px rgba(157, 210, 255, 0.1),
+        0 12px 24px rgba(15, 23, 42, 0.08) !important; 
 }
 
 .sync-status { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; color: #64748b; margin-top: 12px; opacity: 0; transition: opacity 0.3s;}
 .sync-status.show { opacity: 1; }
 
-/* ===========================
-   液态玻璃弹窗与动画引擎
-=========================== */
+/* ================== 液态玻璃弹窗与动画引擎 ================== */
 .sphere-modal {
     position: fixed; inset: 0; z-index: 10000; display: flex; align-items: center; justify-content: center;
     background: rgba(15, 23, 42, 0.25);
     backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
     opacity: 1; visibility: visible; 
-    
-    /* 显式接管 backdrop-filter 过渡, 防止 GPU 盲目重绘 */
     transition: opacity 0.3s var(--ease), 
                 backdrop-filter 0.3s var(--ease),
                 -webkit-backdrop-filter 0.3s var(--ease),
                 visibility 0s 0s;
-                
-    /* 提前宣告模糊度的变化, 并强制开启底层硬件加速 */
-    will-change: opacity, backdrop-filter;
+    will-change: opacity;
     transform: translateZ(0);
 }
 
@@ -616,10 +665,7 @@ button:active { transform: scale(0.96) !important; }
     opacity: 0; 
     visibility: hidden; 
     pointer-events: none;
-    
-    /* 退出时将模糊度归零, 释放底层渲染压力 */
     backdrop-filter: blur(0px); -webkit-backdrop-filter: blur(0px);
-    
     transition: opacity 0.3s var(--ease), 
                 backdrop-filter 0.3s var(--ease),
                 -webkit-backdrop-filter 0.3s var(--ease),
@@ -628,23 +674,15 @@ button:active { transform: scale(0.96) !important; }
 
 .sphere-modal .modal-content {
     background: rgba(255, 255, 255, 0.82); 
-    backdrop-filter: blur(48px) saturate(200%); -webkit-backdrop-filter: blur(48px) saturate(200%);
+    backdrop-filter: blur(40px) saturate(130%); -webkit-backdrop-filter: blur(40px) saturate(130%);
     border: 1px solid rgba(255, 255, 255, 1); 
-    
-    border-radius: var(--radius-panel); /* 保持卡片级圆角比例 */
-    
-    /* 留白控制, 让内容呼吸 */
+    border-radius: var(--radius-panel); 
     padding: var(--spacing-main);
-    
-    /* 拓宽整体容器宽度, 补偿文字可用空间 */
     width: 360px; 
-    
-    box-shadow: 0 24px 64px rgba(15,23,42,0.15), inset 0 2px 6px rgba(255, 255, 255, 0.6);
-    
+    box-shadow: 0 24px 64px rgba(15,23,42,0.15), inset 0 2px 6px rgba(255, 255, 255, 0.40);
     will-change: transform, opacity;
     transform: translateY(0) scale(1) translateZ(0); 
     opacity: 1;
-    
     transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1),
                 opacity 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
@@ -656,19 +694,18 @@ button:active { transform: scale(0.96) !important; }
                 opacity 0.3s var(--ease);
 }
 
-/* 彩带画布 */
 #confettiCanvas { position: fixed; inset: 0; pointer-events: none; z-index: 9999;}
 
-/* 裁切容器 (精细化 1:1 缩小版) */
+/* 裁切容器 */
 .crop-wrapper {
     width: 300px;
     height: 300px;
     margin: 0 auto var(--spacing-card);
-    border-radius: var(--radius-element); /* 外层容器维持 L3 级规范圆角 */
+    border-radius: var(--radius-element); 
     overflow: hidden;
     background: rgba(15, 23, 42, 0.04);
     box-shadow: inset 0 2px 8px rgba(15, 23, 42, 0.08);
-    transform: translate3d(0, 0, 0); /* 强制开启独立复合层 */
+    transform: translate3d(0, 0, 0); 
     position: relative;
 }
 .crop-wrapper img {
@@ -676,22 +713,18 @@ button:active { transform: scale(0.96) !important; }
     max-width: 100%;
 }
 
-/* Cropper.js 极客白精细化重绘 (强制圆形与毛玻璃) */
 .cropper-view-box,
 .cropper-face {
-    border-radius: 50% !important; /* 【核心】将中心裁切选区强制削为圆形 */
-    outline: 2px solid rgba(255, 255, 255, 0.95) !important; /* 霜纯白发光边框 */
+    border-radius: 50% !important; 
+    outline: 2px solid rgba(255, 255, 255, 0.95) !important; 
 }
 
-/* 隐藏自带的辅助虚线，但【保留】四个角的等比例裁切拖拽点 */
 .cropper-line { display: none !important; }
 
-/* 隐藏上下左右四个中间的拖拽点，防止非等比例拉伸破坏圆形 */
 .cropper-point.point-e, .cropper-point.point-n, .cropper-point.point-w, .cropper-point.point-s { 
     display: none !important; 
 }
 
-/* 极致美化：苹果原生级 L 型裁切护角 (药丸状圆润结尾 + 更细小精致) */
 .cropper-point {
     width: 16px !important;
     height: 16px !important;
@@ -702,7 +735,6 @@ button:active { transform: scale(0.96) !important; }
     background-repeat: no-repeat !important;
     background-position: center !important;
     filter: drop-shadow(0 2px 5px rgba(15, 23, 42, 0.35)) !important;
-    /* 核心动效：注入 iOS 风格的弹性阻尼过渡动画，接管位置、透明度与缩放 */
     transition: 
         top 0.32s cubic-bezier(0.25, 1, 0.5, 1),
         bottom 0.32s cubic-bezier(0.25, 1, 0.5, 1),
@@ -712,43 +744,34 @@ button:active { transform: scale(0.96) !important; }
         opacity 0.25s ease !important;
 }
 
-/* 利用 transform 旋转同一个高精度 SVG，完美贴合四个角 */
 .cropper-point.point-nw { top: -4px !important; left: -4px !important; transform: rotate(0deg) !important; }
 .cropper-point.point-ne { top: -4px !important; right: -4px !important; transform: rotate(90deg) !important; }
 .cropper-point.point-sw { bottom: -4px !important; left: -4px !important; transform: rotate(270deg) !important; }
 .cropper-point.point-se { bottom: -4px !important; right: -4px !important; transform: rotate(180deg) !important; }
 
-/* ================= 核心新增：触边激活动效逻辑 ================= */
-
-/* 当检测到贴边时，允许外层大圆角矩形溢出显示，确保外部能完整看到放大的 SVG */
 .crop-wrapper.edge-reached {
     overflow: visible !important;
 }
 
-/* 释放内部容器限制 */
 .crop-wrapper.edge-reached .cropper-container {
     overflow: visible !important;
 }
 
-/* 精准锁定底图层与毛玻璃层，强行为它们单独赋予圆角 */
 .crop-wrapper.edge-reached .cropper-wrap-box,
 .crop-wrapper.edge-reached .cropper-modal {
     border-radius: var(--radius-element) !important;
 }
 
-/* 核心：只对图片层进行内部隐藏，完美削掉溢出的直角，而绝不切掉外面的 L 型护角 */
 .crop-wrapper.edge-reached .cropper-wrap-box {
     overflow: hidden !important; 
 }
 
-/* 贴边时，提升护角的不透明度，并触发弹性放大 1.25 倍 */
 .crop-wrapper.edge-reached .cropper-point {
     opacity: 1 !important;
-    scale: 1.25; /* 现代 CSS 独立缩放属性，绝不干扰原有的 transform 旋转 */
+    scale: 1.25; 
     filter: drop-shadow(0 4px 10px rgba(15, 23, 42, 0.45)) !important;
 }
 
-/* 贴边时，让 4 个护角向外轻微弹射扩张 6px，完美包裹在 300x300 外层圆角矩形的物理边缘上方 */
 .crop-wrapper.edge-reached .cropper-point.point-nw { top: -10px !important; left: -10px !important; }
 .crop-wrapper.edge-reached .cropper-point.point-ne { top: -10px !important; right: -10px !important; }
 .crop-wrapper.edge-reached .cropper-point.point-sw { bottom: -10px !important; left: -10px !important; }
@@ -756,39 +779,79 @@ button:active { transform: scale(0.96) !important; }
 
 .cropper-bg { background-image: none !important; background-color: transparent !important; }
 
-/* 【核心】利用原生的 modal 层，实现未选中区域的“淡淡毛玻璃模糊” */
 .cropper-modal {
-    background-color: rgba(255, 255, 255, 0.15) !important; /* 极浅的透白色 */
-    backdrop-filter: blur(4px) saturate(120%) !important; /* 淡淡的模糊与色彩加成 */
+    background-color: rgba(255, 255, 255, 0.15) !important;
+    backdrop-filter: blur(4px) saturate(120%) !important;
     opacity: 1 !important;
 }
 
-/* ================== 响应式布局引擎 ================== */
-@media (max-width: 960px) {
+/* ==========================================
+   统一 TaskFlow 响应式布局规范 (1050px / 768px)
+   ========================================== */
+@media (max-width: 1050px) {
+    body { padding: 32px !important; }
     .app { 
-        grid-template-columns: 1fr; /* 切换为单列排版 */
+        grid-template-columns: 1fr !important; 
+        gap: 32px !important;
+        max-width: 1600px !important;
+        margin: 0 auto !important;
     }
     .sidebar { 
-        height: auto; 
-        position: relative; 
-        top: 0; 
+        height: auto !important; 
+        position: relative !important; 
+        top: 0 !important; 
+        padding: 32px !important;
+        grid-column: 1 !important;
+    }
+    .main { gap: 32px !important; grid-column: 1 !important; }
+    .form-grid { gap: 24px !important; }
+}
+
+@media (max-width: 768px) {
+    body { padding: 16px !important; }
+    .app { 
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 16px !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+    }
+    .sidebar { 
+        padding: 24px !important; 
+        width: 100% !important;
+        box-sizing: border-box !important;
+    }
+    .main { 
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 16px !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
     }
     .form-grid { 
-        grid-template-columns: 1fr; /* 表单双列坍缩为单列 */
+        grid-template-columns: 1fr !important; 
+        gap: 16px !important;
     }
     .sphere-modal .modal-content {
-        width: 90%; 
-        padding: 24px;
+        width: 90% !important; 
+        padding: 24px !important;
     }
+    textarea { padding: 14px 16px !important; }
+    .sync-code-box { padding: 14px !important; height: 100px !important; }
+    .toolbar { gap: 12px !important; flex-wrap: wrap !important; }
 }
 
 /* ================== 全局 Toast 通知引擎 ================== */
 .toast-notification {
     position: fixed; top: 24px; left: 50%; transform: translateX(-50%) translateY(-20px) scale(0.95);
     z-index: 10001; padding: 14px 28px; border-radius: var(--radius-element);
-    background: rgba(255, 255, 255, 0.75); border: 1px solid rgba(255, 255, 255, 0.9);
-    box-shadow: 0 16px 40px rgba(15,23,42,0.1), inset 0 2px 4px rgba(255,255,255,0.8);
-    backdrop-filter: blur(32px) saturate(200%); -webkit-backdrop-filter: blur(32px) saturate(200%);
+    background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.08) 50%, transparent 85%) !important;
+    border-top: 2px solid rgba(255, 255, 255, 0.95) !important;
+    border-left: 1px solid rgba(255, 255, 255, 0.7) !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.35) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.25) !important;
+    box-shadow: 0 16px 40px rgba(15, 23, 42, 0.12), inset 0 0 0 1px rgba(255, 255, 255, 0.1), inset 2px 3px 10px rgba(255, 255, 255, 0.35), inset -2px -3px 10px rgba(0, 0, 0, 0.03), inset 4px 6px 20px rgba(255, 255, 255, 0.18) !important;
+    backdrop-filter: blur(32px) saturate(130%); -webkit-backdrop-filter: blur(32px) saturate(130%);
     font-size: 15px; font-weight: 700; color: var(--text);
     opacity: 0; pointer-events: none;
     transition: all 0.45s var(--ease);
@@ -809,29 +872,200 @@ button:active { transform: scale(0.96) !important; }
     100% { opacity: 0; transform: translateX(-60px); }
 }
 
-/* 1. 进场直接绑定给 .app 容器, 无需 JS 介入 */
-.app {
-    /* backwards 属性是神来之笔: 它强制让浏览器在第 0 帧就维持 0% 的状态（透明且偏右）, 彻底消灭闪烁 */
-    animation: alphaPageIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) backwards;
-}
-
-/* 2. 退场专用类 */
 .page-transition-leave {
     animation: alphaPageOut 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards !important;
     pointer-events: none;
-    /* 强制降低退出时的层级, 确保退场滑动时绝不会从 alphaDropdownMenu 上方压过去 */
     position: relative;
     z-index: 1; 
 }
 
+/* Flatpickr 插件样式适配与全局 Glass 覆盖 */
+.flatpickr-time input { box-shadow: inset 0 2px 4px rgba(15, 23, 42, 0.08), inset 0 0 0 1px rgba(15, 23, 42, 0.05) !important; background: rgba(240, 245, 250, 0.5) !important; border: none !important; border-radius: 4px; }
+.flatpickr-prev-month, .flatpickr-next-month { background: rgba(255, 255, 255, 0.6) !important; backdrop-filter: blur(12px) !important; border-radius: 6px !important; margin: 4px !important; border: 1px solid rgba(255,255,255,0.8) !important; box-shadow: 0 2px 6px rgba(15,23,42,0.05) !important; top: 10px !important; display: flex !important; align-items: center !important; justify-content: center !important; height: 28px !important; width: 28px !important; padding: 0 !important; }
+.flatpickr-prev-month:hover, .flatpickr-next-month:hover { background: rgba(255, 255, 255, 0.9) !important; }
+
+.task-card:hover, .chart-wrap:hover, .chart-card:hover, .stats-card:hover { border: 1.5px solid rgba(255, 255, 255, 1) !important; }
+.task-card:active, .chart-wrap:active { border: 1.5px solid rgba(157, 210, 255, 0.9) !important; }
+
+.task-card, .side-card, .nav-card, .chart-card, .chart-wrap, .stats-card, .sphere-modal, .form-container, .alpha-menu, .flatpickr-calendar, .flatpickr-innerContainer, .alarm-modal, .modal, .dropdown, .context-menu, .progress-card, .info-card {
+    background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.08) 45%, transparent 75%) !important;
+    border-top: 2px solid rgba(255, 255, 255, 0.95) !important;
+    border-left: 1px solid rgba(255, 255, 255, 0.8) !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.35) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.25) !important;
+    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.08), inset 2px 3px 10px rgba(255, 255, 255, 0.35), inset -2px -3px 10px rgba(0, 0, 0, 0.03), inset 4px 6px 20px rgba(255, 255, 255, 0.15) !important;
+    backdrop-filter: blur(32px) saturate(130%) !important;
+    -webkit-backdrop-filter: blur(32px) saturate(130%) !important;
+}
+
+.alpha-switch:hover:hover {
+    filter: brightness(1.25) contrast(1.1) !important;
+}
+
+.flatpickr-day.selected {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.35) 0%, rgba(255, 255, 255, 0.15) 100%) !important;
+    backdrop-filter: blur(24px) saturate(120%) !important;
+    border-radius: var(--radius-element, 16px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.8) !important;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05), inset 0 2px 8px rgba(255, 255, 255, 0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.3) !important;
+}
+
+.flatpickr-time input, .flatpickr-time .numInputWrapper {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.05) 100%) !important;
+    backdrop-filter: blur(24px) saturate(120%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.7) !important;
+    border-radius: var(--radius-element, 16px) !important;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05), inset 0 2px 6px rgba(255, 255, 255, 0.4) !important;
+}
+.flatpickr-time input:focus, .flatpickr-time .numInputWrapper:focus-within {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0.2) 100%) !important;
+    border-color: rgba(255, 255, 255, 1) !important;
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.1), inset 0 2px 8px rgba(255, 255, 255, 0.7) !important;
+}
+
+.task-card, .side-card {
+    position: relative;
+    border-top: 2px solid rgba(255, 255, 255, 0.95) !important;
+    z-index: var(--card-z, 1);
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease, z-index 0s;
+}
+.task-card-wrap {
+    position: relative;
+    z-index: var(--card-z, 1);
+}
+.task-card:hover, .task-card-wrap:hover {
+    z-index: 99 !important;
+    transform: translateY(-2px);
+}
+.side-card:hover {
+    z-index: 99 !important;
+    transform: none !important;
+}
+
+/* ===== Alpha Zoom Performance Guard (缩放性能保护) ===== */
+body.is-zoom-scaling *,
+body.is-zoom-scaling *::before,
+body.is-zoom-scaling *::after {
+    transition-duration: 0s !important;
+    animation-play-state: paused !important;
+}
+body.is-zoom-scaling .sunbeam { filter: blur(4px) !important; }
+body.is-zoom-scaling .orb { filter: blur(4px) !important; }
+body.is-zoom-scaling .sidebar,
+body.is-zoom-scaling .panel,
+body.is-zoom-scaling .task-card,
+body.is-zoom-scaling .side-card,
+body.is-zoom-scaling .chart-card,
+body.is-zoom-scaling .chart-wrap,
+body.is-zoom-scaling .stats-card,
+body.is-zoom-scaling .nav-card,
+body.is-zoom-scaling .alpha-dropdown,
+body.is-zoom-scaling .app-switcher-overlay,
+body.is-zoom-scaling .app-switcher-overlay::before,
+body.is-zoom-scaling .sphere-modal,
+body.is-zoom-scaling .sphere-modal .modal-content,
+body.is-zoom-scaling .toggle-slider,
+body.is-zoom-scaling .subject-item span,
+body.is-zoom-scaling .secondary,
+body.is-zoom-scaling .primary,
+body.is-zoom-scaling .danger,
+body.is-zoom-scaling .glass-sphere,
+body.is-zoom-scaling .logo-icon-box,
+body.is-zoom-scaling .view-toggle,
+body.is-zoom-scaling .view-date-tag,
+body.is-zoom-scaling .alpha-switch,
+body.is-zoom-scaling .glass-resizer-bar::after,
+body.is-zoom-scaling .timer-circle-wrap,
+body.is-zoom-scaling .nav-click-catcher,
+body.is-zoom-scaling .mini-app-icon,
+body.is-zoom-scaling .toast-notification,
+body.is-zoom-scaling .form-container,
+body.is-zoom-scaling .flatpickr-calendar,
+body.is-zoom-scaling .modal,
+body.is-zoom-scaling .dropdown,
+body.is-zoom-scaling .context-menu,
+body.is-zoom-scaling .alpha-menu,
+body.is-zoom-scaling .badge,
+body.is-zoom-scaling .glass-btn,
+body.is-zoom-scaling .progress-card,
+body.is-zoom-scaling .progress-item,
+body.is-zoom-scaling .info-card,
+body.is-zoom-scaling .glass-icon-btn,
+body.is-zoom-scaling .form-collapse-btn,
+body.is-zoom-scaling .list-trigger-container,
+body.is-zoom-scaling .task-detail-sheet,
+body.is-zoom-scaling .round-checkbox,
+body.is-zoom-scaling .monet-selector,
+body.is-zoom-scaling .pop-list-item,
+body.is-zoom-scaling .clock-container,
+body.is-zoom-scaling .gender-item span,
+body.is-zoom-scaling .gender-tag,
+body.is-zoom-scaling .avatar-badge,
+body.is-zoom-scaling .cropper-modal {
+    backdrop-filter: blur(4px) saturate(110%) !important;
+    -webkit-backdrop-filter: blur(4px) saturate(110%) !important;
+}
 </style>
+<script>
+(function initCardStacking() {
+    function updateStacking() {
+        document.querySelectorAll('.task-list, .side-list, .card-group, .task-container, .sidebar, .panel, main, section').forEach(container => {
+            const children = Array.from(container.children).filter(el => 
+                el.classList.contains('task-card') || el.classList.contains('side-card') || el.classList.contains('task-card-wrap')
+            );
+            if (children.length > 0) {
+                const total = children.length;
+                children.forEach((child, index) => {
+                    child.style.setProperty('--card-z', total - index);
+                });
+            }
+        });
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', updateStacking);
+    } else {
+        updateStacking();
+    }
+    let debounceTimer = null;
+    const observer = new MutationObserver(() => {
+        if (debounceTimer) return;
+        debounceTimer = setTimeout(() => {
+            debounceTimer = null;
+            updateStacking();
+        }, 120);
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+})();
+
+document.addEventListener('visibilitychange', () => {
+    document.querySelector('.alpha-ambient-bg')
+        ?.classList.toggle('is-paused', document.hidden);
+});
+</script>
 </head>
 <body>
+<script>
+(function alphaZoomGuard() {
+    var zt = 0;
+    function onZoom() {
+        if (!document.body.classList.contains('is-zoom-scaling')) {
+            document.body.classList.add('is-zoom-scaling');
+        }
+        clearTimeout(zt);
+        zt = setTimeout(function() {
+            document.body.classList.remove('is-zoom-scaling');
+        }, 150);
+    }
+    window.addEventListener('wheel', function(e) { if (e.ctrlKey) onZoom(); }, { passive: true });
+    window.addEventListener('gesturestart', onZoom, { passive: true });
+    window.addEventListener('gesturechange', onZoom, { passive: true });
+})();
+</script>
 <div class="alpha-ambient-bg">
-    <div class="sunbeam"></div>
-    <div class="orb orb-1"></div>
-    <div class="orb orb-2"></div>
-    <div class="orb orb-3"></div>
+    <div class="ambient-motion-stage stage-sunbeam"><div class="sunbeam"></div></div>
+    <div class="ambient-motion-stage stage-orb-1"><div class="orb orb-1"></div></div>
+    <div class="ambient-motion-stage stage-orb-2"><div class="orb orb-2"></div></div>
+    <div class="ambient-motion-stage stage-orb-3"><div class="orb orb-3"></div></div>
 </div>
 
 <canvas id="confettiCanvas"></canvas>
@@ -840,15 +1074,15 @@ button:active { transform: scale(0.96) !important; }
 
 <div class="app">
     <aside class="sidebar">
-        <div class="logo-area" onclick="window.parent.ALPHA.back()" class="glass-btn" title="返回主页">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+        <div class="logo-area glass-btn" onclick="goBack()" title="返回">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-left"><path d="m15 18-6-6 6-6"/></svg>
         </div>
 
         <div style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
             <div class="avatar-wrap" onclick="document.getElementById('avatarUpload').click()">
-                <img id="displayAvatar" src="" style="display: none;">
-                <div id="displayAvatarPlaceholder" class="placeholder">👤</div>
-                <div class="avatar-badge">📸</div>
+                <img id="displayAvatar" src="./icons/Avatar.png" style="display: block;">
+                <div id="displayAvatarPlaceholder" class="placeholder" style="display: none;">👤</div>
+                <div class="avatar-badge"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-aperture" style="width: 16px; height: 16px; display: block; color: #475569;" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.69 8h11.48"/><path d="m14.31 8 5.74 9.94"/><path d="m16.62 12-5.74 9.94"/><path d="M14.31 16H2.83"/><path d="m9.69 16-5.74-9.94"/><path d="m7.38 12 5.74-9.94"/></svg></div>
                 <input type="file" id="avatarUpload" accept="image/png, image/jpeg, image/gif" hidden>
             </div>
 
@@ -889,9 +1123,9 @@ button:active { transform: scale(0.96) !important; }
                 <div class="field full-width">
                     <label>性别</label>
                     <div class="gender-box">
-                        <label class="gender-item"><input type="radio" name="gender" value="male"><span>♂️ 男</span></label>
-                        <label class="gender-item"><input type="radio" name="gender" value="female"><span>♀️ 女</span></label>
-                        <label class="gender-item"><input type="radio" name="gender" value="custom"><span>其他</span></label>
+                        <label class="gender-item"><input type="radio" name="gender" value="male"><span><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-mars" style="width: 18px; height: 18px; margin-right: 5px; color: #60a5fa;" aria-hidden="true"><path d="M16 3h5v5"/><path d="m21 3-6.75 6.75"/><circle cx="10" cy="14" r="6"/></svg>男</span></label>
+                        <label class="gender-item"><input type="radio" name="gender" value="female"><span><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-venus" style="width: 18px; height: 18px; margin-right: 5px; color: #f472b6;" aria-hidden="true"><path d="M12 15v7"/><path d="M9 19h6"/><circle cx="12" cy="9" r="6"/></svg>女</span></label>
+                        <label class="gender-item"><input type="radio" name="gender" value="custom"><span><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-dashed" style="width: 18px; height: 18px; margin-right: 5px; color: #9b84e1;" aria-hidden="true"><path d="M10.1 2.182a10 10 0 0 1 3.8 0"/><path d="M13.9 21.818a10 10 0 0 1-3.8 0"/><path d="M17.609 3.721a10 10 0 0 1 2.69 2.69"/><path d="M2.182 13.9a10 10 0 0 1 0-3.8"/><path d="M20.279 17.609a10 10 0 0 1-2.69 2.69"/><path d="M21.818 10.1a10 10 0 0 1 0 3.8"/><path d="M3.721 6.291a10 10 0 0 1 2.69-2.69"/><path d="M6.291 20.279a10 10 0 0 1-2.69-2.69"/></svg>其他</span></label>
                     </div>
                 </div>
             </div>
@@ -908,16 +1142,20 @@ button:active { transform: scale(0.96) !important; }
                 利用底层算法将账号与任务数据打包为同步码, 或直接通过 <b>TXT</b> 文件进行完整的跨端迁移与本地备份
             </div>
 
-                <textarea id="syncCodeArea" class="sync-code-box" placeholder="点击下方「生成加密同步码」打包数据, 或在此粘贴同步码进行覆写导入..."></textarea>
-                
-                <input type="file" id="txtFileInput" accept="TXT" style="display: none;" onchange="importFromTxt(event)">
+            <textarea id="syncCodeArea" class="sync-code-box" placeholder="点击下方「生成加密同步码」打包数据, 或在此粘贴同步码进行覆写导入..."></textarea>
+            
+            <input type="file" id="txtFileInput" accept="TXT" style="display: none;" onchange="importFromTxt(event)">
 
-                <div class="toolbar" style="margin-top: 0; margin-bottom: 6px;">
-                    <button class="primary" onclick="generateSyncCode()">生成同步码</button>
-                    <button class="secondary" onclick="showImportOptions()">📥 覆写数据</button>
-                    <button class="secondary" onclick="showExportOptions()">📦 导出</button>
-                </div>
-            </section> </main> </div> <div id="customDialog" class="sphere-modal hidden">
+            <div class="toolbar" style="margin-top: 0; margin-bottom: 6px;">
+                <button class="primary" onclick="generateSyncCode()">生成同步码</button>
+                <button class="secondary" onclick="showImportOptions()"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-download" style="width: 18px; height: 18px; margin-right: 6px;" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>覆写数据</button>
+                <button class="secondary" onclick="showExportOptions()"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-upload" style="width: 18px; height: 18px; margin-right: 6px;" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>导出</button>
+            </div>
+        </section>
+    </main>
+</div>
+
+<div id="customDialog" class="sphere-modal hidden">
     <div class="modal-content" style="width: 360px; text-align: center;">
         <div id="dialogIcon" style="font-size: 48px; margin-bottom: 16px; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.1));">⚠️</div>
         <h3 id="dialogTitle" style="margin-bottom: 12px; color: #0f172a; font-size: 20px;">提示</h3>
@@ -944,6 +1182,7 @@ button:active { transform: scale(0.96) !important; }
         </div>
     </div>
 </div>
+
 <script>
 /* ================== 全局弹窗引擎 ================== */
 window.dialogConfirmCallback = null;
@@ -955,7 +1194,6 @@ function customAlert(msg, title = "提示", icon = "💡") {
     
     const cancelBtn = document.getElementById('dialogCancelBtn');
     cancelBtn.style.display = 'none';
-    // 强制重置取消事件, 防止被其他模式污染
     cancelBtn.onclick = () => document.getElementById('customDialog').classList.add('hidden');
     
     document.getElementById('dialogBottomCancelBtn').style.display = 'none'; 
@@ -975,7 +1213,6 @@ function customChoice(msg, title, btn1Text, btn1Cb, btn2Text, btn2Cb, icon="⚙�
     const cancelBtn = document.getElementById('dialogCancelBtn');
     cancelBtn.style.display = 'block';
     cancelBtn.textContent = btn1Text;
-    // ♻️ 修改点: 移除这里的 cancelBtn.onclick = null, 让状态交由下一次唤醒时覆盖管理
     cancelBtn.onclick = () => { 
         document.getElementById('customDialog').classList.add('hidden'); 
         btn1Cb(); 
@@ -989,7 +1226,6 @@ function customChoice(msg, title, btn1Text, btn1Cb, btn2Text, btn2Cb, icon="⚙�
         btn2Cb();
     };
     
-    // 显示单独一排的取消按钮
     document.getElementById('dialogBottomCancelBtn').style.display = 'block'; 
 
     document.getElementById('customDialog').classList.remove('hidden');
@@ -1003,7 +1239,6 @@ function customConfirm(msg, onConfirm, title = "请确认", isDanger = false, ic
     const cancelBtn = document.getElementById('dialogCancelBtn');
     cancelBtn.style.display = 'block';
     cancelBtn.textContent = "取消";
-    // 每次唤醒时, 切断残留事件, 重新赋予关闭 Modal 的默认职能
     cancelBtn.onclick = () => document.getElementById('customDialog').classList.add('hidden');
     
     document.getElementById('dialogBottomCancelBtn').style.display = 'none'; 
@@ -1040,6 +1275,7 @@ function showExportOptions() {
 
 /* ================== 数据存储与加载 ================== */
 const ACCOUNT_KEY = "alpha_account_data";
+const DEFAULT_AVATAR = "./icons/Avatar.png";
 let accountData = {
     avatar: "", name: "", id: "", bio: "", birthday: "", gender: ""
 };
@@ -1058,52 +1294,36 @@ const els = {
     dispGender: document.getElementById('displayGender')
 };
 
-/* ================== 丝滑焦点流转引擎 ================== */
+/* ================== 焦点流转引擎 ================== */
 const profileInputs = [els.inName, els.inId, els.inBio, els.inBirthday];
 
 profileInputs.forEach((input, index) => {
+    if (!input) return;
     input.addEventListener('keydown', function(e) {
         if (e.key === 'Enter') {
             if (this === els.inBio) {
-                // 个人简介特殊处理, Ctrl+Enter 跳转, 单纯 Enter 换行
                 if (e.ctrlKey || e.metaKey) {
                     e.preventDefault();
                     profileInputs[index + 1]?.focus();
                 }
             } else {
-                // 其他单行输入框: 纯 Enter 无缝跳转
                 e.preventDefault();
                 if (index < profileInputs.length - 1) {
                     profileInputs[index + 1].focus();
                 } else {
-                    this.blur(); // 最后一项, 取消聚焦
+                    this.blur();
                 }
             }
         }
     });
 });
 
-// 自动调节文本框高度引擎 (极度丝滑影子克隆版)
+/* 自动调节文本框高度引擎 (基于 scrollHeight 计算) */
 function adjustTextareaHeight(el) {
-    let clone = document.getElementById('bio-hidden-clone');
-    if (!clone) {
-        clone = document.createElement('textarea');
-        clone.id = 'bio-hidden-clone';
-        // 仅在创建时获取并固定样式，此后复用
-        clone.style.cssText = window.getComputedStyle(el).cssText;
-        clone.style.position = 'absolute';
-        clone.style.top = '-9999px';
-        clone.style.left = '-9999px';
-        clone.style.visibility = 'hidden';
-        clone.style.transition = 'none';
-        document.body.appendChild(clone);
-    }
-    // 每次只需重置高度与内容，无需再次读取样式
-    clone.style.height = '52px';
-    clone.value = el.value;
-    let targetHeight = clone.scrollHeight;
+    if (!el) return;
+    el.style.height = '52px';
+    let targetHeight = el.scrollHeight;
     
-    // 极值限制
     if (targetHeight < 52) targetHeight = 52;
     if (targetHeight > 160) {
         targetHeight = 160;
@@ -1112,68 +1332,68 @@ function adjustTextareaHeight(el) {
         el.style.overflowY = 'hidden';
     }
     
-    // 此时主文本框只需单纯地改变高度, CSS的阻尼 transition 会完美接管动画
     el.style.height = targetHeight + 'px';
 }
 
-// 绑定实时输入事件
-els.inBio.addEventListener('input', function() {
-    adjustTextareaHeight(this);
-});
+if (els.inBio) {
+    els.inBio.addEventListener('input', function() {
+        adjustTextareaHeight(this);
+    });
+}
 
-els.inBirthday.addEventListener('blur', function() {
-    let text = this.value.trim();
-    if (!text) return;
-    
-    let raw = text.replace(/\D/g, "");
-    let y, m, d;
-    let isValid = false;
-    
-    if (!text.includes('-') && raw.length >= 6 && raw.length <= 8) {
-        y = parseInt(raw.slice(0, 4), 10);
-        if (raw.length === 8) {
-            m = parseInt(raw.slice(4, 6), 10); 
-            d = parseInt(raw.slice(6, 8), 10);
-        } else if (raw.length === 6) {
-            m = parseInt(raw.slice(4, 5), 10); 
-            d = parseInt(raw.slice(5, 6), 10);
-        } else if (raw.length === 7) {
-            let m2 = parseInt(raw.slice(4, 6), 10);
-            if (m2 >= 10 && m2 <= 12) {
-                m = m2; d = parseInt(raw.slice(6, 7), 10);
-            } else {
-                m = parseInt(raw.slice(4, 5), 10); d = parseInt(raw.slice(5, 7), 10);
+if (els.inBirthday) {
+    els.inBirthday.addEventListener('blur', function() {
+        let text = this.value.trim();
+        if (!text) return;
+        
+        let raw = text.replace(/\D/g, "");
+        let y, m, d;
+        let isValid = false;
+        
+        if (!text.includes('-') && raw.length >= 6 && raw.length <= 8) {
+            y = parseInt(raw.slice(0, 4), 10);
+            if (raw.length === 8) {
+                m = parseInt(raw.slice(4, 6), 10); 
+                d = parseInt(raw.slice(6, 8), 10);
+            } else if (raw.length === 6) {
+                m = parseInt(raw.slice(4, 5), 10); 
+                d = parseInt(raw.slice(5, 6), 10);
+            } else if (raw.length === 7) {
+                let m2 = parseInt(raw.slice(4, 6), 10);
+                if (m2 >= 10 && m2 <= 12) {
+                    m = m2; d = parseInt(raw.slice(6, 7), 10);
+                } else {
+                    m = parseInt(raw.slice(4, 5), 10); d = parseInt(raw.slice(5, 7), 10);
+                }
+            }
+        } else if (text.includes('-') || text.includes('/')) {
+            let parts = text.split(/[-/]/);
+            if (parts.length === 3) {
+                y = parseInt(parts[0], 10); 
+                m = parseInt(parts[1], 10); 
+                d = parseInt(parts[2], 10);
             }
         }
-    } else if (text.includes('-') || text.includes('/')) {
-        let parts = text.split(/[-/]/);
-        if (parts.length === 3) {
-            y = parseInt(parts[0], 10); 
-            m = parseInt(parts[1], 10); 
-            d = parseInt(parts[2], 10);
+        
+        if (y >= 1900 && y <= 2100 && m >= 1 && m <= 12 && d >= 1 && d <= 31) {
+            this.value = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+            accountData.birthday = this.value;
+            checkBirthdayConfetti();
+            isValid = true;
         }
-    }
-    
-    // 校验日期是否合法
-    if (y >= 1900 && y <= 2100 && m >= 1 && m <= 12 && d >= 1 && d <= 31) {
-        this.value = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-        accountData.birthday = this.value;
-        checkBirthdayConfetti();
-        isValid = true;
-    }
-    
-    // 如果日期极度离谱, 兜底强行修正为今天
-    if (!isValid) {
-        const today = new Date();
-        const ty = today.getFullYear();
-        const tm = String(today.getMonth() + 1).padStart(2, '0');
-        const td = String(today.getDate()).padStart(2, '0');
-        this.value = `${ty}-${tm}-${td}`;
-        accountData.birthday = this.value;
-        checkBirthdayConfetti();
-        showSyncStatus("⚠️ 识别到无效日期, 已自动修正为今日", "var(--monet-text)");
-    }
-});
+        
+        if (!isValid) {
+            const today = new Date();
+            const ty = today.getFullYear();
+            const tm = String(today.getMonth() + 1).padStart(2, '0');
+            const td = String(today.getDate()).padStart(2, '0');
+            this.value = `${ty}-${tm}-${td}`;
+            accountData.birthday = this.value;
+            checkBirthdayConfetti();
+            showSyncStatus("⚠️ 识别到无效日期, 已自动修正为今日", "var(--monet-text)");
+        }
+    });
+}
 
 function loadProfileData() {
     try {
@@ -1181,13 +1401,16 @@ function loadProfileData() {
         if (stored) accountData = { ...accountData, ...JSON.parse(stored) };
     } catch(e) {}
     
-    els.inName.value = accountData.name;
-    els.inId.value = accountData.id;
-    els.inBio.value = accountData.bio;
-    els.inBirthday.value = accountData.birthday;
-    Array.from(els.inGenders).forEach(radio => {
-        if (radio.value === accountData.gender) radio.checked = true;
-    });
+    if (els.inName) els.inName.value = accountData.name || "";
+    if (els.inId) els.inId.value = accountData.id || "";
+    if (els.inBio) els.inBio.value = accountData.bio || "";
+    if (els.inBirthday) els.inBirthday.value = accountData.birthday || "";
+    
+    if (els.inGenders) {
+        Array.from(els.inGenders).forEach(radio => {
+            radio.checked = (radio.value === accountData.gender);
+        });
+    }
 
     updateProfileDisplay();
     checkBirthdayConfetti();
@@ -1196,40 +1419,39 @@ function loadProfileData() {
 }
 
 function updateProfileDisplay() {
-    els.dispName.textContent = accountData.name || "Tasks User";
-    els.dispId.textContent = accountData.id || "Tasks_001";
-    els.dispBio.textContent = accountData.bio || "非同凡想 自强不息";
+    if (els.dispName) els.dispName.textContent = accountData.name || "Tasks User";
+    if (els.dispId) els.dispId.textContent = accountData.id || "Tasks_001";
+    if (els.dispBio) els.dispBio.textContent = accountData.bio || "非同凡想 自强不息";
     
     const genderMap = { 'male': '男', 'female': '女', 'custom': '其他' };
     
-    if (accountData.gender) {
-        els.dispGender.textContent = genderMap[accountData.gender];
-        els.dispGender.style.display = 'inline-flex';
-        
-        els.dispGender.classList.remove('male', 'female', 'custom');
-        els.dispGender.classList.add(accountData.gender);
-        
-    } else {
-        els.dispGender.style.display = 'none';
+    if (els.dispGender) {
+        if (accountData.gender) {
+            els.dispGender.textContent = genderMap[accountData.gender] || accountData.gender;
+            els.dispGender.style.display = 'inline-flex';
+            
+            els.dispGender.classList.remove('male', 'female', 'custom');
+            els.dispGender.classList.add(accountData.gender);
+        } else {
+            els.dispGender.style.display = 'none';
+        }
     }
 
-    if (accountData.avatar) {
-        els.dispAvatar.src = accountData.avatar;
+    if (els.dispAvatar) {
+        const avatarSrc = accountData.avatar || DEFAULT_AVATAR;
+        els.dispAvatar.src = avatarSrc;
         els.dispAvatar.style.display = 'block';
-        els.dispPlaceholder.style.display = 'none';
-    } else {
-        els.dispAvatar.style.display = 'none';
-        els.dispPlaceholder.style.display = 'flex';
     }
+    if (els.dispPlaceholder) els.dispPlaceholder.style.display = 'none';
 }
 
 function saveProfileData() {
-    accountData.name = els.inName.value.trim();
-    accountData.id = els.inId.value.trim();
-    accountData.bio = els.inBio.value.trim();
-    accountData.birthday = els.inBirthday.value;
+    accountData.name = els.inName ? els.inName.value.trim() : "";
+    accountData.id = els.inId ? els.inId.value.trim() : "";
+    accountData.bio = els.inBio ? els.inBio.value.trim() : "";
+    accountData.birthday = els.inBirthday ? els.inBirthday.value : "";
     
-    const checkedGender = Array.from(els.inGenders).find(r => r.checked);
+    const checkedGender = els.inGenders ? Array.from(els.inGenders).find(r => r.checked) : null;
     accountData.gender = checkedGender ? checkedGender.value : "";
 
     localStorage.setItem(ACCOUNT_KEY, JSON.stringify(accountData));
@@ -1241,81 +1463,76 @@ function saveProfileData() {
 
 function clearProfileData() {
     customConfirm("确定要清除所有个人配置信息吗?", () => {
-        accountData = { avatar: "", name: "", id: "", bio: "", birthday: "", gender: "" };
+        accountData = { avatar: DEFAULT_AVATAR, name: "", id: "", bio: "", birthday: "", gender: "" };
         localStorage.removeItem(ACCOUNT_KEY);
         loadProfileData();
-        showSyncStatus("🗑️ 档案已重置", "var(--sub)");
+        showSyncStatus("🗑️ 档案已重置", "var(--monet-text)");
     }, "重置档案", true);
 }
 
 let cropperInstance = null;
 
-document.getElementById('avatarUpload').addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    if (!file) return;
+const avatarUploadEl = document.getElementById('avatarUpload');
+if (avatarUploadEl) {
+    avatarUploadEl.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = function(event) {
-        const cropDialog = document.getElementById('cropDialog');
-        const cropImage = document.getElementById('cropImage');
-        
-        cropImage.src = event.target.result;
-        cropDialog.classList.remove('hidden');
-
-        if (cropperInstance) {
-            cropperInstance.destroy();
-        }
-        
-        // 挂载 Cropper.js 并配置 1:1 强制圆形毛玻璃限制与边缘动态拦截
-        cropperInstance = new Cropper(cropImage, {
-            aspectRatio: 1, 
-            viewMode: 1, 
-            dragMode: 'move', 
-            autoCropArea: 0.8, 
-            cropBoxResizable: true, 
-            cropBoxMovable: true, 
-            center: true, 
-            background: false,
-            guides: false,
-            highlight: false,
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            const cropDialog = document.getElementById('cropDialog');
+            const cropImage = document.getElementById('cropImage');
             
-            // 核心新增：监听裁切选框在每一帧的变化
-            crop(event) {
-                const wrapper = document.querySelector('.crop-wrapper');
-                if (!wrapper || !cropperInstance) return;
+            cropImage.src = event.target.result;
+            cropDialog.classList.remove('hidden');
 
-                // 物理测绘：获取当前画布容器尺寸与当前选框的相对空间数据
-                const container = cropperInstance.getContainerData();
-                const cropBox = cropperInstance.getCropBoxData();
-
-                // 设定 3 像素的高阶容差补丁，防止高分屏（Retina）下出现缩放亚像素不精准问题
-                const tolerance = 3; 
-
-                // 校验：若选区任意一条边界无限逼近或等于外层大框边缘
-                const isTouchingEdge = (
-                    cropBox.left <= tolerance ||
-                    cropBox.top <= tolerance ||
-                    (cropBox.left + cropBox.width) >= (container.width - tolerance) ||
-                    (cropBox.top + cropBox.height) >= (container.height - tolerance)
-                );
-
-                // 触发状态机切换，交由 CSS 硬件加速层去渲染平滑变化
-                if (isTouchingEdge) {
-                    wrapper.classList.add('edge-reached');
-                } else {
-                    wrapper.classList.remove('edge-reached');
-                }
+            if (cropperInstance) {
+                cropperInstance.destroy();
             }
-        });
-    };
-    reader.readAsDataURL(file);
-    e.target.value = ''; // 清空 input, 保证下次仍能选同一张图触发 change
-});
+            
+            cropperInstance = new Cropper(cropImage, {
+                aspectRatio: 1, 
+                viewMode: 1, 
+                dragMode: 'move', 
+                autoCropArea: 0.8, 
+                cropBoxResizable: true, 
+                cropBoxMovable: true, 
+                center: true, 
+                background: false,
+                guides: false,
+                highlight: false,
+                
+                crop(event) {
+                    const wrapper = document.querySelector('.crop-wrapper');
+                    if (!wrapper || !cropperInstance) return;
+
+                    const container = cropperInstance.getContainerData();
+                    const cropBox = cropperInstance.getCropBoxData();
+                    const tolerance = 3; 
+
+                    const isTouchingEdge = (
+                        cropBox.left <= tolerance ||
+                        cropBox.top <= tolerance ||
+                        (cropBox.left + cropBox.width) >= (container.width - tolerance) ||
+                        (cropBox.top + cropBox.height) >= (container.height - tolerance)
+                    );
+
+                    if (isTouchingEdge) {
+                        wrapper.classList.add('edge-reached');
+                    } else {
+                        wrapper.classList.remove('edge-reached');
+                    }
+                }
+            });
+        };
+        reader.readAsDataURL(file);
+        e.target.value = ''; 
+    });
+}
 
 function confirmCrop() {
     if (!cropperInstance) return;
     
-    // 生成 400x400 的高清裁切结果画布
     const canvas = cropperInstance.getCroppedCanvas({
         width: 400,
         height: 400,
@@ -1337,11 +1554,10 @@ function closeCropDialog() {
     }
 }
 
-let confettiInterval = null;
+let confettiInterval = false;
 let confettiTimeout = null;
+let confettiRafId = null;
 
-// ================= 生日彩带 =================
-// 全局的 resize 处理函数, 避免匿名函数导致的移除失败
 function confettiResizeHandler() {
     const canvas = document.getElementById('confettiCanvas');
     if (canvas) {
@@ -1352,11 +1568,11 @@ function confettiResizeHandler() {
 
 function launchConfetti() {
     const canvas = document.getElementById('confettiCanvas');
+    if (!canvas) return;
     const ctx = canvas.getContext('2d');
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
-    // 先移除再添加, 防止重复绑定
     window.removeEventListener('resize', confettiResizeHandler);
     window.addEventListener('resize', confettiResizeHandler);
 
@@ -1404,10 +1620,10 @@ function launchConfetti() {
         });
 
         if (confettiInterval && activeParticles > 0) {
-            requestAnimationFrame(render);
+            confettiRafId = requestAnimationFrame(render);
         } else if (activeParticles === 0) {
             confettiInterval = false;
-            // 所有粒子消失后移除 resize 监听, 彻底释放资源
+            confettiRafId = null;
             window.removeEventListener('resize', confettiResizeHandler);
         }
     }
@@ -1431,11 +1647,16 @@ function checkBirthdayConfetti() {
         if (!confettiInterval) launchConfetti();
     } else {
         confettiInterval = false;
+        if (confettiRafId) {
+            cancelAnimationFrame(confettiRafId);
+            confettiRafId = null;
+        }
         if (confettiTimeout) clearTimeout(confettiTimeout);
         const canvas = document.getElementById('confettiCanvas');
-        const ctx = canvas.getContext('2d');
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        // 非生日时也清理 resize 监听
+        if (canvas) {
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
         window.removeEventListener('resize', confettiResizeHandler);
     }
 }
@@ -1444,6 +1665,7 @@ function checkBirthdayConfetti() {
 let toastTimeout;
 function showSyncStatus(msg, color = "var(--text)") {
     const toast = document.getElementById('globalToast');
+    if (!toast) return;
     toast.innerHTML = msg;
     toast.style.color = color;
     toast.classList.add('show');
@@ -1454,7 +1676,7 @@ function showSyncStatus(msg, color = "var(--text)") {
 
 /* ================== 高性能 二进制 <-> Base64 转换器 ================== */
 function uint8ToBase64(u8Arr) {
-    let CHUNK_SIZE = 0x8000; // 避免超长字符串导致内存溢出
+    let CHUNK_SIZE = 0x8000;
     let index = 0;
     let length = u8Arr.length;
     let result = '';
@@ -1478,7 +1700,6 @@ function base64ToUint8(base64) {
 
 /* ================== 文件级跨端与备份引擎 ================== */
 
-// 导出为 TXT 文件
 function exportToTxt() {
     try {
         const payload = {
@@ -1486,33 +1707,38 @@ function exportToTxt() {
             taskflow: localStorage.getItem("taskflow_data") || "{}",
             taskhub: localStorage.getItem("taskhub_data") || "[]",
             tasktimer: localStorage.getItem("tasktimer_data") || "[]",
-            wallpaper: localStorage.getItem("alpha_wallpaper") || "" // 纳入壁纸数据
+            wallpaper: localStorage.getItem("alpha_wallpaper") || ""
         };
         
-        // 将数据格式化为带有缩进的优美 JSON 结构, 方便用户用记事本查看
         const jsonString = JSON.stringify(payload, null, 2);
         const blob = new Blob([jsonString], { type: "text/plain;charset=utf-8" });
         const url = URL.createObjectURL(blob);
         
-        // 动态创建 <a> 标签触发系统下载机制
         const a = document.createElement('a');
-        const dateStr = new Date().toISOString().slice(0,10).replace(/-/g, ""); // 获取当前日期如 20260703
+        const dateStr = new Date().toISOString().slice(0,10).replace(/-/g, "");
         a.href = url;
-        a.download = `Tasks_Data_${dateStr}TXT`;
+        a.download = `Tasks_Data_${dateStr}.txt`;
+        a.target = '_self';
+        a.style.display = 'none';
         
         document.body.appendChild(a);
         a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url); // 释放内存防止泄露
         
-        showSyncStatus("📦 数据已成功打包并触发浏览器下载!", "var(--monet-text)");
+        // 延时移除 DOM 节点与释放 Blob URL, 避免 Electron / 浏览器在异步下载未完成时因 Blob 被立即撤销而导出失败
+        setTimeout(() => {
+            if (a.parentNode) {
+                document.body.removeChild(a);
+            }
+            URL.revokeObjectURL(url);
+        }, 3000);
+        
+        showSyncStatus("📦 数据已成功打包并触发下载!", "var(--monet-text)");
     } catch(e) {
         console.error(e);
         customAlert("数据生成流失败, 请检查本地数据状态", "导出失败", "❌");
     }
 }
 
-// 从 TXT 文件读取并导入
 function importFromTxt(event) {
     const file = event.target.files[0];
     if (!file) return;
@@ -1521,12 +1747,10 @@ function importFromTxt(event) {
     reader.onload = function(e) {
         const content = e.target.result;
         
-        // 严格遵守设计语言: 调用自定义的毛玻璃警报弹窗
         customConfirm("注意: 从文件恢复后, 当前设备数据将被不可逆地抹除并覆盖, 确定继续吗?", () => {
             try {
                 const payload = JSON.parse(content);
                 
-                // 类型校验: 防止用户乱改 TXT 格式导致对象注入, 确保落库的是 String 格式
                 if (payload.account) localStorage.setItem(ACCOUNT_KEY, typeof payload.account === 'object' ? JSON.stringify(payload.account) : payload.account);
                 if (payload.taskflow) localStorage.setItem("taskflow_data", typeof payload.taskflow === 'object' ? JSON.stringify(payload.taskflow) : payload.taskflow);
                 if (payload.taskhub) localStorage.setItem("taskhub_data", typeof payload.taskhub === 'object' ? JSON.stringify(payload.taskhub) : payload.taskhub);
@@ -1539,23 +1763,20 @@ function importFromTxt(event) {
                 console.error(err);
                 customAlert("无法解析文件, 它可能已损坏", "数据异常", "❌");
             } finally {
-                // 重置 input 的 value, 确保用户下次还能选同一个文件触发 onChange
                 event.target.value = '';
             }
         }, "重塑世界线", true);
     };
     
-    // 以纯文本模式读取文件
     reader.readAsText(file);
 }
 
-/* ================== 全生态同步引擎 (含 1080P 壁纸智能压缩引擎) ================== */
+/* ================== 全生态同步引擎 ================== */
 function generateSyncCode() {
     showSyncStatus("⏳ 引擎全速运转压缩中...", "var(--monet-blue)");
     
     const rawWallpaper = localStorage.getItem("alpha_wallpaper");
 
-    // 定义核心的数据打包函数
     const packData = (processedWallpaper) => {
         setTimeout(() => {
             try {
@@ -1564,10 +1785,9 @@ function generateSyncCode() {
                     taskflow: localStorage.getItem("taskflow_data"),
                     taskhub: localStorage.getItem("taskhub_data"),
                     tasktimer: localStorage.getItem("tasktimer_data"),
-                    wallpaper: processedWallpaper // 写入已压缩或原本的壁纸
+                    wallpaper: processedWallpaper
                 };
                 
-                // 剔除无意义的空结构，极简出包
                 Object.keys(payload).forEach(key => {
                     if (!payload[key] || payload[key] === "{}" || payload[key] === "[]") {
                         delete payload[key];
@@ -1579,11 +1799,11 @@ function generateSyncCode() {
                 const encoded = "FFL|" + uint8ToBase64(compressedBytes);
                 
                 const area = document.getElementById('syncCodeArea');
-                area.value = encoded;
+                if (area) area.value = encoded;
                 
                 if (encoded.length > 50000) {
                     customAlert("同步码长度超过常规设备剪切板长度上限<br><b>建议导出为 <b>txt 文本</b>格式", "同步码过长", "⚠️");
-                    showSyncStatus("📦 打包完毕，建议使用 TXT 导出", "var(--monet-text)");
+                    showSyncStatus("📦 打包完毕, 建议使用 TXT 导出", "var(--monet-text)");
                 } else {
                     showSyncStatus("📦 同步码已生成!", "var(--monet-text)");
                 }
@@ -1594,16 +1814,14 @@ function generateSyncCode() {
         }, 100);
     };
 
-    // 智能拦截壁纸并进行 1080P Canvas 重绘压缩
     if (rawWallpaper && rawWallpaper.startsWith('data:image/')) {
         showSyncStatus("🗞️ 正在压缩壁纸至 1080P 级别...", "var(--monet-text)");
         const img = new Image();
         img.onload = () => {
             let w = img.width;
             let h = img.height;
-            const max = 1920; // 锁定最高 1920px (1080P 级别)
+            const max = 1920; 
             
-            // 等比例缩放计算
             if (w > max || h > max) {
                 if (w > h) { h = Math.round(h * max / w); w = max; } 
                 else { w = Math.round(w * max / h); h = max; }
@@ -1615,19 +1833,18 @@ function generateSyncCode() {
             const ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0, 0, w, h);
             
-            // 【核心降维】：强转为 JPEG 格式，保留 60% 画质。肉眼看不出明显糊感，但体积可暴跌 90%
             packData(canvas.toDataURL('image/jpeg', 0.6));
         };
-        img.onerror = () => packData(rawWallpaper); // 容错处理：若绘制失败，原图输出
+        img.onerror = () => packData(rawWallpaper);
         img.src = rawWallpaper;
     } else {
-        packData(rawWallpaper); // 无壁纸或非图片数据直接进行下一步
+        packData(rawWallpaper);
     }
 }
 
 function copySyncCode() {
     const area = document.getElementById('syncCodeArea');
-    if (!area.value) { customAlert("请先生成或粘贴同步码", "操作无效", "⚠️"); return; }
+    if (!area || !area.value) { customAlert("请先生成或粘贴同步码", "操作无效", "⚠️"); return; }
     area.select();
     document.execCommand('copy');
     showSyncStatus("📋 同步码已复制到剪贴板!", "var(--monet-text)");
@@ -1635,9 +1852,9 @@ function copySyncCode() {
 
 function importSyncCode() {
     const area = document.getElementById('syncCodeArea');
+    if (!area) return;
     let code = area.value.trim();
     
-    // 兼容老版本的去空格处理
     if (!code.startsWith("LZ16|")) {
         code = code.replace(/\s+/g, '');
     }
@@ -1647,20 +1864,16 @@ function importSyncCode() {
     customConfirm("警告: 导入操作将不可逆地覆盖当前设备的所有数据, 确定继续吗?", () => {
         showSyncStatus("⏳ 正在解包数据, 请稍候...", "var(--monet-blue)");
         
-        // 同样使用异步宏任务，防止解压海量数据期间弹窗动画卡在半空
         setTimeout(() => {
             let jsonString = null;
             
             try {
                 if (code.startsWith("LZ16|")) {
-                    // 兼容你之前因为测试而生成的 LZ16 格式 (前提是 head 里的 lz-string 标签还在)
                     jsonString = LZString.decompressFromUTF16(code.substring(5));
                 } else if (code.startsWith("FFL|")) {
-                    // 标准 FFLate 格式
                     const compressedBytes = base64ToUint8(code.substring(4));
                     jsonString = fflate.strFromU8(fflate.unzlibSync(compressedBytes));
                 } else {
-                    // 远古版本兜底解析引擎
                     try {
                         const compressedBytes = base64ToUint8(code);
                         jsonString = fflate.strFromU8(fflate.unzlibSync(compressedBytes));
@@ -1700,72 +1913,33 @@ window.addEventListener('storage', (e) => {
         try {
             const newData = JSON.parse(e.newValue);
             if (!newData) return;
-            
-            // 将底层数据更新, 但不覆盖输入框内容
             accountData.avatar = newData.avatar;
-            
-            // 仅对“侧边栏显示的头像”进行精准 DOM 更新
-            if (newData.avatar) {
-                els.dispAvatar.src = newData.avatar;
+            if (els.dispAvatar) {
+                els.dispAvatar.src = newData.avatar || DEFAULT_AVATAR;
                 els.dispAvatar.style.display = 'block';
-                els.dispPlaceholder.style.display = 'none';
             }
+            if (els.dispPlaceholder) els.dispPlaceholder.style.display = 'none';
         } catch(err) { console.error("头像跨端同步解析失败", err); }
     }
 });
 
-loadProfileData();
-
-// 页面隐藏时暂停背景动画，恢复时继续播放
-function handleVisibilityChange() {
-    const ambientEls = document.querySelectorAll('.orb, .sunbeam');
-    ambientEls.forEach(el => {
-        el.style.animationPlayState = document.hidden ? 'paused' : 'running';
-    });
-}
-document.addEventListener('visibilitychange', handleVisibilityChange);
-
-// ================= 全局页面切换动效拦截引擎 V2 =================
-window.addEventListener('DOMContentLoaded', () => {
-    const appContainer = document.querySelector('.app');
-    
-    // 进场动画播放完毕后, 立刻卸载动画属性
-    if (appContainer) {
-        appContainer.addEventListener('animationend', (e) => {
-            if (e.animationName === 'alphaPageIn') {
-                // 瞬间摧毁残留的 animation 属性
-                // 这将解除强制生成的“层叠上下文”, 让 .app 内部和外部的 fixed 定位、z-index 以及 Blur 遮罩恢复原状
-                appContainer.style.animation = 'none';
-            }
-        });
-    }
-
-    // 拦截全局下拉菜单中带有 href 且指向内部页面的 <a> 标签
-    document.querySelectorAll('a[href^="./"]').forEach(link => {
-        link.addEventListener('click', (e) => {
-            const targetUrl = link.getAttribute('href');
-            
-            const currentPath = window.location.pathname.split('/').pop() || 'index.html';
-            const targetPath = targetUrl.replace('./', '');
-            if (currentPath === targetPath) return; 
-
-            e.preventDefault();
-            
-            if (appContainer) {
-                // 挂载退场动画
-                appContainer.classList.add('page-transition-leave');
-                
-                // 等待 400ms 后物理跳转
-                setTimeout(() => {
-                    window.location.href = targetUrl;
-                }, 400);
-            } else {
-                window.location.href = targetUrl;
-            }
-        });
-    });
+window.addEventListener('AlphaWake', () => {
+    loadProfileData();
 });
 
+document.addEventListener('DOMContentLoaded', () => {
+    loadProfileData();
+});
+
+function goBack() {
+    if (window.parent && window.parent.ALPHA && typeof window.parent.ALPHA.back === 'function') {
+        window.parent.ALPHA.back();
+    } else if (window.history.length > 1) {
+        window.history.back();
+    } else {
+        window.location.href = 'settings.html';
+    }
+}
 </script>
 </body>
 </html>
