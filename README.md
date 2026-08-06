@@ -1,4 +1,7 @@
+<img src="./Icon.ico" width="120" alt="Tasks Logo">
+
 # Tasks
 轻量化时间管理工具。通过制定计划、合理安排任务、记录各项任务的完成时间，帮助你随时检验学习效率。同时支持将学习数据导出为 .txt 格式，便于借助 AI 进行分析，持续优化学习方法。(部分代码由AI生成)
+
 ![License](https://img.shields.io/github/license/Zongyil/Tasks)
-![Release](https://img.shields.io/github/v/Zongyil/Tasks)
+![Release](https://img.shields.io/github/v/release/Zongyil/Tasks)
