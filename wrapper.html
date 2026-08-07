@@ -1094,7 +1094,95 @@
       injectLifecycle(doc);
     }
 
-    // 为 wrapper 本身的标题栏和 UI 元素也注入追踪引擎
+    // ======= 单实例 & 自定义协议唤醒处理引擎 =======
+    const KNOWN_PAGES = {
+      'home.html': { url: 'Home.html', title: '主页' },
+      'taskhub.html': { url: 'TaskHub.html', title: '任务中心' },
+      'tasktimer.html': { url: 'TaskTimer.html', title: '专注计时' },
+      'focus.html': { url: 'Focus.html', title: '专注' },
+      'account.html': { url: 'Account.html', title: '账户' },
+      'settings.html': { url: 'settings.html', title: '设置' },
+      'taskflow.html': { url: 'TaskFlow.html', title: '任务流' }
+    };
+
+    function parseTargetFromUrl(rawStr) {
+      if (!rawStr || typeof rawStr !== 'string') return null;
+      let clean = rawStr.trim();
+      if (clean.startsWith('tasks://')) {
+        clean = clean.slice(8);
+      }
+      if (clean.startsWith('/')) {
+        clean = clean.slice(1);
+      }
+
+      if (clean.includes('?')) {
+        try {
+          const searchParams = new URLSearchParams(clean.split('?')[1]);
+          const pageParam = searchParams.get('page') || searchParams.get('url') || searchParams.get('tab');
+          if (pageParam) {
+            const key = pageParam.toLowerCase();
+            if (KNOWN_PAGES[key]) return KNOWN_PAGES[key];
+            if (!key.endsWith('.html') && KNOWN_PAGES[key + '.html']) return KNOWN_PAGES[key + '.html'];
+          }
+        } catch(_) {}
+        clean = clean.split('?')[0];
+      }
+
+      const key = clean.toLowerCase();
+      if (KNOWN_PAGES[key]) return KNOWN_PAGES[key];
+      if (!key.endsWith('.html') && KNOWN_PAGES[key + '.html']) return KNOWN_PAGES[key + '.html'];
+
+      return null;
+    }
+
+    function handleInstanceData(data) {
+      if (!data) return;
+
+      let pageTarget = null;
+      if (data.url) {
+        pageTarget = parseTargetFromUrl(data.url);
+      }
+      if (!pageTarget && Array.isArray(data.commandLine)) {
+        for (const arg of data.commandLine) {
+          pageTarget = parseTargetFromUrl(arg);
+          if (pageTarget) break;
+        }
+      }
+
+      if (pageTarget) {
+        const existingTab = tabs.find(t => t.url && t.url.toLowerCase().includes(pageTarget.url.toLowerCase()));
+        if (existingTab) {
+          switchTab(existingTab.id);
+        } else {
+          createNewTab(pageTarget.url, pageTarget.title);
+        }
+      }
+
+      window.dispatchEvent(new CustomEvent('second-instance-data', { detail: data }));
+      const activeFrame = iframeMap.get(activeTabId);
+      if (activeFrame && activeFrame.contentWindow) {
+        try {
+          activeFrame.contentWindow.postMessage({ type: 'second-instance-data', data }, '*');
+        } catch(_) {}
+      }
+    }
+
+    if (window.electronAPI) {
+      if (window.electronAPI.onSecondInstance) {
+        window.electronAPI.onSecondInstance((data) => {
+          handleInstanceData(data);
+        });
+      }
+      if (window.electronAPI.getInitialInstanceData) {
+        window.electronAPI.getInitialInstanceData().then((initialData) => {
+          if (initialData && initialData.url) {
+            handleInstanceData(initialData);
+          }
+        }).catch(() => {});
+      }
+    }
+
+    // 为 wrapper 本身也注入追踪引擎
     bindAlphaTooltipEngine(document);
 
     window.addEventListener('DOMContentLoaded', () => {

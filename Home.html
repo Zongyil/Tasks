@@ -1919,92 +1919,76 @@ ringtoneInput.addEventListener('change', (e) => {
     }
 });
 
-// ================== Microsoft To Do 智能解析引擎 ==================
-function getTargetDateStr(keyword) {
-    const d = new Date();
-    if (keyword === '明天') d.setDate(d.getDate() + 1);
-    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+// ================== Microsoft To Do 智能解析引擎 (Web Worker 驱动) ==================
+let dataWorkerInstance = null;
+let workerTaskId = 0;
+const workerPromises = new Map();
+
+function getDataWorker() {
+  if (!dataWorkerInstance) {
+    dataWorkerInstance = new Worker('data_worker.js');
+    dataWorkerInstance.onmessage = function(e) {
+      const { taskId, success, result, error } = e.data;
+      if (workerPromises.has(taskId)) {
+        const { resolve, reject } = workerPromises.get(taskId);
+        workerPromises.delete(taskId);
+        if (success) resolve(result);
+        else reject(new Error(error));
+      }
+    };
+  }
+  return dataWorkerInstance;
 }
 
-function parseToDo() {
+function runWebWorker(worker, action, payload = {}) {
+  return new Promise((resolve, reject) => {
+    const taskId = ++workerTaskId;
+    workerPromises.set(taskId, { resolve, reject });
+    worker.postMessage({ taskId, action, payload });
+  });
+}
+
+async function parseToDo() {
     const text = DOM.todoInput.value.trim();
     if (!text) { customAlert("请先粘贴 To Do 列表文本!", "内容为空", "📋"); return; }
 
-    let lines = text.split('\n').filter(l => l.trim() !== '');
-    if (lines.length === 0) return;
+    const existingHubData = JSON.parse(localStorage.getItem('taskhub_data') || '[]');
+    const existingFlowData = JSON.parse(localStorage.getItem('taskflow_data') || '{}');
+    const existingMapping = JSON.parse(localStorage.getItem('alpha_task_mapping') || '{}');
 
-    const listCategory = lines[0].trim();
-    let isCompletedSection = false;
-    let parentTaskName = "";
-    
-    let hubData = JSON.parse(localStorage.getItem('taskhub_data') || '[]');
-    let flowData = JSON.parse(localStorage.getItem('taskflow_data') || '{}');
-    let addedHub = 0, addedFlow = 0;
+    try {
+        const res = await runWebWorker(getDataWorker(), 'parse_todo', {
+            text,
+            existingHubData,
+            existingFlowData,
+            existingMapping
+        });
 
-    for (let i = 1; i < lines.length; i++) {
-        let line = lines[i];
-        if (line.trim() === '已完成') { isCompletedSection = true; continue; }
-
-        const isPending = line.includes('⬜');
-        const isDone = line.includes('✅');
-        
-        if (!isPending && !isDone) continue; 
-        
-        const isSubtask = line.startsWith(' ') || line.startsWith('\t') || line.startsWith(' ');
-        let taskName = line.replace(/⬜|✅/g, '').trim();
-        let priority = 'Medium';
-        let deadline = '无截止日期';
-
-        if (taskName.includes('★')) { priority = 'High'; taskName = taskName.replace('★', '').trim(); }
-        
-        const dateMatch = taskName.match(/- 截止 (今天|明天)/);
-        if (dateMatch) {
-            deadline = getTargetDateStr(dateMatch[1]);
-            taskName = taskName.replace(dateMatch[0], '').trim();
+        if (res.error) {
+            customAlert(res.error, "内容为空", "📋");
+            return;
         }
 
-        if (isSubtask && parentTaskName) { taskName = `${parentTaskName} - ${taskName}`; } 
-        else { parentTaskName = taskName; }
+        const { hubData, flowData, mapping, addedHub, addedFlow } = res;
 
-        let taskObj = {
-            id: window.crypto?.randomUUID?.() || String(Date.now() + i),
-            name: taskName,
-            subject: [listCategory],
-            priority: priority,
-            remark: "从 To Do 导入",
-            start: "", end: "",
-            isCompleted: isCompletedSection || isDone
-        };
-
-        if (taskObj.isCompleted) {
-            const todayStr = getTargetDateStr('今天');
-            if (!flowData[todayStr]) flowData[todayStr] = [];
-            flowData[todayStr].push({
-                id: taskObj.id, name: taskObj.name, category: taskObj.subject,
-                duration: 25, date: todayStr, remark: taskObj.remark, createdAt: Date.now()
-            });
-            addedFlow++;
-        } else {
-            hubData.push(taskObj);
-            addedHub++;
-            let mapping = JSON.parse(localStorage.getItem('alpha_task_mapping') || '{}');
-            mapping[taskObj.id] = ['default'];
+        localStorage.setItem('taskhub_data', JSON.stringify(hubData));
+        localStorage.setItem('taskflow_data', JSON.stringify(flowData));
+        if (mapping) {
             localStorage.setItem('alpha_task_mapping', JSON.stringify(mapping));
         }
-    }
 
-localStorage.setItem('taskhub_data', JSON.stringify(hubData));
-    localStorage.setItem('taskflow_data', JSON.stringify(flowData));
-    
-    DOM.todoInput.value = '';
-    
-    // 彻底重置输入框的自适应高度与用户拖拽状态, 配合 CSS 触发回弹阻尼动画
-    DOM.todoInput.style.height = '200px'; 
-    delete DOM.todoInput.dataset.userResized; 
-    delete DOM.todoInput.dataset.lastTargetHeight;
-    
-    customAlert(`✅ 解析完成!<br><br>新增待办计划 (Hub): <b>${addedHub}</b> 项<br>新增已完结记录 (Flow): <b>${addedFlow}</b> 项`, "导入成功", "🎉");
+        DOM.todoInput.value = '';
+        DOM.todoInput.style.height = '200px'; 
+        delete DOM.todoInput.dataset.userResized; 
+        delete DOM.todoInput.dataset.lastTargetHeight;
+        
+        customAlert(`✅ 解析完成!<br><br>新增待办计划 (Hub): <b>${addedHub}</b> 项<br>新增已完结记录 (Flow): <b>${addedFlow}</b> 项`, "导入成功", "🎉");
+    } catch (e) {
+        console.error("To-Do Web Worker 解析失败", e);
+        customAlert("解析失败: " + (e.message || e), "解析异常", "❌");
+    }
 }
+
 
 DOM.todoInput.addEventListener('keydown', function(e) {
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {

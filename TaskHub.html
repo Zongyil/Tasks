@@ -4445,7 +4445,7 @@ function renderSchedules() {
     if (displaySchedules.length === 0) {
         list.innerHTML = `
             <div class="empty-state" style="animation: alphaCardIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;">
-                <div class="icon">🫧</div>
+                <div class="icon"><img src="./icons/Bubbles.png" alt="bubbles" style="width: 75px; height: 75px; object-fit: contain; vertical-align: middle; opacity: 0.85;"></div>
                 <div class="title">今日规划为空</div>
                 <div class="desc">开始制定你的学习计划吧</div>
             </div>
@@ -5512,6 +5512,33 @@ document.addEventListener('wheel', function(e) {
         return s;
     }
 
+    function formatSmartDateDisplay(dateString) {
+        if (!dateString || dateString === "无截止日期") return "无截止日期";
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(dateString)) return dateString;
+
+        const [y, m, d] = dateString.split('-').map(Number);
+        const targetDate = new Date(y, m - 1, d);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const diffDays = Math.round((targetDate - today) / (1000 * 60 * 60 * 24));
+        
+        if (diffDays === 0) return "今天";
+        if (diffDays === 1) return "明天";
+        if (diffDays === 2) return "后天";
+
+        const currentDayOfWeek = today.getDay() === 0 ? 7 : today.getDay();
+        if (diffDays < 0 && diffDays >= -(currentDayOfWeek - 1)) {
+            return "本周前";
+        }
+
+        if (y === today.getFullYear()) {
+            return `${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        }
+
+        return dateString;
+    }
+
     // 日期合法性判定函数
     function isValidDate(dateString) {
         if (!dateString || dateString === "无截止日期") return true;
@@ -6048,7 +6075,7 @@ document.addEventListener('wheel', function(e) {
                 // 「默认」表单深度解耦, 免除视觉衬底
                 // ==========================================
                 const isDefault = list.id === 'default';
-                const hoverBgStyle = isDefault ? '' : `onmouseover="this.style.background='rgba(255, 255, 255, 0.6)'" onmouseout="this.style.background='transparent'"`;
+                const hoverBgStyle = isDefault ? '' : `onmouseover="this.style.background='rgba(255, 255, 255, 0.6)'" onmouseout="if(this.querySelector('span:nth-child(2)') && !this.querySelector('span:nth-child(2)').isContentEditable) this.style.background='transparent'"`;
                 const cursorStyle = isDefault ? 'default' : 'text';
 
                 listPanel.innerHTML = `
@@ -6073,12 +6100,15 @@ document.addEventListener('wheel', function(e) {
                             
                             ${list.deadline !== '无截止日期' ? `
                             <div class="list-date-clickable" style="
-                                font-size: 13px; font-weight: 700; color: var(--sub); 
+                                font-size: 13px; font-weight: 700; color: #0f172a; 
                                 padding: 4px 12px; border-radius: 999px;
-                                background: rgba(15, 23, 42, 0.05); cursor: pointer;
-                                transition: background 0.2s ease;
-                            " onmouseover="this.style.background='rgba(15, 23, 42, 0.08)'" onmouseout="this.style.background='rgba(15, 23, 42, 0.05)'">
-                                ${list.deadline}
+                                background: rgba(255, 255, 255, 0.35); cursor: text;
+                                backdrop-filter: blur(12px) saturate(120%); -webkit-backdrop-filter: blur(12px) saturate(120%);
+                                border: 1px solid rgba(255, 255, 255, 0.6);
+                                box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05), inset 0 1px 2px rgba(255, 255, 255, 0.8);
+                                transition: all 0.2s ease; white-space: nowrap; overflow: hidden;
+                            " onmouseover="this.style.background='rgba(255, 255, 255, 0.55)'; this.style.transform='translateY(-1px)';" onmouseout="this.style.background='rgba(255, 255, 255, 0.35)'; this.style.transform='translateY(0)';">
+                                ${formatSmartDateDisplay(list.deadline)}
                             </div>` : ''}
                         </div>
                         
@@ -6186,47 +6216,182 @@ document.addEventListener('wheel', function(e) {
                     }
                 });
 
-                listPanel.querySelector('.list-title-clickable').onclick = () => {
+                listPanel.querySelector('.list-title-clickable').onclick = (e) => {
                     if (list.id === 'default') return;
-                    // 将内联样式的圆角升级为符合规范的 var(--radius-element) 16px 大圆角
-                    customConfirm(
-                        `<div class="field" style="text-align: left;">
-                            <input type="text" id="editLTitle" value="${list.name}" " placeholder="新表单名称…" class="pop-input-fx" style="height:44px; padding:0 12px; border-radius: var(--radius-element); width: 100%; box-sizing: border-box; outline: none; margin-top: 8px;">
-                        </div>`, 
-                        () => {
-                            const n = document.getElementById('editLTitle').value.trim();
-                            if(n && n !== list.name) { 
-                                list.name = n; 
-                                saveLists(); 
-                                listPanel.querySelector('.list-title-clickable span:nth-child(2)').textContent = n; 
-                                updateTriggerButtonText(); 
-                            }
-                        }, 
-                        "重命名", false, "✍️"
-                    );
-                    document.getElementById('customDialog').style.zIndex = '99999';
+                    const titleContainer = listPanel.querySelector('.list-title-clickable span:nth-child(2)');
+                    if (titleContainer.isContentEditable) return;
+                    
+                    titleContainer.contentEditable = "true";
+                    titleContainer.style.outline = "none";
+                    titleContainer.style.cursor = "text";
+                    titleContainer.focus();
+                    titleContainer.closest('.list-title-clickable').style.background = 'rgba(255, 255, 255, 0.6)';
+                    
+                    const range = document.createRange();
+                    range.selectNodeContents(titleContainer);
+                    const sel = window.getSelection();
+                    sel.removeAllRanges();
+                    sel.addRange(range);
+
+                    let currentTitleAnim = null;
+                    titleContainer.style.whiteSpace = 'nowrap';
+                    titleContainer.style.display = 'inline-block';
+                    let lastTitleWidth = titleContainer.getBoundingClientRect().width;
+                    
+                    const inputHandler = () => {
+                        let startWidth = lastTitleWidth;
+                        if (currentTitleAnim && currentTitleAnim.playState === 'running') {
+                            startWidth = titleContainer.getBoundingClientRect().width;
+                            currentTitleAnim.cancel();
+                        }
+                        
+                        const targetWidth = titleContainer.getBoundingClientRect().width;
+                        
+                        if (Math.abs(startWidth - targetWidth) > 0.1) {
+                            currentTitleAnim = titleContainer.animate([
+                                { width: startWidth + 'px' },
+                                { width: targetWidth + 'px' }
+                            ], { duration: 150, easing: 'ease-out' });
+                        }
+                        lastTitleWidth = targetWidth;
+                    };
+                    titleContainer.addEventListener('input', inputHandler);
+
+                    const saveName = () => {
+                        titleContainer.contentEditable = "false";
+                        titleContainer.style.cursor = "";
+                        titleContainer.closest('.list-title-clickable').style.background = 'transparent';
+                        
+                        if (currentTitleAnim && currentTitleAnim.playState === 'running') {
+                            currentTitleAnim.cancel();
+                        }
+                        
+                        const n = titleContainer.textContent.trim();
+                        if (n && n !== list.name) { 
+                            list.name = n; 
+                            saveLists(); 
+                            updateTriggerButtonText(); 
+                        } else {
+                            titleContainer.textContent = list.name;
+                        }
+                        titleContainer.removeEventListener('blur', saveName);
+                        titleContainer.removeEventListener('keydown', keydownHandler);
+                        titleContainer.removeEventListener('input', inputHandler);
+                    };
+                    
+                    const keydownHandler = (ev) => {
+                        if (ev.key === 'Enter') {
+                            ev.preventDefault();
+                            titleContainer.blur();
+                        }
+                    };
+                    
+                    titleContainer.addEventListener('blur', saveName);
+                    titleContainer.addEventListener('keydown', keydownHandler);
                 };
                 
                 const dateClickableEl = listPanel.querySelector('.list-date-clickable');
                 if (dateClickableEl) {
                     dateClickableEl.onclick = () => {
-                        // 同步将调整日期框的内联圆角升级为 var(--radius-element)
-                        customConfirm(
-                            `<div class="field" style="text-align: left;">
-                                <input type="text" id="editLDate" value="${list.deadline==='无截止日期'?'':list.deadline}" placeholder="截止日期…" class="pop-input-fx" style="height:44px; padding:0 12px; border-radius: var(--radius-element); width: 100%; box-sizing: border-box; outline: none; margin-top: 8px;">
-                            </div>`, 
-                            () => {
-                                const newDate = normalizeSmartDate(document.getElementById('editLDate').value) || "无截止日期"; 
-                                if (newDate !== list.deadline) {
-                                    list.deadline = newDate;
-                                    saveLists(); 
-                                    dateClickableEl.textContent = list.deadline;
+                        if (dateClickableEl.isContentEditable) return;
+                        
+                        dateClickableEl.contentEditable = "true";
+                        dateClickableEl.style.outline = "none";
+                        dateClickableEl.style.cursor = "text";
+                        
+                        let currentDateAnim = null;
+                        
+                        const oldWidth = dateClickableEl.getBoundingClientRect().width;
+                        dateClickableEl.textContent = list.deadline === '无截止日期' ? '' : list.deadline;
+                        const newWidth = dateClickableEl.getBoundingClientRect().width;
+                        
+                        let lastDateWidth = newWidth;
+                        
+                        if (oldWidth !== newWidth && oldWidth > 0) {
+                            currentDateAnim = dateClickableEl.animate([
+                                { width: oldWidth + 'px' },
+                                { width: newWidth + 'px' }
+                            ], { duration: 150, easing: 'ease-out' });
+                        }
+                        dateClickableEl.focus();
+                        
+                        const range = document.createRange();
+                        range.selectNodeContents(dateClickableEl);
+                        const sel = window.getSelection();
+                        sel.removeAllRanges();
+                        sel.addRange(range);
+                        
+                        const inputHandler = () => {
+                            let startWidth = lastDateWidth;
+                            if (currentDateAnim && currentDateAnim.playState === 'running') {
+                                startWidth = dateClickableEl.getBoundingClientRect().width;
+                                currentDateAnim.cancel();
+                            }
+                            
+                            const targetWidth = dateClickableEl.getBoundingClientRect().width;
+                            
+                            if (Math.abs(startWidth - targetWidth) > 0.1) {
+                                currentDateAnim = dateClickableEl.animate([
+                                    { width: startWidth + 'px' },
+                                    { width: targetWidth + 'px' }
+                                ], { duration: 150, easing: 'ease-out' });
+                            }
+                            lastDateWidth = targetWidth;
+                        };
+                        dateClickableEl.addEventListener('input', inputHandler);
+                        
+                        const saveDate = () => {
+                            dateClickableEl.contentEditable = "false";
+                            dateClickableEl.style.cursor = "text";
+                            
+                            if (currentDateAnim && currentDateAnim.playState === 'running') {
+                                currentDateAnim.cancel();
+                            }
+                            
+                            const rawText = dateClickableEl.textContent.trim();
+                            let newDate = normalizeSmartDate(rawText) || "无截止日期"; 
+                            
+                            if (newDate !== "无截止日期" && !isValidDate(newDate)) {
+                                newDate = list.deadline;
+                            }
+                            
+                            if (newDate !== list.deadline) {
+                                list.deadline = newDate;
+                                saveLists(); 
+                            }
+                            
+                            if (list.deadline === "无截止日期") {
+                                dateClickableEl.style.transition = "all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)";
+                                dateClickableEl.style.transform = "scale(0.8)";
+                                dateClickableEl.style.filter = "blur(4px)";
+                                dateClickableEl.style.opacity = "0";
+                                setTimeout(() => { dateClickableEl.style.display = "none"; }, 300);
+                            } else {
+                                const oldWidth = dateClickableEl.offsetWidth;
+                                dateClickableEl.textContent = formatSmartDateDisplay(list.deadline);
+                                const newWidth = dateClickableEl.offsetWidth;
+                                if (oldWidth !== newWidth && oldWidth > 0) {
+                                    dateClickableEl.animate([
+                                        { width: oldWidth + 'px' },
+                                        { width: newWidth + 'px' }
+                                    ], { duration: 250, easing: 'cubic-bezier(0.2, 0, 0, 1)' });
                                 }
-                            }, 
-                            "调整日期", false, "📅"
-                        );
-                        document.getElementById('customDialog').style.zIndex = '99999';
-                        document.getElementById('editLDate').addEventListener('blur', function(){ this.value = normalizeSmartDate(this.value); });
+                            }
+                            
+                            dateClickableEl.removeEventListener('blur', saveDate);
+                            dateClickableEl.removeEventListener('keydown', keydownHandler);
+                            dateClickableEl.removeEventListener('input', inputHandler);
+                        };
+                        
+                        const keydownHandler = (ev) => {
+                            if (ev.key === 'Enter') {
+                                ev.preventDefault();
+                                dateClickableEl.blur();
+                            }
+                        };
+                        
+                        dateClickableEl.addEventListener('blur', saveDate);
+                        dateClickableEl.addEventListener('keydown', keydownHandler);
                     };
                 }
 

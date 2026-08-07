@@ -37,5 +37,27 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
 
   showAlarmNotification: (data) => ipcRenderer.send('show-alarm-notification', data),
-  onStopAlarm: (callback) => ipcRenderer.on('stop-alarm', callback)
+  onStopAlarm: (callback) => ipcRenderer.on('stop-alarm', callback),
+
+  readVersionJson: () => ipcRenderer.invoke('read-version-json'),
+
+  // ======= 自动更新 IPC 绑定 =======
+  checkForUpdate: () => ipcRenderer.invoke('check-for-update'),
+  startDownloadUpdate: () => ipcRenderer.invoke('start-download-update'),
+  quitAndInstallUpdate: () => ipcRenderer.invoke('quit-and-install-update'),
+  onUpdaterStatus: (callback) => {
+    ipcRenderer.removeAllListeners('updater-status');
+    ipcRenderer.on('updater-status', (event, data) => callback(data));
+  },
+  onUpdaterProgress: (callback) => {
+    ipcRenderer.removeAllListeners('updater-progress');
+    ipcRenderer.on('updater-progress', (event, data) => callback(data));
+  },
+
+  // ======= 单实例 / 协议唤醒 IPC 绑定 =======
+  onSecondInstance: (callback) => {
+    ipcRenderer.removeAllListeners('second-instance-data');
+    ipcRenderer.on('second-instance-data', (event, data) => callback(data));
+  },
+  getInitialInstanceData: () => ipcRenderer.invoke('get-initial-instance-data')
 });

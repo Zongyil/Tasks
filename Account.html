@@ -1698,11 +1698,57 @@ function base64ToUint8(base64) {
     return bytes;
 }
 
-/* ================== 文件级跨端与备份引擎 ================== */
+/* ================== Web Worker 异步任务引擎 ================== */
+let syncWorkerInstance = null;
+let dataWorkerInstance = null;
+let workerTaskId = 0;
+const workerPromises = new Map();
 
-function exportToTxt() {
+function getSyncWorker() {
+  if (!syncWorkerInstance) {
+    syncWorkerInstance = new Worker('sync_worker.js');
+    syncWorkerInstance.onmessage = function(e) {
+      const { taskId, success, result, error } = e.data;
+      if (workerPromises.has(taskId)) {
+        const { resolve, reject } = workerPromises.get(taskId);
+        workerPromises.delete(taskId);
+        if (success) resolve(result);
+        else reject(new Error(error));
+      }
+    };
+  }
+  return syncWorkerInstance;
+}
+
+function getDataWorker() {
+  if (!dataWorkerInstance) {
+    dataWorkerInstance = new Worker('data_worker.js');
+    dataWorkerInstance.onmessage = function(e) {
+      const { taskId, success, result, error } = e.data;
+      if (workerPromises.has(taskId)) {
+        const { resolve, reject } = workerPromises.get(taskId);
+        workerPromises.delete(taskId);
+        if (success) resolve(result);
+        else reject(new Error(error));
+      }
+    };
+  }
+  return dataWorkerInstance;
+}
+
+function runWebWorker(worker, action, payload = {}) {
+  return new Promise((resolve, reject) => {
+    const taskId = ++workerTaskId;
+    workerPromises.set(taskId, { resolve, reject });
+    worker.postMessage({ taskId, action, payload });
+  });
+}
+
+/* ================== 文件级跨端与备份引擎 (Web Worker 驱动) ================== */
+
+async function exportToTxt() {
     try {
-        const payload = {
+        const rawPayload = {
             account: localStorage.getItem(ACCOUNT_KEY) || "{}",
             taskflow: localStorage.getItem("taskflow_data") || "{}",
             taskhub: localStorage.getItem("taskhub_data") || "[]",
@@ -1710,7 +1756,7 @@ function exportToTxt() {
             wallpaper: localStorage.getItem("alpha_wallpaper") || ""
         };
         
-        const jsonString = JSON.stringify(payload, null, 2);
+        const { jsonString } = await runWebWorker(getDataWorker(), 'export_txt', rawPayload);
         const blob = new Blob([jsonString], { type: "text/plain;charset=utf-8" });
         const url = URL.createObjectURL(blob);
         
@@ -1724,7 +1770,6 @@ function exportToTxt() {
         document.body.appendChild(a);
         a.click();
         
-        // 延时移除 DOM 节点与释放 Blob URL, 避免 Electron / 浏览器在异步下载未完成时因 Blob 被立即撤销而导出失败
         setTimeout(() => {
             if (a.parentNode) {
                 document.body.removeChild(a);
@@ -1747,15 +1792,15 @@ function importFromTxt(event) {
     reader.onload = function(e) {
         const content = e.target.result;
         
-        customConfirm("注意: 从文件恢复后, 当前设备数据将被不可逆地抹除并覆盖, 确定继续吗?", () => {
+        customConfirm("注意: 从文件恢复后, 当前设备数据将被不可逆地抹除并覆盖, 确定继续吗?", async () => {
             try {
-                const payload = JSON.parse(content);
+                const payload = await runWebWorker(getDataWorker(), 'import_txt', { content });
                 
-                if (payload.account) localStorage.setItem(ACCOUNT_KEY, typeof payload.account === 'object' ? JSON.stringify(payload.account) : payload.account);
-                if (payload.taskflow) localStorage.setItem("taskflow_data", typeof payload.taskflow === 'object' ? JSON.stringify(payload.taskflow) : payload.taskflow);
-                if (payload.taskhub) localStorage.setItem("taskhub_data", typeof payload.taskhub === 'object' ? JSON.stringify(payload.taskhub) : payload.taskhub);
-                if (payload.tasktimer) localStorage.setItem("tasktimer_data", typeof payload.tasktimer === 'object' ? JSON.stringify(payload.tasktimer) : payload.tasktimer);
-                if (payload.wallpaper) localStorage.setItem("alpha_wallpaper", typeof payload.wallpaper === 'object' ? JSON.stringify(payload.wallpaper) : payload.wallpaper);
+                if (payload.account) localStorage.setItem(ACCOUNT_KEY, payload.account);
+                if (payload.taskflow) localStorage.setItem("taskflow_data", payload.taskflow);
+                if (payload.taskhub) localStorage.setItem("taskhub_data", payload.taskhub);
+                if (payload.tasktimer) localStorage.setItem("tasktimer_data", payload.tasktimer);
+                if (payload.wallpaper) localStorage.setItem("alpha_wallpaper", payload.wallpaper);
                 
                 customAlert("设备数据已从备份文件复原, 即将刷新页面以载入最新数据", "导入成功", "🎉");
                 setTimeout(() => window.location.reload(), 2000);
@@ -1771,47 +1816,43 @@ function importFromTxt(event) {
     reader.readAsText(file);
 }
 
-/* ================== 全生态同步引擎 ================== */
-function generateSyncCode() {
-    showSyncStatus("⏳ 引擎全速运转压缩中...", "var(--monet-blue)");
+/* ================== 全生态同步引擎 (Web Worker 驱动) ================== */
+async function generateSyncCode() {
+    showSyncStatus("⏳ Web Worker 全速运转压缩中...", "var(--monet-blue)");
     
     const rawWallpaper = localStorage.getItem("alpha_wallpaper");
 
-    const packData = (processedWallpaper) => {
-        setTimeout(() => {
-            try {
-                const payload = {
-                    account: localStorage.getItem(ACCOUNT_KEY),
-                    taskflow: localStorage.getItem("taskflow_data"),
-                    taskhub: localStorage.getItem("taskhub_data"),
-                    tasktimer: localStorage.getItem("tasktimer_data"),
-                    wallpaper: processedWallpaper
-                };
-                
-                Object.keys(payload).forEach(key => {
-                    if (!payload[key] || payload[key] === "{}" || payload[key] === "[]") {
-                        delete payload[key];
-                    }
-                });
-                
-                const jsonString = JSON.stringify(payload);
-                const compressedBytes = fflate.zlibSync(fflate.strToU8(jsonString), { level: 9 });
-                const encoded = "FFL|" + uint8ToBase64(compressedBytes);
-                
-                const area = document.getElementById('syncCodeArea');
-                if (area) area.value = encoded;
-                
-                if (encoded.length > 50000) {
-                    customAlert("同步码长度超过常规设备剪切板长度上限<br><b>建议导出为 <b>txt 文本</b>格式", "同步码过长", "⚠️");
-                    showSyncStatus("📦 打包完毕, 建议使用 TXT 导出", "var(--monet-text)");
-                } else {
-                    showSyncStatus("📦 同步码已生成!", "var(--monet-text)");
+    const packData = async (processedWallpaper) => {
+        try {
+            const rawPayload = {
+                account: localStorage.getItem(ACCOUNT_KEY),
+                taskflow: localStorage.getItem("taskflow_data"),
+                taskhub: localStorage.getItem("taskhub_data"),
+                tasktimer: localStorage.getItem("tasktimer_data"),
+                wallpaper: processedWallpaper
+            };
+            
+            Object.keys(rawPayload).forEach(key => {
+                if (!rawPayload[key] || rawPayload[key] === "{}" || rawPayload[key] === "[]") {
+                    delete rawPayload[key];
                 }
-            } catch (e) {
-                console.error(e);
-                customAlert("数据处理失败, 请确认设备内存是否充足", "生成失败", "❌");
+            });
+
+            const { encoded, length } = await runWebWorker(getSyncWorker(), 'compress_sync_code', rawPayload);
+            
+            const area = document.getElementById('syncCodeArea');
+            if (area) area.value = encoded;
+            
+            if (length > 50000) {
+                customAlert("同步码长度超过常规设备剪切板长度上限<br><b>建议导出为 <b>txt 文本</b>格式", "同步码过长", "⚠️");
+                showSyncStatus("📦 打包完毕, 建议使用 TXT 导出", "var(--monet-text)");
+            } else {
+                showSyncStatus("📦 同步码已生成!", "var(--monet-text)");
             }
-        }, 100);
+        } catch (e) {
+            console.error(e);
+            customAlert("数据处理失败, 请确认设备内存是否充足", "生成失败", "❌");
+        }
     };
 
     if (rawWallpaper && rawWallpaper.startsWith('data:image/')) {
@@ -1861,52 +1902,32 @@ function importSyncCode() {
     
     if (!code) { customAlert("请在此处粘贴来自其他设备的同步码", "无数据", "⚠️"); return; }
 
-    customConfirm("警告: 导入操作将不可逆地覆盖当前设备的所有数据, 确定继续吗?", () => {
-        showSyncStatus("⏳ 正在解包数据, 请稍候...", "var(--monet-blue)");
+    customConfirm("警告: 导入操作将不可逆地覆盖当前设备的所有数据, 确定继续吗?", async () => {
+        showSyncStatus("⏳ Web Worker 正在解包数据, 请稍候...", "var(--monet-blue)");
         
-        setTimeout(() => {
-            let jsonString = null;
+        try {
+            const { data } = await runWebWorker(getSyncWorker(), 'decompress_sync_code', { code });
             
-            try {
-                if (code.startsWith("LZ16|")) {
-                    jsonString = LZString.decompressFromUTF16(code.substring(5));
-                } else if (code.startsWith("FFL|")) {
-                    const compressedBytes = base64ToUint8(code.substring(4));
-                    jsonString = fflate.strFromU8(fflate.unzlibSync(compressedBytes));
-                } else {
-                    try {
-                        const compressedBytes = base64ToUint8(code);
-                        jsonString = fflate.strFromU8(fflate.unzlibSync(compressedBytes));
-                    } catch(e1) {
-                        if (typeof LZString !== 'undefined') jsonString = LZString.decompressFromBase64(code);
-                        if (!jsonString) jsonString = decodeURIComponent(escape(atob(code)));
-                    }
-                }
-            } catch(err) {
-                jsonString = null;
-            }
-
-            if (!jsonString) {
+            if (!data) {
                 customAlert("无法解析该同步码, 格式可能已损坏或复制不完整", "导入失败", "❌");
                 return;
             }
 
-            try {
-                const payload = JSON.parse(jsonString);
-                if (payload.account) localStorage.setItem(ACCOUNT_KEY, payload.account);
-                if (payload.taskflow) localStorage.setItem("taskflow_data", payload.taskflow);
-                if (payload.taskhub) localStorage.setItem("taskhub_data", payload.taskhub);
-                if (payload.tasktimer) localStorage.setItem("tasktimer_data", payload.tasktimer);
-                if (payload.wallpaper) localStorage.setItem("alpha_wallpaper", payload.wallpaper); 
-                
-                customAlert("设备数据已完美同步! 页面即将刷新", "同步成功", "🎉");
-                setTimeout(() => window.location.reload(), 2000);
-            } catch(e) {
-                customAlert("数据内容损坏, 解析 JSON 失败", "导入失败", "❌");
-            }
-        }, 100);
+            if (data.account) localStorage.setItem(ACCOUNT_KEY, typeof data.account === 'object' ? JSON.stringify(data.account) : data.account);
+            if (data.taskflow) localStorage.setItem("taskflow_data", typeof data.taskflow === 'object' ? JSON.stringify(data.taskflow) : data.taskflow);
+            if (data.taskhub) localStorage.setItem("taskhub_data", typeof data.taskhub === 'object' ? JSON.stringify(data.taskhub) : data.taskhub);
+            if (data.tasktimer) localStorage.setItem("tasktimer_data", typeof data.tasktimer === 'object' ? JSON.stringify(data.tasktimer) : data.tasktimer);
+            if (data.wallpaper) localStorage.setItem("alpha_wallpaper", typeof data.wallpaper === 'object' ? JSON.stringify(data.wallpaper) : data.wallpaper); 
+            
+            customAlert("设备数据已完美同步! 页面即将刷新", "同步成功", "🎉");
+            setTimeout(() => window.location.reload(), 2000);
+        } catch(e) {
+            console.error(e);
+            customAlert("数据内容损坏, 解析失败: " + (e.message || e), "导入失败", "❌");
+        }
     }, "高危操作确认", true);
 }
+
 
 window.addEventListener('storage', (e) => {
     if (e.key === ACCOUNT_KEY) {
