@@ -5,9 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>账户</title>
 <link rel="icon" href="Icon.ico" type="image/x-icon">
-<script src="assets/fflate.min.js"></script>
-<link href="assets/cropper.min.css" rel="stylesheet">
-<script src="assets/cropper.min.js"></script>
+<script src="assets/liquid-glass.js"></script>
+<script src="assets/card-glow.js"></script>
+<script src="assets/input-glow.js"></script>
+<script src="assets/icon-glass.js"></script>
+<script src="assets/scroll-bounce.js"></script>
+<script src="assets/reduce-motion.js"></script>
 <base href="./">
 <style>
 /* ================== 全局与色彩体系 ================== */
@@ -62,13 +65,24 @@
 *, *::before, *::after {
     margin: 0; padding: 0; box-sizing: border-box;
     -webkit-tap-highlight-color: transparent; outline: none !important;
+    user-select: none;
+    -webkit-user-select: none;
 }
 
 body, input, button, textarea, select {
     font-family: 'OPPO Sans 4.0', -apple-system, BlinkMacSystemFont, "Segoe UI Variable", "SF Pro Display", "PingFang SC", "Microsoft YaHei", sans-serif;
 }
 
-html { scroll-behavior: smooth; }
+input, textarea, select, [contenteditable="true"], [contenteditable] {
+    user-select: text !important;
+    -webkit-user-select: text !important;
+}
+
+html { 
+    scroll-behavior: smooth; 
+    user-select: none;
+    -webkit-user-select: none;
+}
 
 ::-webkit-scrollbar { width: 0; height: 0; background: transparent; }
 
@@ -82,6 +96,8 @@ body {
     position: relative;
     box-sizing: border-box;
     overflow-x: hidden;
+    user-select: none;
+    -webkit-user-select: none;
     scrollbar-width: none; -ms-overflow-style: none; 
 }
 
@@ -96,10 +112,24 @@ body {
     contain: layout paint;
     isolation: isolate;
 }
+.alpha-bg-snapshot {
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+    pointer-events: none;
+    background-size: cover;
+    background-position: center;
+    opacity: 0;
+    transition: opacity 0.22s ease-out;
+}
+.alpha-ambient-bg.is-bg-frozen .ambient-motion-stage {
+    visibility: hidden !important;
+}
 
-/* ================== 环境光合成优化版 ==================
-   柔焦渐变保持在静态子层，只有外层负责 transform / opacity。
-   这样浏览器可以复用已光栅化的模糊纹理，避免每帧重新计算大型 blur。 */
+
+/* ================== 环境光合成 ==================
+   柔焦渐变保持在静态子层, 只有外层负责 transform / opacity
+   这样浏览器可以复用已光栅化的模糊纹理, 避免每帧重新计算大型 blur */
 .ambient-motion-stage {
     position: absolute;
     pointer-events: none;
@@ -131,7 +161,7 @@ body {
 
 .sunbeam {
     position: absolute; inset: 0;
-    /* 更密的暖色明暗波带：保持原色，只拉开透明度差 */
+    /* 暖色明暗波带 */
     background:
         radial-gradient(ellipse 102% 17% at 82% 10%, rgba(255, 245, 210, 0.32) 0 17%, rgba(255, 245, 210, 0.07) 43%, transparent 70%),
         radial-gradient(ellipse 94% 16% at 69% 27%, rgba(255, 235, 190, 0.05) 0 15%, rgba(255, 235, 190, 0.25) 33%, rgba(255, 235, 190, 0.05) 53%, transparent 73%),
@@ -144,7 +174,7 @@ body {
     position: absolute;
     inset: 0;
     border-radius: 46% 54% 52% 48% / 42% 48% 52% 58%;
-    /* 适度收窄模糊，让波带可被隐约察觉，但仍保持烟雾般柔软 */
+    /* 适度收窄模糊, 让波带可被隐约察觉, 但仍保持烟雾般柔软 */
     filter: blur(17px);
     opacity: 0.84;
 }
@@ -193,7 +223,9 @@ body {
 }
 
 .alpha-ambient-bg.is-paused .ambient-motion-stage,
-body.scrolling .alpha-ambient-bg .ambient-motion-stage {
+body.scrolling .alpha-ambient-bg .ambient-motion-stage,
+body.pause-bg-motion .alpha-ambient-bg .ambient-motion-stage,
+html.pause-bg-motion .alpha-ambient-bg .ambient-motion-stage {
     animation-play-state: paused !important;
 }
 
@@ -284,25 +316,32 @@ body::after {
     border-radius: 50%; padding: 6px;
     background: linear-gradient(135deg, rgba(255,255,255,0.8), rgba(255,255,255,0.2));
     box-shadow: 0 24px 48px rgba(15,23,42,0.1), inset 0 2px 4px rgba(255,255,255,1);
-    cursor: pointer; transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    cursor: pointer; 
+    transform: translateZ(0);
+    will-change: transform;
+    backface-visibility: hidden;
 }
-.avatar-wrap:hover { transform: scale(1.05); }
-.avatar-wrap:active { transform: scale(0.92); transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1); }
 .avatar-wrap img {
     width: 100%; height: 100%; border-radius: 50%; object-fit: cover;
     box-shadow: inset 0 0 0 1px rgba(0,0,0,0.05);
+    display: block;
+    pointer-events: none;
 }
 .avatar-wrap .placeholder {
     width: 100%; height: 100%; border-radius: 50%; background: #f1f5f9;
     display: flex; align-items: center; justify-content: center; font-size: 48px; color: #cbd5e1;
+    pointer-events: none;
 }
 
 .avatar-badge {
     position: absolute; bottom: 6px; right: 6px; width: 28px; height: 28px;
-    background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(8px);
+    background: rgba(255, 255, 255, 0.95);
     border-radius: 50%; display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 4px 12px rgba(15,23,42,0.1); font-size: 14px; border: 1px solid rgba(255,255,255,1);
+    box-shadow: 0 4px 12px rgba(15,23,42,0.12); font-size: 14px; border: 1px solid rgba(255,255,255,1);
     line-height: 0;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    pointer-events: none;
 }
 
 .user-name-display { font-size: 28px; font-weight: 800; color: #0f172a; margin-bottom: 8px; display: flex; align-items: center; justify-content: center; gap: 8px;}
@@ -322,7 +361,7 @@ input[type="text"], input[type="number"] {
     resize: none;
 }
 input::placeholder, textarea::placeholder { color: #748091; font-weight: 500; }
-input:hover, textarea:hover { background: rgba(255, 255, 255, 0.9); }
+input:hover, textarea:hover { background: rgba(255, 255, 255, 0.48); }
 input:focus, textarea:focus {
     background: #ffffff !important;
     border-color: rgba(157, 210, 255, 0.4) !important;
@@ -358,6 +397,7 @@ textarea {
     align-items: center; justify-content: center;
     padding: 10px 16px; 
     min-width: 64px; 
+    box-sizing: border-box;
     border-radius: var(--radius-sub);
     background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.08) 45%, transparent 75%) !important;
     border-top: 2px solid rgba(255, 255, 255, 0.95) !important;
@@ -367,10 +407,16 @@ textarea {
     box-shadow: 0 12px 32px rgba(15, 23, 42, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.08), inset 2px 3px 10px rgba(255, 255, 255, 0.35), inset -2px -3px 10px rgba(0, 0, 0, 0.03), inset 4px 6px 20px rgba(255, 255, 255, 0.15) !important;
     backdrop-filter: blur(40px) saturate(130%) !important;
     -webkit-backdrop-filter: blur(40px) saturate(130%) !important;
+    transform: translate3d(0, 0, 0) scale(1);
+    transform-origin: 50% 50%;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    isolation: isolate;
     transition: transform 0.3s var(--ease, cubic-bezier(0.16, 1, 0.3, 1)), 
                 background-color 0.3s var(--ease, cubic-bezier(0.16, 1, 0.3, 1)), 
                 box-shadow 0.3s var(--ease, cubic-bezier(0.16, 1, 0.3, 1)), 
-                border-color 0.3s var(--ease, cubic-bezier(0.16, 1, 0.3, 1));
+                border-color 0.3s var(--ease, cubic-bezier(0.16, 1, 0.3, 1)),
+                color 0.3s var(--ease, cubic-bezier(0.16, 1, 0.3, 1));
     font-size: 14px; font-weight: 700; color: #475569;
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif !important;
     letter-spacing: 0.04em !important;
@@ -380,7 +426,7 @@ textarea {
 
 .gender-item:hover span {
     background-color: rgba(255, 255, 255, 0.25);
-    transform: translateY(-2px);
+    transform: translate3d(0, -2px, 0) scale(1);
     box-shadow: 
         0 8px 16px rgba(15, 23, 42, 0.05), 
         inset 0 2px 4px rgba(255, 255, 255, 0.9);
@@ -388,7 +434,6 @@ textarea {
     color: #0f172a;
 }
 .gender-item:active span {
-    transform: translateY(1px) scale(0.94);
     background-color: rgba(255, 255, 255, 0.25);
     box-shadow: 
         0 2px 4px rgba(15, 23, 42, 0.04), 
@@ -396,19 +441,25 @@ textarea {
     transition-duration: 0.1s; 
 }
 
+/* 已选中的 radio 再次点击不会改变状态, 因此也不播放按压反馈 */
+.gender-item:active input:checked + span {
+    transition-duration: 0.3s;
+}
+
 /* 男: 莫奈蓝 */
 .gender-item input[value="male"]:checked + span { 
     background-color: rgba(157, 210, 255, 0.25) !important;
     color: #0f172a !important; 
     border-top: 2px solid rgba(157, 210, 255, 0.7) !important;
-    border-left: 1.75px solid rgba(157, 210, 255, 0.5) !important;
-    border-right: 1.75px solid rgba(157, 210, 255, 0.5) !important;
-    border-bottom: 1.75px solid rgba(157, 210, 255, 0.41) !important;
+    border-left: 1px solid rgba(157, 210, 255, 0.5) !important;
+    border-right: 1px solid rgba(157, 210, 255, 0.5) !important;
+    border-bottom: 1px solid rgba(157, 210, 255, 0.41) !important;
     box-shadow: 
+        inset 0 0 0 0.75px rgba(157, 210, 255, 0.42),
         0 8px 20px rgba(140, 185, 225, 0.15),
         inset 0 2px 4px rgba(255, 255, 255, 0.95),
         inset 0 -2px 6px rgba(140, 185, 225, 0.2) !important;
-    transform: translateY(-2px) scale(1.02);
+    transform: translate3d(0, -2px, 0) scale(1.02);
 }
 
 /* 女: 莫奈红 */
@@ -416,14 +467,15 @@ textarea {
     background-color: rgba(243, 184, 221, 0.25) !important;
     color: #0f172a !important; 
     border-top: 2px solid rgba(243, 184, 221, 0.7) !important; 
-    border-left: 1.75px solid rgba(243, 184, 221, 0.5) !important;
-    border-right: 1.75px solid rgba(243, 184, 221, 0.5) !important;
-    border-bottom: 1.75px solid rgba(243, 184, 221, 0.41) !important;
+    border-left: 1px solid rgba(243, 184, 221, 0.5) !important;
+    border-right: 1px solid rgba(243, 184, 221, 0.5) !important;
+    border-bottom: 1px solid rgba(243, 184, 221, 0.41) !important;
     box-shadow: 
+        inset 0 0 0 0.75px rgba(243, 184, 221, 0.42),
         0 8px 20px rgba(255, 142, 180, 0.15), 
         inset 0 2px 4px rgba(255, 255, 255, 0.95), 
         inset 0 -2px 6px rgba(255, 114, 161, 0.2) !important;
-    transform: translateY(-2px) scale(1.02);
+    transform: translate3d(0, -2px, 0) scale(1.02);
 }
 
 /* 其他: 莫奈紫 */
@@ -431,22 +483,23 @@ textarea {
     background-color: rgba(190, 170, 240, 0.25) !important;
     color: #0f172a !important; 
     border-top: 2px solid rgba(190, 170, 240, 0.7) !important;
-    border-left: 1.75px solid rgba(190, 170, 240, 0.5) !important;
-    border-right: 1.75px solid rgba(190, 170, 240, 0.5) !important;
-    border-bottom: 1.75px solid rgba(190, 170, 240, 0.41) !important;
+    border-left: 1px solid rgba(190, 170, 240, 0.5) !important;
+    border-right: 1px solid rgba(190, 170, 240, 0.5) !important;
+    border-bottom: 1px solid rgba(190, 170, 240, 0.41) !important;
     box-shadow: 
+        inset 0 0 0 0.75px rgba(190, 170, 240, 0.42),
         0 8px 20px rgba(190, 170, 240, 0.15), 
         inset 0 2px 4px rgba(255, 255, 255, 0.95), 
         inset 0 -2px 6px rgba(190, 170, 240, 0.2) !important;
-    transform: translateY(-2px) scale(1.02);
+    transform: translate3d(0, -2px, 0) scale(1.02);
 }
 
 /* ================== 已保存静态 Tag 标签 ================== */
 .gender-tag {
     display: inline-flex; 
     align-items: center; justify-content: center;
-    padding: 6px 14px; 
-    border-radius: 999px !important;  
+    padding: 7px 16px; 
+    border-radius: 16px !important;  
     font-size: 13px; 
     font-weight: 800; 
     color: #1e293b;
@@ -455,6 +508,10 @@ textarea {
     -webkit-backdrop-filter: blur(40px) saturate(130%);
     white-space: nowrap;
     border: 1px solid rgba(255, 255, 255, 0.75) !important; 
+}
+
+.gender-tag svg {
+    margin-top: 1.5px;
 }
 
 /* 男生 Tag */
@@ -500,69 +557,87 @@ button, upload-label {
     position: relative; overflow: hidden; display: inline-flex; height: 52px; border: none;
     align-items: center; justify-content: center; padding: 0 24px;
     border-radius: var(--radius-element); cursor: pointer; font-size: 16px !important; font-weight: 700 !important; 
-    transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), background 0.3s ease, box-shadow 0.3s ease; 
+    transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), background 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease; 
     outline: none; letter-spacing: 0.5px;
     will-change: transform; 
 }
 
-button::before { display: none; }
-button:active { transform: scale(0.96) !important; }
-
-/* Primary (莫奈蓝) */
+/* ------------------------------------------------
+   1. Primary - 清透蓝色玻璃
+------------------------------------------------ */
 .primary {
-    border: 1px solid rgba(217, 237, 254, 0.85);
-    background: 
-        radial-gradient(circle at 85% 15%, rgba(255, 250, 240, 0.35) 0%, transparent 60%),
-        linear-gradient(135deg, rgba(145, 205, 255, 0.65) 0%, rgba(115, 185, 255, 0.35) 100%);
-    color: #0f172a; 
-    box-shadow: 
-        0 6px 20px rgba(88, 135, 179, 0.2), 
-        inset 0 1.5px 2px rgba(255, 255, 255, 0.75), 
-        inset -1px -1px 2px rgba(255, 255, 255, 0.3), 
-        0 0 0 0.5px rgba(211, 234, 255, 0.95); 
-    backdrop-filter: blur(16px) saturate(180%); 
+    border: 1px solid transparent !important;
+    background:
+        linear-gradient(135deg,
+            rgba(207, 231, 253, 0.89) 0%,
+            rgba(183, 219, 253, 0.87) 52%,
+            rgba(203, 234, 253, 0.88) 100%) padding-box,
+        linear-gradient(135deg,
+            rgba(225, 241, 255, 1) 0%,
+            rgba(225, 241, 255, 0.65) 48%,
+            rgba(225, 248, 255, 1) 100%) border-box !important;
+    color: #0f172a;
+    box-shadow:
+        0 0 16px rgba(157, 210, 255, 0.19),
+        0 12px 44px rgba(162, 209, 252, 0.36),
+        inset 0 1.5px 2px rgba(255, 255, 255, 0.68),
+        inset 0 -1px 2px rgba(183, 219, 253, 0.16);
+    backdrop-filter: blur(16px) saturate(180%);
     -webkit-backdrop-filter: blur(16px) saturate(180%);
 }
 
-.primary:hover { 
-    background: 
-        radial-gradient(circle at 85% 15%, rgba(255, 250, 240, 0.55) 0%, transparent 65%),
-        linear-gradient(135deg, rgba(175, 220, 255, 0.95) 0%, rgba(145, 205, 255, 0.55) 100%);
-    transform: translateY(-2px); 
-    box-shadow: 
-        0 12px 24px rgba(120, 175, 225, 0.3), 
-        inset 0 2px 3px rgba(255, 255, 255, 1), 
-        inset -1px -1px 2px rgba(255, 255, 255, 0.30),
-        0 0 0 1.5px rgba(240, 248, 255, 0.9); 
+.primary:hover {
+    background:
+        linear-gradient(135deg,
+            rgba(207, 231, 253, 0.96) 0%,
+            rgba(183, 219, 253, 0.94) 52%,
+            rgba(203, 234, 253, 0.95) 100%) padding-box,
+        linear-gradient(135deg,
+            rgba(225, 241, 255, 1) 0%,
+            rgba(225, 241, 255, 0.78) 48%,
+            rgba(225, 248, 255, 1) 100%) border-box !important;
+    box-shadow:
+        0 12px 46px rgba(162, 209, 252, 0.53),
+        inset 0 2px 3px rgba(255, 255, 255, 0.78),
+        inset 0 -1px 2px rgba(183, 219, 253, 0.2);
 }
 
 .primary:active {
-    background: 
-        radial-gradient(circle at 85% 15%, rgba(255, 250, 240, 0.2) 0%, transparent 40%),
-        linear-gradient(135deg, rgba(135, 195, 255, 0.75) 0%, rgba(105, 175, 255, 0.35) 100%);
-    box-shadow: 
-        0 2px 6px rgba(120, 175, 225, 0.1), 
-        inset 0 3px 6px rgba(15, 23, 42, 0.08), 
-        inset 0 1px 1px rgba(255, 255, 255, 0.30),
-        0 0 0 1px rgba(145, 205, 255, 0.6);
+    border: 1px solid transparent !important;
+    outline: none !important;
+    background:
+        linear-gradient(135deg,
+            rgba(207, 231, 253, 0.92) 0%,
+            rgba(183, 219, 253, 0.9) 52%,
+            rgba(203, 234, 253, 0.91) 100%) padding-box,
+        linear-gradient(135deg,
+            rgba(225, 241, 255, 1) 0%,
+            rgba(225, 241, 255, 0.65) 48%,
+            rgba(225, 248, 255, 1) 100%) border-box !important;
+    box-shadow:
+        0 6px 30px rgba(162, 209, 252, 0.39),
+        inset 0 1px 2px rgba(255, 255, 255, 0.58),
+        inset 0 -1px 2px rgba(183, 219, 253, 0.14) !important;
 }
 
-/* Secondary (清透玻璃) */
+/* ------------------------------------------------
+   2. Secondary (清透玻璃) - 微调适配
+------------------------------------------------ */
 .secondary {
-    background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0.11) 45%, transparent 75%) !important;
+    background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.08) 45%, transparent 75%) !important;
     border-top: 2px solid rgba(255, 255, 255, 0.95) !important;
     border-left: 1px solid rgba(255, 255, 255, 0.8) !important;
     border-right: 1px solid rgba(255, 255, 255, 0.35) !important;
     border-bottom: 1px solid rgba(255, 255, 255, 0.25) !important;
-    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.08), inset 2px 3px 10px rgba(255, 255, 255, 0.35), inset -2px -3px 10px rgba(0, 0, 0, 0.03), inset 4px 6px 20px rgba(255, 255, 255, 0.15) !important;
-    backdrop-filter: blur(40px) saturate(130%) !important; -webkit-backdrop-filter: blur(40px) saturate(130%) !important;
+    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.08), inset 2px 3px 10px rgba(255, 255, 255, 0.35), inset -2px -3px 10px rgba(0, 0, 0, 0.03), inset 4px 6px 20px rgba(255, 255, 255, 0.15) !important;
+    backdrop-filter: blur(20px) saturate(130%) !important; -webkit-backdrop-filter: blur(20px) saturate(130%) !important;
     color: var(--monet-text, #2F354F);
+
     transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), background 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
 }
 
 .secondary:hover {
     background: linear-gradient(135deg, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0.3) 100%) !important;
-    transform: translateY(-2px);
     border-color: rgba(255, 255, 255, 0.40); border-width: 1.5px;
     box-shadow: 
         0 12px 28px rgba(15, 23, 42, 0.07), 
@@ -571,50 +646,74 @@ button:active { transform: scale(0.96) !important; }
         0 0 0 1.25px rgba(255, 255, 255, 0.95);
 }
 
-.secondary:active { background: linear-gradient(135deg, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0.3) 100%);
-    transform: scale(0.96) translateY(0px);
+.secondary:active { 
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0.25) 100%) !important;
     box-shadow: 
-        0 2px 6px rgba(15, 23, 42, 0.03), 
-        inset 0 3px 6px rgba(15, 23, 42, 0.05), 
-        inset 0 1px 1px rgba(255, 255, 255, 0.30),
+        0 4px 14px rgba(15, 23, 42, 0.06), 
+        inset 0 0 0 1px rgba(255, 255, 255, 0.1), 
+        inset 1.5px 2px 8px rgba(255, 255, 255, 0.4), 
         0 0 0 1px rgba(226, 232, 240, 0.6);
 }
 
-/* Danger (警示红) */
+/* ------------------------------------------------
+   3. Danger - 晶透柔红玻璃 (白字与精致描边)
+------------------------------------------------ */
 .danger {
-    background: 
-        radial-gradient(circle at 85% 15%, rgba(255, 235, 230, 0.2) 0%, transparent 50%),
-        linear-gradient(135deg, rgba(250, 66, 62, 0.75) 0%, rgba(220, 38, 38, 0.45) 100%); 
-    color: #ffffffeb; 
-    box-shadow: 
-        0 6px 20px rgba(174, 46, 46, 0.2), 
-        inset 0 1.5px 2px rgba(255, 255, 255, 0.5), 
-        inset -1px -1px 2px rgba(0, 0, 0, 0.08),
-        0 0 0 0.5px rgba(255, 199, 199, 0.75); 
-    backdrop-filter: blur(16px) saturate(180%); 
+    border: 1.2px solid transparent !important;
+    background:
+        linear-gradient(135deg,
+            rgba(246, 122, 122, 0.85) 0%,
+            rgba(238, 102, 102, 0.79) 52%,
+            rgba(244, 116, 108, 0.82) 100%) padding-box,
+        linear-gradient(135deg,
+            rgba(255, 225, 225, 0.78) 0%,
+            rgba(255, 185, 185, 0.45) 48%,
+            rgba(255, 212, 206, 0.70) 100%) border-box !important;
+    color: rgba(255, 255, 255, 0.94);
+    text-shadow: 0 1px 2px rgba(160, 40, 40, 0.22);
+    box-shadow:
+        0 0 14px rgba(244, 114, 114, 0.22),
+        0 8px 24px rgba(244, 114, 114, 0.25),
+        inset 0 1.8px 2.2px rgba(255, 255, 255, 0.54),
+        inset 0 -1.5px 2.5px rgba(150, 24, 24, 0.18);
+    backdrop-filter: blur(16px) saturate(180%);
     -webkit-backdrop-filter: blur(16px) saturate(180%);
 }
 
-.danger:hover { 
-    background: 
-        radial-gradient(circle at 85% 15%, rgba(255, 235, 230, 0.45) 0%, transparent 65%),
-        linear-gradient(135deg, rgba(248, 113, 113, 0.95) 0%, rgba(239, 68, 68, 0.7) 100%); 
-    transform: translateY(-2px); 
-    box-shadow: 
-        0 10px 24px rgba(239, 68, 68, 0.3), 
-        inset 0 2px 3px rgba(255, 255, 255, 0.75), 
-        inset -1px -1px 2px rgba(0, 0, 0, 0.12),
-        0 0 0 1.5px rgba(255, 240, 240, 0.9); 
+.danger:hover {
+    background:
+        linear-gradient(135deg,
+            rgba(248, 134, 134, 0.89) 0%,
+            rgba(240, 114, 114, 0.83) 52%,
+            rgba(246, 128, 120, 0.86) 100%) padding-box,
+        linear-gradient(135deg,
+            rgba(255, 238, 238, 0.88) 0%,
+            rgba(255, 202, 202, 0.58) 48%,
+            rgba(255, 225, 220, 0.80) 100%) border-box !important;
+    box-shadow:
+        0 0 16px rgba(244, 114, 114, 0.26),
+        0 10px 32px rgba(244, 114, 114, 0.30),
+        inset 0 1.8px 2.5px rgba(255, 255, 255, 0.60),
+        inset 0 -1px 2px rgba(160, 30, 30, 0.18);
 }
 
 .danger:active {
-    background: 
-        linear-gradient(135deg, rgba(220, 38, 38, 0.75) 0%, rgba(185, 28, 28, 0.45) 100%);
-    box-shadow: 
-        0 2px 6px rgba(239, 68, 68, 0.1), 
-        inset 0 3px 6px rgba(0, 0, 0, 0.15), 
-        inset 0 1px 1px rgba(255, 255, 255, 0.10),
-        0 0 0 1px rgba(220, 38, 38, 0.5);
+    border: 1.2px solid transparent !important;
+    outline: none !important;
+    background:
+        linear-gradient(135deg,
+            rgba(238, 106, 106, 0.87) 0%,
+            rgba(228, 90, 90, 0.81) 52%,
+            rgba(234, 100, 92, 0.84) 100%) padding-box,
+        linear-gradient(135deg,
+            rgba(255, 220, 220, 0.72) 0%,
+            rgba(255, 178, 178, 0.40) 48%,
+            rgba(255, 206, 200, 0.64) 100%) border-box !important;
+    box-shadow:
+        0 4px 16px rgba(244, 114, 114, 0.18),
+        0 6px 20px rgba(244, 114, 114, 0.20),
+        inset 0 1.2px 1.8px rgba(255, 255, 255, 0.38),
+        inset 0 -1px 1.5px rgba(160, 30, 30, 0.12) !important;
 }
 
 /* ================== 同步模块 ================== */
@@ -649,8 +748,9 @@ button:active { transform: scale(0.96) !important; }
 /* ================== 液态玻璃弹窗与动画引擎 ================== */
 .sphere-modal {
     position: fixed; inset: 0; z-index: 10000; display: flex; align-items: center; justify-content: center;
-    background: rgba(15, 23, 42, 0.25);
-    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    background-color: rgba(148, 163, 184, 0.4);
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.04'/%3E%3C/svg%3E");
+    backdrop-filter: blur(12px) saturate(140%); -webkit-backdrop-filter: blur(12px) saturate(140%);
     opacity: 1; visibility: visible; 
     transition: opacity 0.3s var(--ease), 
                 backdrop-filter 0.3s var(--ease),
@@ -685,6 +785,14 @@ button:active { transform: scale(0.96) !important; }
     opacity: 1;
     transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1),
                 opacity 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.dialog-sticker-icon {
+    width: 60px;
+    height: 60px;
+    object-fit: contain;
+    display: inline-block;
+    filter: drop-shadow(0 0 1.5px rgba(255, 255, 255, 0.90)) drop-shadow(0 0 3.5px rgba(255, 255, 255, 0.75)) drop-shadow(0 0 6.5px rgba(255, 255, 255, 0.45)) drop-shadow(0 8px 18px rgba(15, 23, 42, 0.14));
 }
 
 .sphere-modal.hidden .modal-content {
@@ -841,24 +949,138 @@ button:active { transform: scale(0.96) !important; }
     .toolbar { gap: 12px !important; flex-wrap: wrap !important; }
 }
 
-/* ================== 全局 Toast 通知引擎 ================== */
-.toast-notification {
-    position: fixed; top: 24px; left: 50%; transform: translateX(-50%) translateY(-20px) scale(0.95);
-    z-index: 10001; padding: 14px 28px; border-radius: var(--radius-element);
-    background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.08) 50%, transparent 85%) !important;
-    border-top: 2px solid rgba(255, 255, 255, 0.95) !important;
-    border-left: 1px solid rgba(255, 255, 255, 0.7) !important;
-    border-right: 1px solid rgba(255, 255, 255, 0.35) !important;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.25) !important;
-    box-shadow: 0 16px 40px rgba(15, 23, 42, 0.12), inset 0 0 0 1px rgba(255, 255, 255, 0.1), inset 2px 3px 10px rgba(255, 255, 255, 0.35), inset -2px -3px 10px rgba(0, 0, 0, 0.03), inset 4px 6px 20px rgba(255, 255, 255, 0.18) !important;
-    backdrop-filter: blur(32px) saturate(130%); -webkit-backdrop-filter: blur(32px) saturate(130%);
-    font-size: 15px; font-weight: 700; color: var(--text);
-    opacity: 0; pointer-events: none;
-    transition: all 0.45s var(--ease);
+/* ================== 全局 Toast / SyncStatus 纵深堆叠与流体光影通知引擎 ================== */
+.toast-container {
+    position: fixed;
+    top: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10005;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: max-content;
+    max-width: calc(100vw - 32px);
 }
-.toast-notification.show { 
-    opacity: 1; 
-    transform: translateX(-50%) translateY(0) scale(1); 
+
+.toast-notification {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%) translateY(-24px) scale(0.82);
+    padding: 14px 30px;
+    border-radius: var(--radius-element, 18px);
+    background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0.1) 50%, transparent 85%) !important;
+    border-top: 2px solid rgba(255, 255, 255, 0.95) !important;
+    border-left: 1px solid rgba(255, 255, 255, 0.75) !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.4) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.25) !important;
+    box-shadow: 0 16px 42px rgba(15, 23, 42, 0.14),
+                inset 0 0 0 1px rgba(255, 255, 255, 0.12),
+                inset 2px 3px 12px rgba(255, 255, 255, 0.38),
+                inset -2px -3px 10px rgba(0, 0, 0, 0.03),
+                inset 4px 6px 22px rgba(255, 255, 255, 0.2) !important;
+    backdrop-filter: blur(22px) saturate(140%);
+    -webkit-backdrop-filter: blur(22px) saturate(140%);
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--monet-text, var(--text, #0f172a));
+    white-space: nowrap;
+    opacity: 0;
+    filter: blur(6px);
+    pointer-events: none;
+    overflow: hidden;
+    transition: transform 0.42s cubic-bezier(0.34, 1.56, 0.64, 1),
+                opacity 0.3s cubic-bezier(0.2, 0.9, 0.3, 1),
+                filter 0.32s ease,
+                background 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+                border 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+                border-color 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+                box-shadow 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+                backdrop-filter 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+                -webkit-backdrop-filter 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: transform, background, box-shadow;
+}
+
+/* 顶部流体高光线与表面折射微光 */
+.toast-notification::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 12%;
+    right: 12%;
+    height: 1.5px;
+    background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.95) 50%, transparent 100%);
+    border-radius: 999px;
+    pointer-events: none;
+    opacity: 0.85;
+    transition: opacity 0.4s ease;
+}
+
+.toast-notification::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.22) 0%, transparent 65%);
+    pointer-events: none;
+    opacity: 0.9;
+}
+
+.toast-notification.show {
+    opacity: 1;
+    filter: blur(0px);
+}
+
+/* 流体消散弹离动效 (Exit Animation) */
+.toast-notification.dismiss {
+    opacity: 0 !important;
+    transform: translateX(-50%) translateY(-26px) scale(0.84) !important;
+    filter: blur(14px) brightness(1.12) !important;
+    transition: transform 0.38s cubic-bezier(0.36, 0, 0.66, -0.2),
+                opacity 0.3s cubic-bezier(0.4, 0, 1, 1),
+                filter 0.32s ease-out !important;
+    pointer-events: none !important;
+}
+
+.toast-notification .toast-icon {
+    width: 18px;
+    height: 18px;
+    vertical-align: -3px;
+    margin-right: 6px;
+    object-fit: contain;
+    display: inline-block;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.12));
+    position: relative;
+    z-index: 1;
+}
+
+/* 深色背景/深度较深适配: 伴随平滑过渡动画切换为高对比度纯白毛玻璃衬底 */
+body.dark-wp .toast-notification,
+body.dark-mode .toast-notification,
+body.is-dark-bg .toast-notification,
+.dark-wp .toast-notification,
+.dark-mode .toast-notification,
+.toast-notification.deep-bg {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.94) 0%, rgba(255, 255, 255, 0.82) 100%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.95) !important;
+    border-top: 1.5px solid #ffffff !important;
+    border-left: 1px solid rgba(255, 255, 255, 0.95) !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.95) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.95) !important;
+    box-shadow: 0 14px 36px rgba(15, 23, 42, 0.14),
+                inset 0 1px 2px rgba(255, 255, 255, 0.98),
+                inset 0 -1px 2px rgba(0, 0, 0, 0.03) !important;
+    backdrop-filter: blur(26px) saturate(145%) !important;
+    -webkit-backdrop-filter: blur(26px) saturate(145%) !important;
+}
+
+body.dark-wp .toast-notification::before,
+body.dark-mode .toast-notification::before,
+body.is-dark-bg .toast-notification::before,
+.toast-notification.deep-bg::before {
+    opacity: 0.4;
 }
 
 /* ================== 全局页面切换动效 ================== */
@@ -887,7 +1109,7 @@ button:active { transform: scale(0.96) !important; }
 .task-card:hover, .chart-wrap:hover, .chart-card:hover, .stats-card:hover { border: 1.5px solid rgba(255, 255, 255, 1) !important; }
 .task-card:active, .chart-wrap:active { border: 1.5px solid rgba(157, 210, 255, 0.9) !important; }
 
-.task-card, .side-card, .nav-card, .chart-card, .chart-wrap, .stats-card, .sphere-modal, .form-container, .alpha-menu, .flatpickr-calendar, .flatpickr-innerContainer, .alarm-modal, .modal, .dropdown, .context-menu, .progress-card, .info-card {
+.task-card, .side-card, .nav-card, .chart-card, .chart-wrap, .stats-card, .form-container, .alpha-menu, .flatpickr-calendar, .flatpickr-innerContainer, .dropdown, .context-menu, .progress-card, .info-card {
     background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.08) 45%, transparent 75%) !important;
     border-top: 2px solid rgba(255, 255, 255, 0.95) !important;
     border-left: 1px solid rgba(255, 255, 255, 0.8) !important;
@@ -949,8 +1171,11 @@ body.is-zoom-scaling *::after {
     transition-duration: 0s !important;
     animation-play-state: paused !important;
 }
-body.is-zoom-scaling .sunbeam { filter: blur(4px) !important; }
-body.is-zoom-scaling .orb { filter: blur(4px) !important; }
+body.is-zoom-scaling .ambient-motion-stage {
+    animation-play-state: paused !important;
+}
+body.is-zoom-scaling .sunbeam { filter: blur(4px) !important; will-change: auto !important; }
+body.is-zoom-scaling .orb { filter: blur(4px) !important; will-change: auto !important; }
 body.is-zoom-scaling .sidebar,
 body.is-zoom-scaling .panel,
 body.is-zoom-scaling .task-card,
@@ -1002,8 +1227,73 @@ body.is-zoom-scaling .gender-item span,
 body.is-zoom-scaling .gender-tag,
 body.is-zoom-scaling .avatar-badge,
 body.is-zoom-scaling .cropper-modal {
-    backdrop-filter: blur(4px) saturate(110%) !important;
-    -webkit-backdrop-filter: blur(4px) saturate(110%) !important;
+    backdrop-filter: blur(16px) saturate(120%) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(120%) !important;
+}
+
+/* ==========================================
+   Account Low-Height Responsive Styles (Lower Trigger Thresholds)
+   ========================================== */
+@media (max-height: 540px) and (min-width: 1051px) {
+    .sidebar {
+        padding: 18px 22px !important;
+    }
+    #displayBio {
+        display: none !important;
+    }
+    .avatar-wrap {
+        width: 110px !important;
+        height: 110px !important;
+        margin-bottom: 10px !important;
+    }
+    .user-name-display {
+        font-size: 22px !important;
+        margin-bottom: 4px !important;
+    }
+}
+
+@media (max-height: 440px) and (min-width: 1051px) {
+    .sidebar {
+        padding: 12px 16px !important;
+    }
+    #displayBio {
+        display: none !important;
+    }
+    .user-id-display {
+        display: none !important;
+    }
+    .user-gender-row {
+        display: none !important;
+    }
+    .avatar-gender-row {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 12px !important;
+        margin-bottom: 6px !important;
+    }
+    .side-gender-container {
+        display: flex !important;
+        align-items: center !important;
+    }
+    .avatar-wrap {
+        width: 76px !important;
+        height: 76px !important;
+        margin: 0 !important;
+    }
+    .user-name-display {
+        font-size: 18px !important;
+        margin-bottom: 2px !important;
+    }
+    .logo-area {
+        width: 38px !important;
+        height: 38px !important;
+        margin-bottom: 4px !important;
+    }
+    .logo-area svg {
+        width: 18px !important;
+        height: 18px !important;
+    }
 }
 </style>
 <script>
@@ -1026,6 +1316,10 @@ body.is-zoom-scaling .cropper-modal {
     } else {
         updateStacking();
     }
+
+    // Account 页没有动态任务卡时无需常驻观察整个 DOM 子树
+    if (!document.querySelector('.task-card, .side-card, .task-card-wrap')) return;
+
     let debounceTimer = null;
     const observer = new MutationObserver(() => {
         if (debounceTimer) return;
@@ -1034,31 +1328,202 @@ body.is-zoom-scaling .cropper-modal {
             updateStacking();
         }, 120);
     });
-    observer.observe(document.body, { childList: true, subtree: true });
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+            updateStacking();
+            if (document.body) {
+                observer.observe(document.body, { childList: true, subtree: true });
+            }
+        });
+    } else {
+        updateStacking();
+        if (document.body) {
+            observer.observe(document.body, { childList: true, subtree: true });
+        }
+    }
 })();
 
 document.addEventListener('visibilitychange', () => {
+    const isHidden = document.hidden;
     document.querySelector('.alpha-ambient-bg')
-        ?.classList.toggle('is-paused', document.hidden);
+        ?.classList.toggle('is-paused', isHidden);
+    document.documentElement.classList.toggle('account-page-hidden', isHidden);
 });
+document.documentElement.classList.toggle('account-page-hidden', document.hidden);
 </script>
+<style id="account-runtime-performance">
+/* 页面不可见时暂停纯装饰动画；返回后从原进度继续 */
+html.account-page-hidden *,
+html.account-page-hidden *::before,
+html.account-page-hidden *::after {
+    animation-play-state: paused !important;
+}
+
+/* 交互控件只在实际悬浮/按压时申请额外合成提示 */
+button,
+.avatar-wrap,
+.app-switcher-overlay {
+    will-change: auto;
+}
+button:hover,
+button:active,
+button:focus-visible,
+.avatar-wrap:hover,
+.avatar-wrap:active,
+.app-switcher-overlay.open {
+    will-change: transform, opacity, box-shadow;
+}
+</style>
 </head>
 <body>
 <script>
 (function alphaZoomGuard() {
     var zt = 0;
-    function onZoom() {
-        if (!document.body.classList.contains('is-zoom-scaling')) {
-            document.body.classList.add('is-zoom-scaling');
+    var isScaling = false;
+    var sharedCanvas = null;
+
+    function ensureSnapshotOverlay(bgEl) {
+        var snap = bgEl.querySelector('.alpha-bg-snapshot');
+        if (!snap) {
+            snap = document.createElement('div');
+            snap.className = 'alpha-bg-snapshot';
+            bgEl.insertBefore(snap, bgEl.firstChild);
         }
-        clearTimeout(zt);
-        zt = setTimeout(function() {
-            document.body.classList.remove('is-zoom-scaling');
-        }, 150);
+        return snap;
     }
-    window.addEventListener('wheel', function(e) { if (e.ctrlKey) onZoom(); }, { passive: true });
-    window.addEventListener('gesturestart', onZoom, { passive: true });
-    window.addEventListener('gesturechange', onZoom, { passive: true });
+
+    function captureBlurredBgPNG(bgEl, onDone) {
+        try {
+            var bw = window.innerWidth;
+            var bh = window.innerHeight;
+            var w = Math.floor(bw / 2);
+            var h = Math.floor(bh / 2);
+
+            if (!sharedCanvas) {
+                sharedCanvas = document.createElement('canvas');
+            }
+            sharedCanvas.width = w;
+            sharedCanvas.height = h;
+            var ctx = sharedCanvas.getContext('2d');
+
+            // Clone background element
+            var clone = bgEl.cloneNode(true);
+            var oldSnap = clone.querySelector('.alpha-bg-snapshot');
+            if (oldSnap) oldSnap.remove();
+
+            // Inline the computed positional and transform styles of dynamic stages
+            var stages = bgEl.querySelectorAll('.ambient-motion-stage');
+            var cloneStages = clone.querySelectorAll('.ambient-motion-stage');
+            stages.forEach(function(origStage, idx) {
+                if (cloneStages[idx]) {
+                    var cs = window.getComputedStyle(origStage);
+                    cloneStages[idx].style.width = cs.width;
+                    cloneStages[idx].style.height = cs.height;
+                    cloneStages[idx].style.top = cs.top;
+                    cloneStages[idx].style.left = cs.left;
+                    cloneStages[idx].style.transform = cs.transform;
+                    cloneStages[idx].style.opacity = cs.opacity;
+                    cloneStages[idx].style.animation = 'none';
+                    cloneStages[idx].style.visibility = 'visible';
+                }
+            });
+
+            // Inline the computed styles of child elements (gradients, filters, opacity)
+            var origChildren = bgEl.querySelectorAll('.orb, .sunbeam');
+            var cloneChildren = clone.querySelectorAll('.orb, .sunbeam');
+            origChildren.forEach(function(origChild, idx) {
+                if (cloneChildren[idx]) {
+                    var cs = window.getComputedStyle(origChild);
+                    cloneChildren[idx].style.background = cs.background;
+                    cloneChildren[idx].style.filter = cs.filter;
+                    cloneChildren[idx].style.opacity = cs.opacity;
+                }
+            });
+
+            // SVG string layout structure with absolute pixel inline variables
+            var svgString = '<svg xmlns="http://www.w3.org/2000/svg" width="' + bw + '" height="' + bh + '">' +
+              '<defs>' +
+                '<style>' +
+                  '.alpha-ambient-bg { position: absolute; inset: 0; background-color: #f4f8fc; opacity: 0.97; overflow: hidden; }' +
+                  '.ambient-motion-stage { position: absolute; pointer-events: none; }' +
+                  '.orb, .sunbeam { position: absolute; inset: 0; }' +
+                '</style>' +
+              '</defs>' +
+              '<foreignObject width="100%" height="100%">' +
+                '<div xmlns="http://www.w3.org/1999/xhtml" style="width:100%;height:100%;margin:0;padding:0;overflow:hidden;">' +
+                  clone.outerHTML +
+                '</div>' +
+              '</foreignObject>' +
+            '</svg>';
+
+            var img = new Image();
+            var svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+            var blobUrl = URL.createObjectURL(svgBlob);
+
+            img.onload = function() {
+                ctx.drawImage(img, 0, 0, w, h);
+                URL.revokeObjectURL(blobUrl);
+                try {
+                    var dataUrl = sharedCanvas.toDataURL('image/png');
+                    if (onDone) onDone(dataUrl);
+                } catch(e) {}
+            };
+            img.onerror = function() {
+                URL.revokeObjectURL(blobUrl);
+            };
+            img.src = blobUrl;
+        } catch (e) {
+            // Safe fallback
+        }
+    }
+
+    function onZoomStart() {
+        var bgEl = document.querySelector('.alpha-ambient-bg');
+        if (!isScaling) {
+            isScaling = true;
+            if (!document.body.classList.contains('is-zoom-scaling')) {
+                document.body.classList.add('is-zoom-scaling');
+            }
+            if (bgEl) {
+                var snap = ensureSnapshotOverlay(bgEl);
+                captureBlurredBgPNG(bgEl, function(pngUrl) {
+                    if (pngUrl && isScaling) {
+                        snap.style.backgroundImage = 'url("' + pngUrl + '")';
+                        snap.style.opacity = '1';
+                        bgEl.classList.add('is-bg-frozen');
+                    }
+                });
+            }
+        }
+
+        clearTimeout(zt);
+        zt = setTimeout(onZoomEnd, 220);
+    }
+
+    function onZoomEnd() {
+        isScaling = false;
+        document.body.classList.remove('is-zoom-scaling');
+        var bgEl = document.querySelector('.alpha-ambient-bg');
+        if (bgEl) {
+            bgEl.classList.remove('is-bg-frozen');
+            var snap = bgEl.querySelector('.alpha-bg-snapshot');
+            if (snap) {
+                snap.style.opacity = '0';
+                snap.style.backgroundImage = 'none';
+            }
+        }
+
+        // 缩放完成后释放快照画布的像素缓冲, 保留对象供下次复用
+        if (sharedCanvas) {
+            sharedCanvas.width = 1;
+            sharedCanvas.height = 1;
+        }
+    }
+
+    window.addEventListener('wheel', function(e) { if (e.ctrlKey) onZoomStart(); }, { passive: true });
+    window.addEventListener('gesturestart', onZoomStart, { passive: true });
+    window.addEventListener('gesturechange', onZoomStart, { passive: true });
+    window.addEventListener('resize', onZoomStart, { passive: true });
 })();
 </script>
 <div class="alpha-ambient-bg">
@@ -1069,8 +1534,7 @@ document.addEventListener('visibilitychange', () => {
 </div>
 
 <canvas id="confettiCanvas"></canvas>
-
-<div id="globalToast" class="toast-notification"></div>
+<div id="globalToastContainer" class="toast-container"></div>
 
 <div class="app">
     <aside class="sidebar">
@@ -1078,22 +1542,27 @@ document.addEventListener('visibilitychange', () => {
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-left"><path d="m15 18-6-6 6-6"/></svg>
         </div>
 
-        <div style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
-            <div class="avatar-wrap" onclick="document.getElementById('avatarUpload').click()">
-                <img id="displayAvatar" src="./icons/Avatar.png" style="display: block;">
-                <div id="displayAvatarPlaceholder" class="placeholder" style="display: none;">👤</div>
-                <div class="avatar-badge"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-aperture" style="width: 16px; height: 16px; display: block; color: #475569;" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.69 8h11.48"/><path d="m14.31 8 5.74 9.94"/><path d="m16.62 12-5.74 9.94"/><path d="M14.31 16H2.83"/><path d="m9.69 16-5.74-9.94"/><path d="m7.38 12 5.74-9.94"/></svg></div>
-                <input type="file" id="avatarUpload" accept="image/png, image/jpeg, image/gif" hidden>
+        <div style="flex: 1; display: flex; flex-direction: column; justify-content: center;" class="sidebar-user-block">
+            <div class="avatar-gender-row" style="display: flex; align-items: center; justify-content: center; position: relative;">
+                <div class="avatar-wrap" onclick="document.getElementById('avatarUpload').click()">
+                    <img id="displayAvatar" src="./icons/Avatar.png" style="display: block;">
+                    <div id="displayAvatarPlaceholder" class="placeholder" style="display: none;">👤</div>
+                    <div class="avatar-badge"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-aperture" style="width: 16px; height: 16px; display: block; color: #475569;" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.69 8h11.48"/><path d="m14.31 8 5.74 9.94"/><path d="m16.62 12-5.74 9.94"/><path d="M14.31 16H2.83"/><path d="m9.69 16-5.74-9.94"/><path d="m7.38 12 5.74-9.94"/></svg></div>
+                    <input type="file" id="avatarUpload" accept="image/png, image/jpeg, image/gif" hidden>
+                </div>
+                <div class="side-gender-container" style="display: none;">
+                    <span id="displayGenderSide" class="gender-tag" style="display: none;"></span>
+                </div>
             </div>
 
             <div class="user-name-display">
                 <span id="displayName">Tasks User</span>
             </div>
+            <div class="user-id-display" style="margin-bottom: 8px;">ID: <span id="displayId">Tasks_001</span></div>
             <!-- 独立的一行, 用来放置性别标签 -->
-            <div style="display: flex; justify-content: center; margin-bottom: 8px;">
+            <div class="user-gender-row" style="display: flex; justify-content: center; margin-bottom: 8px;">
                 <span id="displayGender" class="gender-tag" style="display: none;"></span>
             </div>
-            <div class="user-id-display">ID: <span id="displayId">Tasks_001</span></div>
         </div>
         
         <div style="color: var(--sub); font-size: 14px; line-height: 1.6; padding: 0 16px; margin-top: auto;" id="displayBio">非同凡想 自强不息</div>
@@ -1125,7 +1594,7 @@ document.addEventListener('visibilitychange', () => {
                     <div class="gender-box">
                         <label class="gender-item"><input type="radio" name="gender" value="male"><span><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-mars" style="width: 18px; height: 18px; margin-right: 5px; color: #60a5fa;" aria-hidden="true"><path d="M16 3h5v5"/><path d="m21 3-6.75 6.75"/><circle cx="10" cy="14" r="6"/></svg>男</span></label>
                         <label class="gender-item"><input type="radio" name="gender" value="female"><span><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-venus" style="width: 18px; height: 18px; margin-right: 5px; color: #f472b6;" aria-hidden="true"><path d="M12 15v7"/><path d="M9 19h6"/><circle cx="12" cy="9" r="6"/></svg>女</span></label>
-                        <label class="gender-item"><input type="radio" name="gender" value="custom"><span><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-dashed" style="width: 18px; height: 18px; margin-right: 5px; color: #9b84e1;" aria-hidden="true"><path d="M10.1 2.182a10 10 0 0 1 3.8 0"/><path d="M13.9 21.818a10 10 0 0 1-3.8 0"/><path d="M17.609 3.721a10 10 0 0 1 2.69 2.69"/><path d="M2.182 13.9a10 10 0 0 1 0-3.8"/><path d="M20.279 17.609a10 10 0 0 1-2.69 2.69"/><path d="M21.818 10.1a10 10 0 0 1 0 3.8"/><path d="M3.721 6.291a10 10 0 0 1 2.69-2.69"/><path d="M6.291 20.279a10 10 0 0 1-2.69-2.69"/></svg>其他</span></label>
+                        <label class="gender-item"><input type="radio" name="gender" value="custom"><span><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-dashed" style="width: 18px; height: 18px; margin-right: 5px; color: #9b84e1;" aria-hidden="true"><path d="M10.1 2.182a10 10 0 0 1 3.8 0"/><path d="M17.609 3.721a10 10 0 0 1 2.69 2.69"/><path d="M21.818 10.1a10 10 0 0 1 0 3.8"/><path d="M20.279 17.609a10 10 0 0 1-2.69 2.69"/><path d="M13.9 21.818a10 10 0 0 1-3.8 0"/><path d="M6.291 20.279a10 10 0 0 1-2.69-2.69"/><path d="M2.182 13.9a10 10 0 0 1 0-3.8"/><path d="M3.721 6.391a10 10 0 0 1 2.69-2.69"/></svg>其他</span></label>
                     </div>
                 </div>
             </div>
@@ -1139,12 +1608,12 @@ document.addEventListener('visibilitychange', () => {
         <section class="panel">
             <div class="section-title">数据跨端同步与备份</div>
             <div style="font-size: 14px; color: #64748b; line-height: 1.1; margin-bottom: 16px;">
-                利用底层算法将账号与任务数据打包为同步码, 或直接通过 <b>TXT</b> 文件进行完整的跨端迁移与本地备份
+                利用底层算法将账号与任务数据打包为同步码, 或直接通过 <b>TDA</b> 文件进行完整的跨端迁移与本地备份
             </div>
 
             <textarea id="syncCodeArea" class="sync-code-box" placeholder="点击下方「生成加密同步码」打包数据, 或在此粘贴同步码进行覆写导入..."></textarea>
             
-            <input type="file" id="txtFileInput" accept="TXT" style="display: none;" onchange="importFromTxt(event)">
+            <input type="file" id="txtFileInput" accept=".tda,.txt" style="display: none;" onchange="importFromTxt(event)">
 
             <div class="toolbar" style="margin-top: 0; margin-bottom: 6px;">
                 <button class="primary" onclick="generateSyncCode()">生成同步码</button>
@@ -1157,7 +1626,9 @@ document.addEventListener('visibilitychange', () => {
 
 <div id="customDialog" class="sphere-modal hidden">
     <div class="modal-content" style="width: 360px; text-align: center;">
-        <div id="dialogIcon" style="font-size: 48px; margin-bottom: 16px; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.1));">⚠️</div>
+        <div id="dialogIcon" style="min-height: 60px; display: flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+            <img src="icons/Alarm/Warning.png" class="dialog-sticker-icon" alt="Icon" style="width: 60px; height: 60px; object-fit: contain; display: inline-block; filter: drop-shadow(0 0 1.5px rgba(255, 255, 255, 0.90)) drop-shadow(0 0 3.5px rgba(255, 255, 255, 0.75)) drop-shadow(0 0 6.5px rgba(255, 255, 255, 0.45)) drop-shadow(0 8px 18px rgba(15, 23, 42, 0.14));">
+        </div>
         <h3 id="dialogTitle" style="margin-bottom: 12px; color: #0f172a; font-size: 20px;">提示</h3>
         <div id="dialogMessage" style="color: #64748b; font-size: 15px; line-height: 1.6; margin-bottom: 24px;"></div>
         
@@ -1187,8 +1658,62 @@ document.addEventListener('visibilitychange', () => {
 /* ================== 全局弹窗引擎 ================== */
 window.dialogConfirmCallback = null;
 
-function customAlert(msg, title = "提示", icon = "💡") {
-    document.getElementById('dialogIcon').textContent = icon;
+function formatDialogIcon(icon) {
+    const stickerStyle = 'width: 60px; height: 60px; object-fit: contain; display: inline-block; filter: drop-shadow(0 0 1.5px rgba(255, 255, 255, 0.90)) drop-shadow(0 0 3.5px rgba(255, 255, 255, 0.75)) drop-shadow(0 0 6.5px rgba(255, 255, 255, 0.45)) drop-shadow(0 8px 18px rgba(15, 23, 42, 0.14));';
+    
+    if (!icon) return `<img src="icons/Alarm/Done.png" class="dialog-sticker-icon" style="${stickerStyle}" alt="">`;
+    if (typeof icon === 'string') {
+        if (icon.startsWith('<svg') || icon.startsWith('<img') || icon.startsWith('<div')) {
+            return icon;
+        }
+        if (icon.endsWith('.png') || icon.endsWith('.svg') || icon.includes('/')) {
+            return `<img src="${icon}" class="dialog-sticker-icon" style="${stickerStyle}" alt="">`;
+        }
+        const map = {
+            'Congratulations': 'icons/Alarm/Congratulations.png',
+            'Done': 'icons/Alarm/Done.png',
+            'Error': 'icons/Alarm/Error.png',
+            'Rocket': 'icons/Alarm/Rocket.png',
+            'Rubbish_Bin': 'icons/Alarm/Rubbish_Bin.png',
+            'Warning': 'icons/Alarm/Warning.png',
+            'Write_In': 'icons/Alarm/Write_In.png',
+            '🎉': 'icons/Alarm/Congratulations.png',
+            '🎊': 'icons/Alarm/Congratulations.png',
+            '🌟': 'icons/Alarm/Congratulations.png',
+            '✨': 'icons/Alarm/Done.png',
+            '✅': 'icons/Alarm/Done.png',
+            '✔️': 'icons/Alarm/Done.png',
+            '💡': 'icons/Alarm/Done.png',
+            '🔔': 'icons/Alarm/Done.png',
+            '🔄': 'icons/Alarm/Done.png',
+            '💾': 'icons/Alarm/Done.png',
+            '📸': 'icons/Alarm/Done.png',
+            '📦': 'icons/Alarm/Done.png',
+            '☑️': 'icons/Alarm/Done.png',
+            '🎵': 'icons/Alarm/Done.png',
+            '⚙️': 'icons/Alarm/Done.png',
+            '❌': 'icons/Alarm/Error.png',
+            '🚫': 'icons/Alarm/Error.png',
+            '⚠️': 'icons/Alarm/Warning.png',
+            '❗': 'icons/Alarm/Warning.png',
+            '⏰': 'icons/Alarm/Warning.png',
+            '📅': 'icons/Alarm/Warning.png',
+            '⏳': 'icons/Alarm/Warning.png',
+            '📋': 'icons/Alarm/Write_In.png',
+            '📝': 'icons/Alarm/Write_In.png',
+            '✏️': 'icons/Alarm/Write_In.png',
+            '🗑️': 'icons/Alarm/Rubbish_Bin.png',
+            '🗑': 'icons/Alarm/Rubbish_Bin.png',
+            '🚀': 'icons/Alarm/Rocket.png'
+        };
+        const src = map[icon] || 'icons/Alarm/Done.png';
+        return `<img src="${src}" class="dialog-sticker-icon" style="${stickerStyle}" alt="">`;
+    }
+    return icon;
+}
+
+function customAlert(msg, title = "提示", icon = "Done") {
+    document.getElementById('dialogIcon').innerHTML = formatDialogIcon(icon);
     document.getElementById('dialogTitle').textContent = title;
     document.getElementById('dialogMessage').innerHTML = msg;
     
@@ -1205,8 +1730,8 @@ function customAlert(msg, title = "提示", icon = "💡") {
 }
 
 /* ================== 自定义双选弹窗引擎 ================== */
-function customChoice(msg, title, btn1Text, btn1Cb, btn2Text, btn2Cb, icon="⚙️") {
-    document.getElementById('dialogIcon').textContent = icon;
+function customChoice(msg, title, btn1Text, btn1Cb, btn2Text, btn2Cb, icon="Done") {
+    document.getElementById('dialogIcon').innerHTML = formatDialogIcon(icon);
     document.getElementById('dialogTitle').textContent = title;
     document.getElementById('dialogMessage').innerHTML = msg;
     
@@ -1231,8 +1756,8 @@ function customChoice(msg, title, btn1Text, btn1Cb, btn2Text, btn2Cb, icon="⚙�
     document.getElementById('customDialog').classList.remove('hidden');
 }
 
-function customConfirm(msg, onConfirm, title = "请确认", isDanger = false, icon = "⚠️") {
-    document.getElementById('dialogIcon').textContent = icon;
+function customConfirm(msg, onConfirm, title = "请确认", isDanger = false, icon = "Warning") {
+    document.getElementById('dialogIcon').innerHTML = formatDialogIcon(icon || (isDanger ? "Rubbish_Bin" : "Warning"));
     document.getElementById('dialogTitle').textContent = title;
     document.getElementById('dialogMessage').innerHTML = msg;
     
@@ -1258,7 +1783,7 @@ function showImportOptions() {
         "请选择你要使用的数据覆写方式<br><b>注意: 此操作将不可逆地抹除当前设备数据</b>", 
         "导入方式", 
         "粘贴同步码", () => importSyncCode(), 
-        "从 TXT 导入", () => document.getElementById('txtFileInput').click(),
+        "从 TDA 导入", () => document.getElementById('txtFileInput').click(),
         "📥"
     );
 }
@@ -1268,7 +1793,7 @@ function showExportOptions() {
         "提示: 如果尚未生成同步码, 将自动为你生成", 
         "导出方式", 
         "复制同步码", () => copySyncCode(), 
-        "导出为 TXT", () => exportToTxt(),
+        "导出为 TDA", () => exportToTxt(),
         "📦"
     );
 }
@@ -1335,9 +1860,15 @@ function adjustTextareaHeight(el) {
     el.style.height = targetHeight + 'px';
 }
 
+let bioResizeFrame = 0;
 if (els.inBio) {
     els.inBio.addEventListener('input', function() {
-        adjustTextareaHeight(this);
+        const target = this;
+        if (bioResizeFrame) cancelAnimationFrame(bioResizeFrame);
+        bioResizeFrame = requestAnimationFrame(() => {
+            bioResizeFrame = 0;
+            adjustTextareaHeight(target);
+        });
     });
 }
 
@@ -1423,17 +1954,30 @@ function updateProfileDisplay() {
     if (els.dispId) els.dispId.textContent = accountData.id || "Tasks_001";
     if (els.dispBio) els.dispBio.textContent = accountData.bio || "非同凡想 自强不息";
     
-    const genderMap = { 'male': '男', 'female': '女', 'custom': '其他' };
+    const genderIconMap = {
+        'male': '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-mars" style="width: 18px; height: 18px; display: block; color: #60a5fa;" aria-hidden="true"><path d="M16 3h5v5"/><path d="m21 3-6.75 6.75"/><circle cx="10" cy="14" r="6"/></svg>',
+        'female': '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-venus" style="width: 18px; height: 18px; display: block; color: #f472b6;" aria-hidden="true"><path d="M12 15v7"/><path d="M9 19h6"/><circle cx="12" cy="9" r="6"/></svg>',
+        'custom': '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-dashed" style="width: 18px; height: 18px; display: block; color: #9b84e1;" aria-hidden="true"><path d="M10.1 2.182a10 10 0 0 1 3.8 0"/><path d="M17.609 3.721a10 10 0 0 1 2.69 2.69"/><path d="M21.818 10.1a10 10 0 0 1 0 3.8"/><path d="M20.279 17.609a10 10 0 0 1-2.69 2.69"/><path d="M13.9 21.818a10 10 0 0 1-3.8 0"/><path d="M6.291 20.279a10 10 0 0 1-2.69-2.69"/><path d="M2.182 13.9a10 10 0 0 1 0-3.8"/><path d="M3.721 6.391a10 10 0 0 1 2.69-2.69"/></svg>'
+    };
     
     if (els.dispGender) {
+        const dispGenderSide = document.getElementById('displayGenderSide');
         if (accountData.gender) {
-            els.dispGender.textContent = genderMap[accountData.gender] || accountData.gender;
+            const iconHtml = genderIconMap[accountData.gender] || '';
+            els.dispGender.innerHTML = iconHtml;
             els.dispGender.style.display = 'inline-flex';
-            
             els.dispGender.classList.remove('male', 'female', 'custom');
             els.dispGender.classList.add(accountData.gender);
+
+            if (dispGenderSide) {
+                dispGenderSide.innerHTML = iconHtml;
+                dispGenderSide.style.display = 'inline-flex';
+                dispGenderSide.classList.remove('male', 'female', 'custom');
+                dispGenderSide.classList.add(accountData.gender);
+            }
         } else {
             els.dispGender.style.display = 'none';
+            if (dispGenderSide) dispGenderSide.style.display = 'none';
         }
     }
 
@@ -1467,10 +2011,39 @@ function clearProfileData() {
         localStorage.removeItem(ACCOUNT_KEY);
         loadProfileData();
         showSyncStatus("🗑️ 档案已重置", "var(--monet-text)");
-    }, "重置档案", true);
+    }, "重置档案", true, "Rubbish_Bin");
 }
 
 let cropperInstance = null;
+
+function ensureCropperLoaded() {
+    return new Promise((resolve, reject) => {
+        if (typeof Cropper !== 'undefined') {
+            resolve();
+            return;
+        }
+        if (!document.querySelector('link[href*="cropper.min.css"]')) {
+            const link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = 'assets/cropper.min.css';
+            document.head.appendChild(link);
+        }
+        if (document.querySelector('script[src*="cropper.min.js"]')) {
+            const checkTimer = setInterval(() => {
+                if (typeof Cropper !== 'undefined') {
+                    clearInterval(checkTimer);
+                    resolve();
+                }
+            }, 30);
+            return;
+        }
+        const script = document.createElement('script');
+        script.src = 'assets/cropper.min.js';
+        script.onload = () => resolve();
+        script.onerror = (err) => reject(err);
+        document.head.appendChild(script);
+    });
+}
 
 const avatarUploadEl = document.getElementById('avatarUpload');
 if (avatarUploadEl) {
@@ -1486,11 +2059,12 @@ if (avatarUploadEl) {
             cropImage.src = event.target.result;
             cropDialog.classList.remove('hidden');
 
-            if (cropperInstance) {
-                cropperInstance.destroy();
-            }
-            
-            cropperInstance = new Cropper(cropImage, {
+            ensureCropperLoaded().then(() => {
+                if (cropperInstance) {
+                    cropperInstance.destroy();
+                }
+                
+                cropperInstance = new Cropper(cropImage, {
                 aspectRatio: 1, 
                 viewMode: 1, 
                 dragMode: 'move', 
@@ -1523,6 +2097,9 @@ if (avatarUploadEl) {
                         wrapper.classList.remove('edge-reached');
                     }
                 }
+            });
+            }).catch(err => {
+                console.error('Failed to load Cropper.js:', err);
             });
         };
         reader.readAsDataURL(file);
@@ -1559,6 +2136,7 @@ let confettiTimeout = null;
 let confettiRafId = null;
 
 function confettiResizeHandler() {
+    if (document.body.classList.contains('is-zoom-scaling')) return;
     const canvas = document.getElementById('confettiCanvas');
     if (canvas) {
         canvas.width = window.innerWidth;
@@ -1625,6 +2203,9 @@ function launchConfetti() {
             confettiInterval = false;
             confettiRafId = null;
             window.removeEventListener('resize', confettiResizeHandler);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            canvas.width = 1;
+            canvas.height = 1;
         }
     }
 
@@ -1656,22 +2237,299 @@ function checkBirthdayConfetti() {
         if (canvas) {
             const ctx = canvas.getContext('2d');
             ctx.clearRect(0, 0, canvas.width, canvas.height);
+            canvas.width = 1;
+            canvas.height = 1;
         }
         window.removeEventListener('resize', confettiResizeHandler);
     }
 }
 
-/* ================== 数据同步引擎 ================== */
-let toastTimeout;
-function showSyncStatus(msg, color = "var(--text)") {
-    const toast = document.getElementById('globalToast');
-    if (!toast) return;
-    toast.innerHTML = msg;
-    toast.style.color = color;
+function formatToastMsg(msg) {
+    if (!msg) return "";
+    const map = {
+        '🎉': 'icons/Alarm/Congratulations.png',
+        '🎊': 'icons/Alarm/Congratulations.png',
+        '🌟': 'icons/Alarm/Congratulations.png',
+        '✨': 'icons/Alarm/Congratulations.png',
+        '✅': 'icons/Alarm/Done.png',
+        '✔️': 'icons/Alarm/Done.png',
+        '💡': 'icons/Alarm/Done.png',
+        '🔔': 'icons/Alarm/Done.png',
+        '💾': 'icons/Alarm/Done.png',
+        '📸': 'icons/Alarm/Done.png',
+        '📦': 'icons/Alarm/Done.png',
+        '☑️': 'icons/Alarm/Done.png',
+        '❌': 'icons/Alarm/Error.png',
+        '🚫': 'icons/Alarm/Error.png',
+        '⚠️': 'icons/Alarm/Warning.png',
+        '❗': 'icons/Alarm/Warning.png',
+        '⏰': 'icons/Alarm/Warning.png',
+        '📅': 'icons/Alarm/Warning.png',
+        '⏳': 'icons/Alarm/Rocket.png',
+        '📋': 'icons/Alarm/Done.png',
+        '📝': 'icons/Alarm/Write_In.png',
+        '🗑️': 'icons/Alarm/Rubbish_Bin.png',
+        '🗑': 'icons/Alarm/Rubbish_Bin.png',
+        '🚀': 'icons/Alarm/Rocket.png',
+        '🗞️': 'icons/Alarm/Rocket.png',
+        '⏬': 'icons/Alarm/Done.png'
+    };
+    let formatted = msg;
+    for (const [emoji, path] of Object.entries(map)) {
+        if (formatted.includes(emoji)) {
+            formatted = formatted.split(emoji).join(`<img src="${path}" class="toast-icon" style="width: 18px; height: 18px; vertical-align: -3px; margin-right: 6px; object-fit: contain;" alt="">`);
+        }
+    }
+    return formatted;
+}
+
+/* ================== 数据同步引擎/多 Toast 纵深堆叠通知 ================== */
+let activeToastStack = [];
+
+function getOrCreateToastContainer() {
+    let container = document.getElementById('globalToastContainer');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'globalToastContainer';
+        container.className = 'toast-container';
+        document.body.appendChild(container);
+    }
+    return container;
+}
+
+/* ================== Toast 实时背景深度检测与平滑自适应引擎 ================== */
+let toastDepthCheckTimer = null;
+
+function parseRgbaColor(str) {
+    if (!str || str === 'transparent' || str === 'inherit') return null;
+    const match = str.match(/rgba?\(\s*(\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\s*\)/);
+    if (match) {
+        return {
+            r: parseInt(match[1], 10),
+            g: parseInt(match[2], 10),
+            b: parseInt(match[3], 10),
+            a: match[4] !== undefined ? parseFloat(match[4]) : 1.0
+        };
+    }
+    return null;
+}
+
+function detectToastUnderlyingDepth(toastEl) {
+    if (!toastEl || !toastEl.isConnected) return false;
+    const rect = toastEl.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return false;
+
+    // 取 Toast 弹出位置的横向多点（左 25%、中 50%、右 75%）进行下层采样
+    const samplePoints = [
+        { x: rect.left + rect.width * 0.25, y: rect.top + rect.height * 0.5 },
+        { x: rect.left + rect.width * 0.5, y: rect.top + rect.height * 0.5 },
+        { x: rect.left + rect.width * 0.75, y: rect.top + rect.height * 0.5 }
+    ];
+
+    let darkCount = 0;
+    let sampleCount = 0;
+
+    for (const pt of samplePoints) {
+        const x = Math.max(0, Math.min(window.innerWidth - 1, pt.x));
+        const y = Math.max(0, Math.min(window.innerHeight - 1, pt.y));
+
+        const elements = (document.elementsFromPoint ? document.elementsFromPoint(x, y) : []) || [];
+        let pointIsDark = false;
+        let foundOpaque = false;
+
+        for (const el of elements) {
+            if (!el || el === toastEl || toastEl.contains(el) || el.id === 'globalToastContainer' || el.classList.contains('toast-container')) {
+                continue;
+            }
+
+            // 1. 如果下层元素本身处于深色模式/深色壁纸容器中
+            if (el.closest && el.closest('.dark-wp, .dark-mode, .is-dark-bg, .dark-theme, [data-theme="dark"]')) {
+                pointIsDark = true;
+                foundOpaque = true;
+                break;
+            }
+
+            const win = el.ownerDocument ? el.ownerDocument.defaultView : window;
+            const style = win.getComputedStyle(el);
+            const bg = parseRgbaColor(style.backgroundColor);
+
+            // 2. 分析下层元素的实际背景色亮度
+            if (bg && bg.a > 0.15) {
+                const rEff = bg.r * bg.a + 255 * (1 - bg.a);
+                const gEff = bg.g * bg.a + 255 * (1 - bg.a);
+                const bEff = bg.b * bg.a + 255 * (1 - bg.a);
+                const luma = 0.299 * rEff + 0.587 * gEff + 0.114 * bEff;
+                if (luma < 160) {
+                    pointIsDark = true;
+                }
+                foundOpaque = true;
+                break;
+            }
+
+            // 3. 分析文字与背景反差（浅色高亮文字一般代表深色卡片/背景）
+            const fg = parseRgbaColor(style.color);
+            if (fg && fg.a > 0.6) {
+                const fgLuma = 0.299 * fg.r + 0.587 * fg.g + 0.114 * fg.b;
+                if (fgLuma > 215 && (style.backgroundImage !== 'none' || bg)) {
+                    pointIsDark = true;
+                    foundOpaque = true;
+                    break;
+                }
+            }
+        }
+
+        // 4. 若未命中具体卡片，则回退到当前 body/页面整体壁纸深度判断
+        if (!foundOpaque) {
+            if (document.body.classList.contains('dark-wp') || document.body.classList.contains('dark-mode')) {
+                pointIsDark = true;
+            }
+        }
+
+        if (pointIsDark) darkCount++;
+        sampleCount++;
+    }
+
+    return sampleCount > 0 && (darkCount >= Math.ceil(sampleCount / 2));
+}
+
+function checkAllActiveToastDepths() {
+    if (!activeToastStack || activeToastStack.length === 0) {
+        if (toastDepthCheckTimer) {
+            clearInterval(toastDepthCheckTimer);
+            toastDepthCheckTimer = null;
+        }
+        return;
+    }
+
+    activeToastStack.forEach(item => {
+        if (!item || !item.el) return;
+        const isDeep = detectToastUnderlyingDepth(item.el);
+        if (isDeep) {
+            item.el.classList.add('deep-bg');
+        } else {
+            item.el.classList.remove('deep-bg');
+        }
+    });
+
+    updateToastStackPositions();
+}
+
+function ensureToastDepthMonitor() {
+    if (document.hidden) return;
+    if (!toastDepthCheckTimer) {
+        // 每隔 1.2 秒进行一次实时下层深度轮询
+        toastDepthCheckTimer = setInterval(checkAllActiveToastDepths, 1200);
+    }
+    // 异步微任务中执行单次首检，避免同步重入
+    Promise.resolve().then(checkAllActiveToastDepths);
+}
+
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+        if (toastDepthCheckTimer) {
+            clearInterval(toastDepthCheckTimer);
+            toastDepthCheckTimer = null;
+        }
+    } else if (activeToastStack.length > 0) {
+        ensureToastDepthMonitor();
+    }
+});
+
+window.addEventListener('AlphaSleep', () => {
+    if (toastDepthCheckTimer) {
+        clearInterval(toastDepthCheckTimer);
+        toastDepthCheckTimer = null;
+    }
+});
+
+window.addEventListener('AlphaWake', () => {
+    if (activeToastStack.length > 0) {
+        ensureToastDepthMonitor();
+    }
+});
+
+function updateToastStackPositions() {
+    const total = activeToastStack.length;
+    const isDeepBg = document.body.classList.contains('dark-wp') || 
+                     document.body.classList.contains('dark-mode') || 
+                     document.body.classList.contains('is-dark-bg');
+    activeToastStack.forEach((item, index) => {
+        const depth = total - 1 - index; // 0 = 最新(最前景), 1 = 次新, 2 = 较早
+        const el = item.el;
+        if (!el || el.classList.contains('dismiss')) return;
+
+        // 视觉纵深体系:
+        // 最新 (depth 0): 稍微下沉 (index * 14px), 放大 (scale 1.04)
+        // 较早 (depth 1, 2...): scale 逐渐变小, 保持容器 opacity: 1 (由毛玻璃与折射自然呈现透叠), 确保 Chromium 正确渲染多层 Backdrop Filter
+        const scale = Math.max(0.86, 1.04 - depth * 0.06);
+        const translateY = index * 14;
+        const zIndex = 10005 + index;
+
+        el.style.zIndex = zIndex;
+        el.style.transform = `translateX(-50%) translateY(${translateY}px) scale(${scale})`;
+        if (isDeepBg || el.classList.contains('deep-bg')) {
+            if (depth === 0) {
+                el.style.boxShadow = '0 16px 36px rgba(15, 23, 42, 0.16), inset 0 1px 2px rgba(255, 255, 255, 0.95), inset 0 -1px 2px rgba(0, 0, 0, 0.03)';
+            } else {
+                el.style.boxShadow = '0 8px 20px rgba(15, 23, 42, 0.08), inset 0 1px 2px rgba(255, 255, 255, 0.95)';
+            }
+        } else {
+            if (depth === 0) {
+                el.style.boxShadow = '0 16px 40px rgba(15, 23, 42, 0.12), inset 0 0 0 1px rgba(255, 255, 255, 0.1), inset 2px 3px 10px rgba(255, 255, 255, 0.35), inset -2px -3px 10px rgba(0, 0, 0, 0.03), inset 4px 6px 20px rgba(255, 255, 255, 0.18)';
+            } else {
+                el.style.boxShadow = '0 8px 24px rgba(15, 23, 42, 0.08), inset 0 0 0 1px rgba(255, 255, 255, 0.1), inset 2px 3px 6px rgba(255, 255, 255, 0.25)';
+            }
+        }
+    });
+}
+
+function showSyncStatus(msg, color = "var(--monet-text, var(--text))", duration = 3000) {
+    const container = getOrCreateToastContainer();
+
+    if (activeToastStack.length >= 4) {
+        const oldest = activeToastStack.shift();
+        if (oldest && oldest.el) {
+            oldest.el.classList.add('dismiss');
+            clearTimeout(oldest.timer);
+            setTimeout(() => {
+                if (oldest.el && oldest.el.parentNode) oldest.el.parentNode.removeChild(oldest.el);
+            }, 420);
+        }
+    }
+
+    const toast = document.createElement('div');
+    toast.className = 'toast-notification';
+    toast.innerHTML = formatToastMsg(msg);
+    if (color) toast.style.color = color;
+    container.appendChild(toast);
+
+    void toast.offsetWidth;
     toast.classList.add('show');
-    
-    if (toastTimeout) clearTimeout(toastTimeout);
-    toastTimeout = setTimeout(() => toast.classList.remove('show'), 3000);
+
+    const toastItem = {
+        el: toast,
+        timer: null
+    };
+    activeToastStack.push(toastItem);
+    updateToastStackPositions();
+    if (typeof ensureToastDepthMonitor === 'function') {
+        ensureToastDepthMonitor();
+    }
+
+    if (duration > 0) {
+        toastItem.timer = setTimeout(() => {
+            toast.classList.add('dismiss');
+            const idx = activeToastStack.indexOf(toastItem);
+            if (idx !== -1) {
+                activeToastStack.splice(idx, 1);
+            }
+            updateToastStackPositions();
+            setTimeout(() => {
+                if (toast.parentNode) toast.parentNode.removeChild(toast);
+            }, 420);
+        }, duration);
+    }
+    return toast;
 }
 
 /* ================== 高性能 二进制 <-> Base64 转换器 ================== */
@@ -1698,49 +2556,222 @@ function base64ToUint8(base64) {
     return bytes;
 }
 
-/* ================== Web Worker 异步任务引擎 ================== */
+/* ================== Web Worker 异步任务与主线程双轨计算引擎 ================== */
 let syncWorkerInstance = null;
 let dataWorkerInstance = null;
 let workerTaskId = 0;
 const workerPromises = new Map();
 
-function getSyncWorker() {
-  if (!syncWorkerInstance) {
-    syncWorkerInstance = new Worker('sync_worker.js');
-    syncWorkerInstance.onmessage = function(e) {
-      const { taskId, success, result, error } = e.data;
-      if (workerPromises.has(taskId)) {
-        const { resolve, reject } = workerPromises.get(taskId);
-        workerPromises.delete(taskId);
-        if (success) resolve(result);
-        else reject(new Error(error));
+function executeMainThreadSyncAction(action, payload) {
+  switch (action) {
+    case 'compress_sync_code': {
+      const jsonString = JSON.stringify(payload);
+      const fflateLib = (typeof fflate !== 'undefined') ? fflate : (typeof window !== 'undefined' ? window.fflate : null);
+      if (fflateLib && fflateLib.zlibSync && fflateLib.strToU8) {
+        const compressedBytes = fflateLib.zlibSync(fflateLib.strToU8(jsonString), { level: 9 });
+        const encoded = "FFL|" + uint8ToBase64(compressedBytes);
+        return { encoded, length: encoded.length };
+      } else {
+        const encoded = "RAW|" + btoa(unescape(encodeURIComponent(jsonString)));
+        return { encoded, length: encoded.length };
       }
-    };
+    }
+    case 'decompress_sync_code': {
+      const code = (payload.code || '').trim();
+      let jsonString = null;
+      const fflateLib = (typeof fflate !== 'undefined') ? fflate : (typeof window !== 'undefined' ? window.fflate : null);
+
+      if (code.startsWith("FFL|")) {
+        const compressedBytes = base64ToUint8(code.substring(4));
+        if (fflateLib && fflateLib.unzlibSync && fflateLib.strFromU8) {
+          jsonString = fflateLib.strFromU8(fflateLib.unzlibSync(compressedBytes));
+        }
+      } else if (code.startsWith("RAW|")) {
+        jsonString = decodeURIComponent(escape(atob(code.substring(4))));
+      } else {
+        try {
+          const compressedBytes = base64ToUint8(code);
+          if (fflateLib && fflateLib.unzlibSync && fflateLib.strFromU8) {
+            jsonString = fflateLib.strFromU8(fflateLib.unzlibSync(compressedBytes));
+          }
+        } catch (_) {
+          jsonString = decodeURIComponent(escape(atob(code)));
+        }
+      }
+
+      if (!jsonString) {
+        throw new Error('无法解析该同步码, 格式可能已损坏或复制不完整');
+      }
+
+      const data = JSON.parse(jsonString);
+      return { data };
+    }
+    default:
+      throw new Error(`Unknown sync action: ${action}`);
+  }
+}
+
+function executeMainThreadDataAction(action, payload) {
+  switch (action) {
+    case 'export_txt': {
+      const { account, taskflow, taskhub, tasktimer, wallpaper } = payload;
+      const exportPayload = {
+        account: account || "{}",
+        taskflow: taskflow || "{}",
+        taskhub: taskhub || "[]",
+        tasktimer: tasktimer || "[]",
+        wallpaper: wallpaper || ""
+      };
+      const jsonString = JSON.stringify(exportPayload, null, 2);
+      return { jsonString };
+    }
+    case 'import_txt': {
+      const { content } = payload;
+      const parsed = JSON.parse(content);
+      return {
+        account: typeof parsed.account === 'object' ? JSON.stringify(parsed.account) : parsed.account,
+        taskflow: typeof parsed.taskflow === 'object' ? JSON.stringify(parsed.taskflow) : parsed.taskflow,
+        taskhub: typeof parsed.taskhub === 'object' ? JSON.stringify(parsed.taskhub) : parsed.taskhub,
+        tasktimer: typeof parsed.tasktimer === 'object' ? JSON.stringify(parsed.tasktimer) : parsed.tasktimer,
+        wallpaper: typeof parsed.wallpaper === 'object' ? JSON.stringify(parsed.wallpaper) : parsed.wallpaper
+      };
+    }
+    case 'calc_luminance': {
+      const { pixels } = payload;
+      if (!pixels || pixels.length === 0) {
+        return { isDark: false, luminance: 255 };
+      }
+      let totalLuminance = 0;
+      const count = pixels.length / 4;
+      for (let i = 0; i < pixels.length; i += 4) {
+        totalLuminance += (0.299 * pixels[i] + 0.587 * pixels[i + 1] + 0.114 * pixels[i + 2]);
+      }
+      const avgLuminance = totalLuminance / count;
+      return { isDark: avgLuminance < 160, luminance: avgLuminance };
+    }
+    default:
+      throw new Error(`Unknown data action: ${action}`);
+  }
+}
+
+function getSyncWorker() {
+  if (!syncWorkerInstance && typeof Worker !== 'undefined') {
+    try {
+      syncWorkerInstance = new Worker('sync_worker.js');
+      syncWorkerInstance.onmessage = function(e) {
+        const { taskId, success, result, error } = e.data;
+        if (workerPromises.has(taskId)) {
+          const { resolve, reject, timeoutId } = workerPromises.get(taskId);
+          if (timeoutId) clearTimeout(timeoutId);
+          workerPromises.delete(taskId);
+          if (success) resolve(result);
+          else reject(new Error(error || 'Worker 处理失败'));
+        }
+      };
+      syncWorkerInstance.onerror = function(err) {
+        console.warn('SyncWorker onerror:', err);
+      };
+    } catch (e) {
+      console.warn('SyncWorker 实例化异常, 将使用主线程引擎:', e);
+      syncWorkerInstance = null;
+    }
   }
   return syncWorkerInstance;
 }
 
 function getDataWorker() {
-  if (!dataWorkerInstance) {
-    dataWorkerInstance = new Worker('data_worker.js');
-    dataWorkerInstance.onmessage = function(e) {
-      const { taskId, success, result, error } = e.data;
-      if (workerPromises.has(taskId)) {
-        const { resolve, reject } = workerPromises.get(taskId);
-        workerPromises.delete(taskId);
-        if (success) resolve(result);
-        else reject(new Error(error));
-      }
-    };
+  if (!dataWorkerInstance && typeof Worker !== 'undefined') {
+    try {
+      dataWorkerInstance = new Worker('data_worker.js');
+      dataWorkerInstance.onmessage = function(e) {
+        const { taskId, success, result, error } = e.data;
+        if (workerPromises.has(taskId)) {
+          const { resolve, reject, timeoutId } = workerPromises.get(taskId);
+          if (timeoutId) clearTimeout(timeoutId);
+          workerPromises.delete(taskId);
+          if (success) resolve(result);
+          else reject(new Error(error || 'Worker 处理失败'));
+        }
+      };
+      dataWorkerInstance.onerror = function(err) {
+        console.warn('DataWorker onerror:', err);
+      };
+    } catch (e) {
+      console.warn('DataWorker 实例化异常, 将使用主线程引擎:', e);
+      dataWorkerInstance = null;
+    }
   }
   return dataWorkerInstance;
 }
 
 function runWebWorker(worker, action, payload = {}) {
   return new Promise((resolve, reject) => {
+    if (!worker) {
+      try {
+        if (action === 'compress_sync_code' || action === 'decompress_sync_code') {
+          resolve(executeMainThreadSyncAction(action, payload));
+        } else {
+          resolve(executeMainThreadDataAction(action, payload));
+        }
+      } catch (err) {
+        reject(err);
+      }
+      return;
+    }
+
     const taskId = ++workerTaskId;
-    workerPromises.set(taskId, { resolve, reject });
-    worker.postMessage({ taskId, action, payload });
+    const timeoutId = setTimeout(() => {
+      if (workerPromises.has(taskId)) {
+        workerPromises.delete(taskId);
+        console.warn(`Web Worker [${action}] 超时, 自动回退主线程计算`);
+        try {
+          if (action === 'compress_sync_code' || action === 'decompress_sync_code') {
+            resolve(executeMainThreadSyncAction(action, payload));
+          } else {
+            resolve(executeMainThreadDataAction(action, payload));
+          }
+        } catch (err) {
+          reject(err);
+        }
+      }
+    }, 2500);
+
+    workerPromises.set(taskId, {
+      resolve: (val) => { clearTimeout(timeoutId); resolve(val); },
+      reject: (err) => {
+        clearTimeout(timeoutId);
+        console.warn(`Web Worker [${action}] 执行失败, 回退主线程:`, err);
+        try {
+          if (action === 'compress_sync_code' || action === 'decompress_sync_code') {
+            resolve(executeMainThreadSyncAction(action, payload));
+          } else {
+            resolve(executeMainThreadDataAction(action, payload));
+          }
+        } catch (fbErr) {
+          reject(fbErr);
+        }
+      },
+      timeoutId,
+      action,
+      payload
+    });
+
+    try {
+      worker.postMessage({ taskId, action, payload });
+    } catch (postErr) {
+      clearTimeout(timeoutId);
+      workerPromises.delete(taskId);
+      console.warn(`Web Worker postMessage 异常, 回退主线程:`, postErr);
+      try {
+        if (action === 'compress_sync_code' || action === 'decompress_sync_code') {
+          resolve(executeMainThreadSyncAction(action, payload));
+        } else {
+          resolve(executeMainThreadDataAction(action, payload));
+        }
+      } catch (fbErr) {
+        reject(fbErr);
+      }
+    }
   });
 }
 
@@ -1753,17 +2784,18 @@ async function exportToTxt() {
             taskflow: localStorage.getItem("taskflow_data") || "{}",
             taskhub: localStorage.getItem("taskhub_data") || "[]",
             tasktimer: localStorage.getItem("tasktimer_data") || "[]",
-            wallpaper: localStorage.getItem("alpha_wallpaper") || ""
+            wallpaper: (!localStorage.getItem("alpha_wallpaper") || localStorage.getItem("alpha_wallpaper") === "./background.png" || localStorage.getItem("alpha_wallpaper") === "default") ? "default" : localStorage.getItem("alpha_wallpaper")
         };
         
         const { jsonString } = await runWebWorker(getDataWorker(), 'export_txt', rawPayload);
-        const blob = new Blob([jsonString], { type: "text/plain;charset=utf-8" });
+        const encoded = 'TDA|' + btoa(unescape(encodeURIComponent(jsonString)));
+        const blob = new Blob([encoded], { type: "application/octet-stream" });
         const url = URL.createObjectURL(blob);
         
         const a = document.createElement('a');
         const dateStr = new Date().toISOString().slice(0,10).replace(/-/g, "");
         a.href = url;
-        a.download = `Tasks_Data_${dateStr}.txt`;
+        a.download = `Tasks_Data_${dateStr}.tda`;
         a.target = '_self';
         a.style.display = 'none';
         
@@ -1780,7 +2812,7 @@ async function exportToTxt() {
         showSyncStatus("📦 数据已成功打包并触发下载!", "var(--monet-text)");
     } catch(e) {
         console.error(e);
-        customAlert("数据生成流失败, 请检查本地数据状态", "导出失败", "❌");
+        customAlert("数据生成流失败, 请检查本地数据状态", "导出失败", "Error");
     }
 }
 
@@ -1790,7 +2822,17 @@ function importFromTxt(event) {
 
     const reader = new FileReader();
     reader.onload = function(e) {
-        const content = e.target.result;
+        let content = e.target.result;
+        
+        // 解码 TDA 格式: 去掉 TDA| 前缀后进行 Base64 解码
+        if (content.startsWith('TDA|')) {
+            try {
+                content = decodeURIComponent(escape(atob(content.slice(4))));
+            } catch(decErr) {
+                customAlert("TDA 文件解码失败, 文件可能已损坏", "解码错误", "Error");
+                return;
+            }
+        }
         
         customConfirm("注意: 从文件恢复后, 当前设备数据将被不可逆地抹除并覆盖, 确定继续吗?", async () => {
             try {
@@ -1800,17 +2842,23 @@ function importFromTxt(event) {
                 if (payload.taskflow) localStorage.setItem("taskflow_data", payload.taskflow);
                 if (payload.taskhub) localStorage.setItem("taskhub_data", payload.taskhub);
                 if (payload.tasktimer) localStorage.setItem("tasktimer_data", payload.tasktimer);
-                if (payload.wallpaper) localStorage.setItem("alpha_wallpaper", payload.wallpaper);
+                if (payload.wallpaper) {
+                    if (payload.wallpaper === 'default' || payload.wallpaper === './background.png' || payload.wallpaper === 'background.png') {
+                        localStorage.setItem("alpha_wallpaper", "./background.png");
+                    } else {
+                        localStorage.setItem("alpha_wallpaper", payload.wallpaper);
+                    }
+                }
                 
-                customAlert("设备数据已从备份文件复原, 即将刷新页面以载入最新数据", "导入成功", "🎉");
+                customAlert("设备数据已从备份文件复原, 即将刷新页面以载入最新数据", "导入成功", "Congratulations");
                 setTimeout(() => window.location.reload(), 2000);
             } catch(err) {
                 console.error(err);
-                customAlert("无法解析文件, 它可能已损坏", "数据异常", "❌");
+                customAlert("无法解析文件, 它可能已损坏", "数据异常", "Error");
             } finally {
                 event.target.value = '';
             }
-        }, "重塑世界线", true);
+        }, "重塑世界线", true, "Warning");
     };
     
     reader.readAsText(file);
@@ -1818,9 +2866,15 @@ function importFromTxt(event) {
 
 /* ================== 全生态同步引擎 (Web Worker 驱动) ================== */
 async function generateSyncCode() {
-    showSyncStatus("⏳ Web Worker 全速运转压缩中...", "var(--monet-blue)");
+    showSyncStatus("⏳ 正在打包与加密同步数据...", "var(--monet-blue)", 3000);
     
     const rawWallpaper = localStorage.getItem("alpha_wallpaper");
+    const isDefaultWp = !rawWallpaper || 
+                        rawWallpaper === './background.png' || 
+                        rawWallpaper === 'background.png' || 
+                        rawWallpaper === 'default' || 
+                        rawWallpaper === 'null' ||
+                        rawWallpaper === 'undefined';
 
     const packData = async (processedWallpaper) => {
         try {
@@ -1829,7 +2883,7 @@ async function generateSyncCode() {
                 taskflow: localStorage.getItem("taskflow_data"),
                 taskhub: localStorage.getItem("taskhub_data"),
                 tasktimer: localStorage.getItem("tasktimer_data"),
-                wallpaper: processedWallpaper
+                wallpaper: isDefaultWp ? "default" : processedWallpaper
             };
             
             Object.keys(rawPayload).forEach(key => {
@@ -1838,54 +2892,71 @@ async function generateSyncCode() {
                 }
             });
 
-            const { encoded, length } = await runWebWorker(getSyncWorker(), 'compress_sync_code', rawPayload);
+            const worker = getSyncWorker();
+            const { encoded, length } = await runWebWorker(worker, 'compress_sync_code', rawPayload);
             
             const area = document.getElementById('syncCodeArea');
             if (area) area.value = encoded;
             
             if (length > 50000) {
-                customAlert("同步码长度超过常规设备剪切板长度上限<br><b>建议导出为 <b>txt 文本</b>格式", "同步码过长", "⚠️");
-                showSyncStatus("📦 打包完毕, 建议使用 TXT 导出", "var(--monet-text)");
+                showSyncStatus("⚠️ 同步码过长, 建议使用 TDA 文件格式导出", "var(--monet-text)", 4500);
             } else {
-                showSyncStatus("📦 同步码已生成!", "var(--monet-text)");
+                showSyncStatus("📦 同步码已生成并填入文本框!", "var(--monet-text)", 3000);
             }
+            return encoded;
         } catch (e) {
-            console.error(e);
-            customAlert("数据处理失败, 请确认设备内存是否充足", "生成失败", "❌");
+            console.error("生成同步码失败:", e);
+            showSyncStatus(`❌ 数据处理失败: ${e.message || '请检查设备内存'}`, "var(--monet-text)", 4500);
+            throw e;
         }
     };
 
-    if (rawWallpaper && rawWallpaper.startsWith('data:image/')) {
-        showSyncStatus("🗞️ 正在压缩壁纸至 1080P 级别...", "var(--monet-text)");
-        const img = new Image();
-        img.onload = () => {
-            let w = img.width;
-            let h = img.height;
-            const max = 1920; 
-            
-            if (w > max || h > max) {
-                if (w > h) { h = Math.round(h * max / w); w = max; } 
-                else { w = Math.round(w * max / h); h = max; }
-            }
-            
-            const canvas = document.createElement('canvas');
-            canvas.width = w; 
-            canvas.height = h;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, w, h);
-            
-            packData(canvas.toDataURL('image/jpeg', 0.6));
-        };
-        img.onerror = () => packData(rawWallpaper);
-        img.src = rawWallpaper;
-    } else {
-        packData(rawWallpaper);
+    try {
+        if (!isDefaultWp && rawWallpaper && rawWallpaper.startsWith('data:image/')) {
+            showSyncStatus("🗞️ 正在压缩壁纸至 1080P 级别...", "var(--monet-text)", 3000);
+            return await new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => {
+                    try {
+                        let w = img.width;
+                        let h = img.height;
+                        const max = 1920; 
+                        
+                        if (w > max || h > max) {
+                            if (w > h) { h = Math.round(h * max / w); w = max; } 
+                            else { w = Math.round(w * max / h); h = max; }
+                        }
+                        
+                        const canvas = document.createElement('canvas');
+                        canvas.width = w; 
+                        canvas.height = h;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, w, h);
+                        
+                        packData(canvas.toDataURL('image/jpeg', 0.6)).then(resolve).catch(reject);
+                    } catch (canvasErr) {
+                        console.warn("壁纸压缩异常, 回退到原壁纸", canvasErr);
+                        packData(rawWallpaper).then(resolve).catch(reject);
+                    }
+                };
+                img.onerror = () => {
+                    console.warn("壁纸加载异常, 回退到原壁纸");
+                    packData(rawWallpaper).then(resolve).catch(reject);
+                };
+                img.src = rawWallpaper;
+            });
+        } else {
+            return await packData(isDefaultWp ? "default" : rawWallpaper);
+        }
+    } catch (outerErr) {
+        console.error("生成同步码外层异常:", outerErr);
+        showSyncStatus(`❌ 数据处理失败: ${outerErr.message || '系统异常'}`, "var(--monet-text)", 4500);
     }
 }
 
 function copySyncCode() {
     const area = document.getElementById('syncCodeArea');
-    if (!area || !area.value) { customAlert("请先生成或粘贴同步码", "操作无效", "⚠️"); return; }
+    if (!area || !area.value) { customAlert("请先生成或粘贴同步码", "操作无效", "Warning"); return; }
     area.select();
     document.execCommand('copy');
     showSyncStatus("📋 同步码已复制到剪贴板!", "var(--monet-text)");
@@ -1900,7 +2971,7 @@ function importSyncCode() {
         code = code.replace(/\s+/g, '');
     }
     
-    if (!code) { customAlert("请在此处粘贴来自其他设备的同步码", "无数据", "⚠️"); return; }
+    if (!code) { customAlert("请在此处粘贴来自其他设备的同步码", "无数据", "Warning"); return; }
 
     customConfirm("警告: 导入操作将不可逆地覆盖当前设备的所有数据, 确定继续吗?", async () => {
         showSyncStatus("⏳ Web Worker 正在解包数据, 请稍候...", "var(--monet-blue)");
@@ -1909,7 +2980,7 @@ function importSyncCode() {
             const { data } = await runWebWorker(getSyncWorker(), 'decompress_sync_code', { code });
             
             if (!data) {
-                customAlert("无法解析该同步码, 格式可能已损坏或复制不完整", "导入失败", "❌");
+                customAlert("无法解析该同步码, 格式可能已损坏或复制不完整", "导入失败", "Error");
                 return;
             }
 
@@ -1917,30 +2988,27 @@ function importSyncCode() {
             if (data.taskflow) localStorage.setItem("taskflow_data", typeof data.taskflow === 'object' ? JSON.stringify(data.taskflow) : data.taskflow);
             if (data.taskhub) localStorage.setItem("taskhub_data", typeof data.taskhub === 'object' ? JSON.stringify(data.taskhub) : data.taskhub);
             if (data.tasktimer) localStorage.setItem("tasktimer_data", typeof data.tasktimer === 'object' ? JSON.stringify(data.tasktimer) : data.tasktimer);
-            if (data.wallpaper) localStorage.setItem("alpha_wallpaper", typeof data.wallpaper === 'object' ? JSON.stringify(data.wallpaper) : data.wallpaper); 
+            if (data.wallpaper) {
+                if (data.wallpaper === 'default' || data.wallpaper === './background.png' || data.wallpaper === 'background.png') {
+                    localStorage.setItem("alpha_wallpaper", "./background.png");
+                } else {
+                    localStorage.setItem("alpha_wallpaper", typeof data.wallpaper === 'object' ? JSON.stringify(data.wallpaper) : data.wallpaper);
+                }
+            } 
             
-            customAlert("设备数据已完美同步! 页面即将刷新", "同步成功", "🎉");
+            customAlert("设备数据已完美同步! 页面即将刷新", "同步成功", "Congratulations");
             setTimeout(() => window.location.reload(), 2000);
         } catch(e) {
             console.error(e);
-            customAlert("数据内容损坏, 解析失败: " + (e.message || e), "导入失败", "❌");
+            customAlert("数据内容损坏, 解析失败: " + (e.message || e), "导入失败", "Error");
         }
-    }, "高危操作确认", true);
+    }, "高危操作确认", true, "Warning");
 }
 
 
 window.addEventListener('storage', (e) => {
     if (e.key === ACCOUNT_KEY) {
-        try {
-            const newData = JSON.parse(e.newValue);
-            if (!newData) return;
-            accountData.avatar = newData.avatar;
-            if (els.dispAvatar) {
-                els.dispAvatar.src = newData.avatar || DEFAULT_AVATAR;
-                els.dispAvatar.style.display = 'block';
-            }
-            if (els.dispPlaceholder) els.dispPlaceholder.style.display = 'none';
-        } catch(err) { console.error("头像跨端同步解析失败", err); }
+        loadProfileData();
     }
 });
 
@@ -1961,6 +3029,263 @@ function goBack() {
         window.location.href = 'settings.html';
     }
 }
+
+/* ================== TDA 文件关联打开处理器 ================== */
+function handleTdaFileContent(content) {
+    // 解码 TDA 格式
+    if (content.startsWith('TDA|')) {
+        try {
+            content = decodeURIComponent(escape(atob(content.slice(4))));
+        } catch(decErr) {
+            customAlert("TDA 文件解码失败, 文件可能已损坏", "解码错误", "Error");
+            return;
+        }
+    }
+    
+    customConfirm("检测到外部 TDA 数据存档, 是否载入并覆盖当前设备数据?", async () => {
+        try {
+            const payload = await runWebWorker(getDataWorker(), 'import_txt', { content });
+            
+            if (payload.account) localStorage.setItem(ACCOUNT_KEY, payload.account);
+            if (payload.taskflow) localStorage.setItem("taskflow_data", payload.taskflow);
+            if (payload.taskhub) localStorage.setItem("taskhub_data", payload.taskhub);
+            if (payload.tasktimer) localStorage.setItem("tasktimer_data", payload.tasktimer);
+            if (payload.wallpaper) localStorage.setItem("alpha_wallpaper", payload.wallpaper);
+            
+            customAlert("数据存档已成功载入! 即将刷新页面", "导入成功", "Congratulations");
+            setTimeout(() => window.location.reload(), 2000);
+        } catch(err) {
+            console.error(err);
+            customAlert("无法解析 TDA 存档, 文件可能已损坏", "数据异常", "Error");
+        }
+    }, "载入数据存档", true, "Warning");
+}
+
+window.addEventListener('message', (e) => {
+    if (e.data && e.data.type === 'tda-file-content') {
+        handleTdaFileContent(e.data.content);
+    }
+});
+</script>
+
+<!-- ==========================================
+     文本框溢出与横向滚动状态监听
+     ========================================== -->
+<script>
+(function() {
+    const pendingInputs = new Set();
+    let overflowFrame = 0;
+
+    function isTrackableInput(el) {
+        if (!el || (el.tagName !== 'INPUT' && el.tagName !== 'TEXTAREA')) return false;
+        if (['radio', 'checkbox', 'file', 'hidden'].includes(el.type)) return false;
+        if (el.closest('.flatpickr-time') || el.closest('.flatpickr-calendar')) return false;
+        return true;
+    }
+
+    function flushInputOverflowUpdates() {
+        overflowFrame = 0;
+        const inputs = Array.from(pendingInputs).filter(isTrackableInput);
+        pendingInputs.clear();
+
+        // 先批量读取尺寸, 再批量写 class, 避免连续强制布局
+        const measurements = inputs.map(el => ({
+            el,
+            isOverflowing: el.scrollWidth > el.clientWidth,
+            isScrolledRight: el.scrollLeft > 2
+        }));
+
+        measurements.forEach(({ el, isOverflowing, isScrolledRight }) => {
+            el.classList.toggle('input-overflowing', isOverflowing);
+            el.classList.toggle('input-scrolled-right', isOverflowing && isScrolledRight);
+        });
+    }
+
+    function scheduleInputOverflowUpdate(el) {
+        if (!isTrackableInput(el)) return;
+        pendingInputs.add(el);
+        if (!overflowFrame) overflowFrame = requestAnimationFrame(flushInputOverflowUpdates);
+    }
+
+    function initInputOverflowMonitor() {
+        const events = ['input', 'scroll', 'focus', 'blur'];
+        const handleInputEvent = event => scheduleInputOverflowUpdate(event.target);
+        events.forEach(evt => {
+            document.addEventListener(evt, handleInputEvent, true);
+        });
+
+        const scanInputs = () => {
+            document.querySelectorAll('input[type="text"], input[type="number"], textarea, .pop-input-fx')
+                .forEach(scheduleInputOverflowUpdate);
+        };
+
+        scanInputs();
+        setTimeout(scanInputs, 500);
+        setTimeout(scanInputs, 1500);
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initInputOverflowMonitor);
+    } else {
+        initInputOverflowMonitor();
+    }
+})();
+
+// ======= 自适应节能与性能降载联动引擎 (Adaptive Activity & Power Throttler) =======
+(function initPerformanceThrottle() {
+    let isSleeping = false;
+    let isIdle = false;
+    let idleTimer = null;
+    const IDLE_TIMEOUT_MS = 2500;
+
+    function applyVisualFreeze(freeze) {
+        const docEl = document.documentElement;
+        const bodyEl = document.body;
+        if (!docEl) return;
+        if (freeze) {
+            docEl.classList.add('pause-bg-motion', 'pause-clock-breath');
+            if (bodyEl) bodyEl.classList.add('pause-bg-motion', 'pause-clock-breath');
+        } else if (!isSleeping) {
+            docEl.classList.remove('pause-bg-motion', 'pause-clock-breath');
+            if (bodyEl) bodyEl.classList.remove('pause-bg-motion', 'pause-clock-breath');
+        }
+    }
+
+    function onUserActive() {
+        if (isSleeping) return;
+        if (isIdle) {
+            isIdle = false;
+            applyVisualFreeze(false);
+        }
+        if (idleTimer) clearTimeout(idleTimer);
+        idleTimer = setTimeout(() => {
+            isIdle = true;
+            applyVisualFreeze(true);
+        }, IDLE_TIMEOUT_MS);
+    }
+
+    function onSleep() {
+        isSleeping = true;
+        if (idleTimer) {
+            clearTimeout(idleTimer);
+            idleTimer = null;
+        }
+        applyVisualFreeze(true);
+        try {
+            if (window.AlphaCardGlow && typeof window.AlphaCardGlow.sleep === 'function') {
+                window.AlphaCardGlow.sleep(document);
+            }
+            if (window.AlphaLiquidGlass && typeof window.AlphaLiquidGlass.releaseAll === 'function') {
+                window.AlphaLiquidGlass.releaseAll();
+            }
+        } catch (_) {}
+    }
+
+    function onWake() {
+        isSleeping = false;
+        isIdle = false;
+        applyVisualFreeze(false);
+        try {
+            if (window.AlphaCardGlow && typeof window.AlphaCardGlow.wake === 'function') {
+                window.AlphaCardGlow.wake(document);
+            }
+        } catch (_) {}
+        onUserActive();
+    }
+
+    const activityEvents = ['pointermove', 'pointerdown', 'keydown', 'scroll', 'wheel', 'touchstart'];
+    activityEvents.forEach(evt => {
+        window.addEventListener(evt, onUserActive, { passive: true, capture: true });
+    });
+
+    window.addEventListener('AlphaSleep', onSleep);
+    window.addEventListener('AlphaWake', onWake);
+    window.addEventListener('blur', () => {
+        if (idleTimer) clearTimeout(idleTimer);
+        isIdle = true;
+        applyVisualFreeze(true);
+    });
+    window.addEventListener('focus', onUserActive);
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) onSleep();
+        else onWake();
+    });
+
+    onUserActive();
+
+    function applyThrottle(throttle) {
+        if (!throttle) return;
+        if (throttle.pauseBgMotion || throttle.pauseClockBreath) {
+            applyVisualFreeze(true);
+        } else if (!isIdle && !isSleeping) {
+            applyVisualFreeze(false);
+        }
+    }
+
+    window.addEventListener('AlphaPerformanceThrottle', (e) => applyThrottle(e.detail));
+    const api = window.electronAPI || window.top?.electronAPI || window.parent?.electronAPI;
+    if (api && typeof api.onPerformanceThrottleChanged === 'function') {
+        api.onPerformanceThrottleChanged(applyThrottle);
+    }
+    if (api && typeof api.getPerformanceThrottleState === 'function') {
+        api.getPerformanceThrottleState().then(applyThrottle).catch(() => {});
+    }
+})();
+</script>
+<script>
+
+// ======= 壁纸与背景颜色深度自动检测联动 =======
+function checkBackgroundDepth() {
+    try {
+        const savedWp = localStorage.getItem('alpha_wallpaper');
+        if (savedWp && savedWp !== './background.png') {
+            const img = new Image();
+            img.crossOrigin = "Anonymous";
+            img.onload = () => {
+                try {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 40; canvas.height = 40;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, 40, 40);
+                    const data = ctx.getImageData(0, 0, 40, 40).data;
+                    let totalLuma = 0;
+                    const count = data.length / 4;
+                    for (let i = 0; i < data.length; i += 4) {
+                        totalLuma += (0.299 * data[i] + 0.587 * data[i+1] + 0.114 * data[i+2]);
+                    }
+                    const isDark = (totalLuma / count) < 160;
+                    document.body.classList.toggle('dark-wp', isDark);
+                    if (typeof updateToastStackPositions === 'function') {
+                        updateToastStackPositions();
+                    }
+                } catch (err) {}
+            };
+            img.src = savedWp;
+        } else {
+            document.body.classList.remove('dark-wp');
+            if (typeof updateToastStackPositions === 'function') {
+                updateToastStackPositions();
+            }
+        }
+    } catch (e) {}
+}
+window.addEventListener('storage', (e) => {
+    if (e.key === 'alpha_wallpaper') checkBackgroundDepth();
+});
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', checkBackgroundDepth, { once: true });
+} else {
+    checkBackgroundDepth();
+}
+
+// 禁止通过 F11 快捷键切换全屏
+window.addEventListener('keydown', (e) => {
+    if (e.key === 'F11' || e.keyCode === 122 || e.code === 'F11') {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+}, true);
+
 </script>
 </body>
 </html>

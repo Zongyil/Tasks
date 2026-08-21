@@ -3,20 +3,44 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-<title>启动 | Tasks</title>
+<title>启动</title>
 <style>
 /* ================== 全局与色彩体系 ================== */
 :root {
     --ease-spring: cubic-bezier(0.22, 1, 0.36, 1);
+    
+    /* 贴合 PNG 图标边缘的多层半透明白色贴纸描边体系 (严格参考 TaskHub.html custom alarm 样式) */
+    --logo-filter: 
+        drop-shadow(0 0 1.5px rgba(255, 255, 255, 0.90)) 
+        drop-shadow(0 0 3.5px rgba(255, 255, 255, 0.75)) 
+        drop-shadow(0 0 6.5px rgba(255, 255, 255, 0.45)) 
+        drop-shadow(0 8px 18px rgba(15, 23, 42, 0.14));
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --logo-filter: 
+            drop-shadow(0 0 1.5px rgba(255, 255, 255, 0.85)) 
+            drop-shadow(0 0 3.5px rgba(255, 255, 255, 0.65)) 
+            drop-shadow(0 0 6.5px rgba(255, 255, 255, 0.35)) 
+            drop-shadow(0 8px 18px rgba(0, 0, 0, 0.35));
+    }
+}
+
+*, *::before, *::after {
+    box-sizing: border-box;
+    user-select: none;
+    -webkit-user-select: none;
 }
 
 html, body {
     margin: 0; padding: 0;
     width: 100%; height: 100%;
-    /* 窗口透明 */
+    /* 窗口全透明, 完整呈现系统原生的 Tabbed / Mica 材质 */
     background-color: transparent; 
     overflow: hidden;
     user-select: none;
+    -webkit-user-select: none;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -24,7 +48,8 @@ html, body {
 
 /* ================== 迎风飘扬的 Logo 容器与退场隔离层 ================== */
 .exit-wrapper {
-    /* 1. 退场动画物理引擎交由外层接管, 彻底剥离冲突 */
+    opacity: 0;
+    animation: logoFadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.05s forwards;
     transition: opacity 1.2s cubic-bezier(0.16, 1, 0.3, 1),
                 transform 1.2s cubic-bezier(0.16, 1, 0.3, 1),
                 filter 1.2s cubic-bezier(0.16, 1, 0.3, 1);
@@ -34,39 +59,53 @@ html, body {
     align-items: center;
 }
 
+@keyframes logoFadeIn {
+    0% {
+        opacity: 0;
+        transform: scale(0.92) translateY(6px);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
 .logo-container {
     position: relative;
-    height: 50px; /* 2. 仅锁定高度, 释放宽度 */
-    /* 彻底移除 width: 50px, 使得不规则图标不再被强行拉伸为 1:1 */
+    height: 50px;
     animation: flutter 4s ease-in-out infinite;
     will-change: transform;
 }
 
 .logo-img {
     height: 100%;
-    width: auto; /* 3. 宽度自适应, 保持原图完美比例 */
+    width: auto;
     object-fit: contain;
-    /* 赋予其柔和的悬浮光影 */
-    filter: drop-shadow(0 8px 24px rgba(15, 23, 42, 0.12));
+    /* 贴合 PNG 像素轮廓边缘的多级白色半透明描边与投影 */
+    filter: var(--logo-filter);
     display: block;
 }
 
-/* ================== 模拟阳光拂过 (核心光学引擎) ================== */
+/* ================== 模拟阳光拂过 ================== */
 .light-sweep {
     position: absolute;
     top: 0; left: 0; width: 100%; height: 100%;
     background: linear-gradient(
         135deg, 
         transparent 35%, 
-        rgba(255, 245, 220, 0.6) 50%, 
+        rgba(255, 245, 220, 0.65) 50%, 
         transparent 65%
     );
     background-size: 250% 250%;
     animation: sweep 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-    mask-image: url('./Tasks_Flat.png');
+    mask-image: url('./Icon.png');
+    -webkit-mask-image: url('./Icon.png');
     mask-size: contain;
+    -webkit-mask-size: contain;
     mask-position: center;
+    -webkit-mask-position: center;
     mask-repeat: no-repeat;
+    -webkit-mask-repeat: no-repeat;
     pointer-events: none;
     z-index: 2;
 }
@@ -74,7 +113,7 @@ html, body {
 /* ================== 关键帧动效 ================== */
 @keyframes flutter {
     0% { transform: scale(1) rotate(0deg) translateY(0px); }
-    50% { transform: scale(1.03) rotate(0.8deg) translateY(-4px); }
+    50% { transform: scale(1.03) rotate(0.8deg) translateY(-3px); }
     100% { transform: scale(1) rotate(0deg) translateY(0px); }
 }
 @keyframes sweep {
@@ -82,7 +121,7 @@ html, body {
     100% { background-position: -50% -50%; }
 }
 
-/* ================== 退场状态类 (完美退场) ================== */
+/* ================== 退场状态类 ================== */
 .exit-state .exit-wrapper {
     opacity: 0;
     transform: scale(0.85) translateY(45px); /* 沉入水底的效果, 向下沉降并轻微缩小 */
@@ -90,54 +129,8 @@ html, body {
 }
 
 .exit-state .logo-container {
-    /* 不再暴力斩断 animation, 而是震结 (paused)
-       锁死图标退出瞬间的形变矩阵, 由外层接管缩小位移, 消除闪烁跳帧 */
     animation-play-state: paused !important;
 }
-</style>
-
-<style id="glass-fix">
-/* Card Elements Glass Override */
-.task-card, .side-card, .nav-card, .chart-card, .chart-wrap, .stats-card, .sphere-modal, .form-container, .alpha-menu, .flatpickr-calendar, .flatpickr-innerContainer, .alarm-modal, .modal, .dropdown, .context-menu, .progress-card, .info-card {
-    background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.08) 45%, transparent 75%) !important;
-    
-      border-top: 2px solid rgba(255, 255, 255, 0.95) !important;
-      border-left: 1px solid rgba(255, 255, 255, 0.8) !important;
-      border-right: 1px solid rgba(255, 255, 255, 0.35) !important;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.25) !important;
-    
-    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.08), inset 2px 3px 10px rgba(255, 255, 255, 0.35), inset -2px -3px 10px rgba(0, 0, 0, 0.03), inset 4px 6px 20px rgba(255, 255, 255, 0.15) !important;
-    backdrop-filter: blur(32px) saturate(130%) !important;
-    -webkit-backdrop-filter: blur(32px) saturate(130%) !important;
-}
-
-/* Switch hover */
-.alpha-switch:hover:hover {
-    filter: brightness(1.25) contrast(1.1) !important;
-}
-
-/* Flatpickr Overrides */
-.flatpickr-day.selected {
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.35) 0%, rgba(255, 255, 255, 0.15) 100%) !important;
-    backdrop-filter: blur(24px) saturate(120%) !important;
-    border-radius: var(--radius-element, 16px) !important;
-    border: 1px solid rgba(255, 255, 255, 0.8) !important;
-    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05), inset 0 2px 8px rgba(255, 255, 255, 0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.3) !important;
-}
-
-.flatpickr-time input, .flatpickr-time .numInputWrapper {
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.05) 100%) !important;
-    backdrop-filter: blur(24px) saturate(120%) !important;
-    border: 1px solid rgba(255, 255, 255, 0.7) !important;
-    border-radius: var(--radius-element, 16px) !important;
-    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05), inset 0 2px 6px rgba(255, 255, 255, 0.4) !important;
-}
-.flatpickr-time input:focus, .flatpickr-time .numInputWrapper:focus-within {
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0.2) 100%) !important;
-    border-color: rgba(255, 255, 255, 1) !important;
-    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.1), inset 0 2px 8px rgba(255, 255, 255, 0.7) !important;
-}
-
 </style>
 </head>
 <body>
@@ -155,6 +148,14 @@ html, body {
             document.body.classList.add('exit-state');
         }
     });
+
+    // 禁止通过 F11 快捷键切换全屏
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'F11' || e.keyCode === 122 || e.code === 'F11') {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+    }, true);
 </script>
 </body>
 </html>

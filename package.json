@@ -1,0 +1,118 @@
+{
+  "name": "Tasks",
+  "productName": "Tasks",
+  "description": "轻量时间管理助手",
+  "keywords": [],
+  "main": "./main.js",
+  "version": "12.0.0",
+  "author": "Zongyi",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "build:snapshot": "node scripts/generate-snapshot.js"
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.9"
+  },
+  "devDependencies": {
+    "electron": "44.0.0-beta.5",
+    "electron-builder": "^27.0.0-alpha.5",
+    "electron-link": "^0.6.0",
+    "v8-compile-cache": "^2.4.0"
+  },
+  "build": {
+    "appId": "com.zongyi.pjalpha.tasks",
+    "productName": "Tasks",
+    "protocols": [
+      {
+        "name": "Tasks Protocol",
+        "schemes": [
+          "tasks"
+        ]
+      }
+    ],
+    "files": [
+      "main.js",
+      "main_worker.js",
+      "sync_worker.js",
+      "data_worker.js",
+      "preload.js",
+      "splash.html",
+      "wrapper.html",
+      "Home.html",
+      "Focus.html",
+      "Account.html",
+      "settings.html",
+      "TaskHub.html",
+      "TaskTimer.html",
+      "TaskFlow.html",
+      "version.json",
+      "Icon.ico",
+      "Icon.png",
+      "Icon_sm.png",
+      "background.png",
+      "background_dark.png",
+      "assets/**/*",
+      "fonts/**/*",
+      "icons/**/*",
+      "lite/**/*",
+      "scripts/**/*",
+      ".cache"
+    ],
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "Zongyil",
+        "repo": "Tasks"
+      }
+    ],
+    "win": {
+      "icon": "Tasks.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        },
+        {
+          "target": "msix",
+          "arch": ["x64"]
+        }
+      ],
+      "sign": {
+      "type": "signtool",
+      "certificateFile": "devcert.pfx",
+      "certificatePassword": "password"
+      },
+      "fileAssociations": [
+        {
+          "ext": "tda",
+          "name": "Tasks Data Archive",
+          "description": "Tasks 用户数据存档",
+          "icon": "icons/Tda.ico",
+          "role": "Editor"
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Tasks",
+      "menuCategory": false,
+      "include": "build/installer.nsh",
+      "installerIcon": "build/installerIcon.ico",
+      "uninstallerIcon": "build/uninstallerIcon.ico",
+      "installerSidebar": "build/sidebar.bmp",
+      "uninstallerSidebar": "build/sidebar.bmp",
+      "license": "LICENSE.txt",
+      "differentialPackage": true
+    },
+    "msix": {
+      "identityName": "com.zongyi.pjalpha.tasks",
+      "publisher": "CN=Zongyi",
+      "displayName": "Tasks",
+      "publisherDisplayName": "Zongyi"
+    }
+  }
+}

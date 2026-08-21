@@ -3,6 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <title>设置</title>
+    <script src="./assets/liquid-glass.js"></script>
+    <script src="./assets/card-glow.js"></script>
+    <script src="./assets/input-glow.js"></script>
+    <script src="./assets/switch-drag.js"></script>
+    <script src="./assets/scroll-bounce.js"></script>
+    <script src="./assets/reduce-motion.js"></script>
     <style>
         ::selection { background-color: #d4ebff; color: #0f172a; }
         ::-moz-selection { background-color: #9DD2FF; color: #0f172a; }
@@ -37,7 +43,25 @@
             --ease: cubic-bezier(0.22, 1, 0.36, 1);
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'OPPO Sans 4.0', -apple-system, sans-serif; -webkit-tap-highlight-color: transparent; outline: none !important; }
+        * { 
+            margin: 0; padding: 0; box-sizing: border-box; 
+            font-family: 'OPPO Sans 4.0', -apple-system, sans-serif; 
+            -webkit-tap-highlight-color: transparent; 
+            outline: none !important; 
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        html { 
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        input, textarea, select, [contenteditable="true"], [contenteditable] {
+            user-select: text !important;
+            -webkit-user-select: text !important;
+        }
+
         ::-webkit-scrollbar { width: 0; height: 0; background: transparent; }
         
         body { min-height: 100vh;
@@ -50,11 +74,15 @@
             position: relative;
             box-sizing: border-box;
             overflow-x: hidden;
+            user-select: none;
+            -webkit-user-select: none;
             scrollbar-width: none; -ms-overflow-style: none;
         }
 
         *, *::before, *::after {
             box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
         }
 
         /* 2. 赋予流光容器生命 - 恢复原版清冷灰蓝底色 */
@@ -68,10 +96,22 @@
             contain: layout paint;
             isolation: isolate;
         }
+        .alpha-bg-snapshot {
+            position: absolute;
+            inset: 0;
+            z-index: 10;
+            pointer-events: none;
+            background-size: cover;
+            background-position: center;
+            opacity: 0;
+            transition: opacity 0.22s ease-out;
+        }
+        .alpha-ambient-bg.is-bg-frozen .ambient-motion-stage {
+            visibility: hidden !important;
+        }
 
-        /* ================== 环境光合成优化版 ==================
-        柔焦渐变保持在静态子层，只有外层负责 transform / opacity。
-        这样浏览器可以复用已光栅化的模糊纹理，避免每帧重新计算大型 blur。 */
+
+        /* ================== 环境光合成优化版 ================== */
         .ambient-motion-stage {
             position: absolute;
             pointer-events: none;
@@ -103,7 +143,7 @@
 
         .sunbeam {
             position: absolute; inset: 0;
-            /* 更密的暖色明暗波带：保持原色，只拉开透明度差 */
+            /* 暖色明暗波带 */
             background:
                 radial-gradient(ellipse 102% 17% at 82% 10%, rgba(255, 245, 210, 0.32) 0 17%, rgba(255, 245, 210, 0.07) 43%, transparent 70%),
                 radial-gradient(ellipse 94% 16% at 69% 27%, rgba(255, 235, 190, 0.05) 0 15%, rgba(255, 235, 190, 0.25) 33%, rgba(255, 235, 190, 0.05) 53%, transparent 73%),
@@ -116,7 +156,7 @@
             position: absolute;
             inset: 0;
             border-radius: 46% 54% 52% 48% / 42% 48% 52% 58%;
-            /* 适度收窄模糊，让波带可被隐约察觉，但仍保持烟雾般柔软 */
+            /* 适度收窄模糊, 让波带可被隐约察觉, 但仍保持烟雾般柔软 */
             filter: blur(17px);
             opacity: 0.84;
         }
@@ -165,7 +205,9 @@
         }
 
         .alpha-ambient-bg.is-paused .ambient-motion-stage,
-        body.scrolling .alpha-ambient-bg .ambient-motion-stage {
+        body.scrolling .alpha-ambient-bg .ambient-motion-stage,
+        body.pause-bg-motion .alpha-ambient-bg .ambient-motion-stage,
+        html.pause-bg-motion .alpha-ambient-bg .ambient-motion-stage {
             animation-play-state: paused !important;
         }
 
@@ -195,6 +237,7 @@
             display: flex;
             flex-direction: column;
             gap: var(--spacing-main);
+            animation: alphaPageIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) backwards;
         }
 
         .panel {
@@ -262,7 +305,9 @@
             background: rgba(255, 255, 255, 0.85); transform: translateX(-2px) scale(1.05); 
             color: #0f172a; box-shadow: 0 8px 24px rgba(15,23,42,0.06), inset 0 2px 4px rgba(255,255,255,1);
         }
-        .back-btn:active { transform: scale(0.95); }
+        .back-btn:active {
+            box-shadow: 0 4px 12px rgba(15,23,42,0.04), inset 0 1px 2px rgba(255,255,255,0.8);
+        }
         .group-title { font-size: 16px; font-weight: 800; color: #475569; margin: 32px 0 16px 8px; letter-spacing: 0.5px; }
 
         /* ==========================================
@@ -279,17 +324,34 @@
             transition: transform 0.3s var(--ease), box-shadow 0.3s var(--ease);
         }
 
-        /* 账户卡片专属 Hover */
+        /* 账户卡片专属 Hover 与轻量回弹动效 */
         .account-card {
             padding: var(--spacing-card);
             display: flex;
             align-items: center;
             justify-content: space-between;
             cursor: pointer;
+            will-change: transform;
+            transform-origin: center center;
+            transition: transform 0.25s var(--ease), box-shadow 0.25s var(--ease);
         }
         .account-card:hover {
             transform: translateY(-2px);
             box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08), inset 0 2px 4px rgba(255, 255, 255, 1);
+        }
+        .account-card:active {
+            transform: translateY(0) scale(0.985) !important;
+            transition: transform 0.06s ease-out !important;
+        }
+
+        @keyframes accountCardBounce {
+            0% { transform: translateY(0) scale(0.985); }
+            50% { transform: translateY(-2px) scale(1.006); }
+            100% { transform: translateY(-2px) scale(1); }
+        }
+
+        .account-card.anim-bounce {
+            animation: accountCardBounce 0.28s cubic-bezier(0.34, 1.25, 0.64, 1) forwards !important;
         }
         .account-info { display: flex; align-items: center; gap: 16px; }
         .avatar { width: 56px; height: 56px; border-radius: 50%; background: linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%); box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.40), 0 4px 12px rgba(15,23,42,0.1); border: 2px solid #fff; }
@@ -494,7 +556,10 @@
             overflow: hidden; position: relative;
             box-shadow: inset 0 2px 6px rgba(15,23,42,0.1), 0 12px 32px rgba(15,23,42,0.06);
             /* 模拟一张鲜艳的壁纸用于展示毛玻璃折射 */
-            background: linear-gradient(45deg, #ff9a9e 0%, #fecfef 99%, #fecfef 100%);
+            background: url('./background.png') center/cover no-repeat;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
             border: 1px solid rgba(255, 255, 255, 0.20);
             z-index: 1; /* 建立层叠上下文 */
         }
@@ -504,7 +569,7 @@
             content: '';
             position: absolute;
             inset: 0; 
-            z-index: -1; 
+            z-index: 1; 
             border-radius: inherit; 
             background: linear-gradient(135deg, rgba(0, 0, 0, 0.15) 0%, rgba(0, 0, 0, 0) 100%);
             backdrop-filter: blur(40px) saturate(120%);
@@ -533,7 +598,7 @@
            ========================================== */
         .dummy-clock {
             position: relative;
-            z-index: 1;
+            z-index: 2;
             display: flex;
             gap: 0.5px;
             align-items: center;
@@ -603,7 +668,18 @@
             /* 冒号等比例缩小 */
             font-size: 1.8rem;
             font-weight: 600;
+            will-change: transform, opacity;
+            transform: translate3d(0, 0, 0) scale(1);
+            transform-origin: center center;
+            contain: layout paint;
+            backface-visibility: hidden;
             animation: pulse-colon 2s infinite ease-in-out;
+        }
+        body.pause-clock-breath .colon,
+        html.pause-clock-breath .colon,
+        html.alpha-sleep .colon,
+        body.is-idle .colon {
+            animation-play-state: paused !important;
         }
 
         /* ==========================================
@@ -620,9 +696,29 @@
             opacity: 0; transform: translateY(-80%) scale(0.9); filter: blur(40px);
         }
 
+        /* 数字1横向略微拉宽，优化字距 */
+        .clock-time-node.digit-1 {
+            transform: scale(1.2, 1);
+        }
+        .clock-time-node.digit-1.clock-enter { 
+            opacity: 0; transform: translateY(80%) scale(1.08, 0.9); filter: blur(40px);
+        }
+        .clock-time-node.digit-1.clock-enter-active { 
+            opacity: 1; transform: translateY(0) scale(1.2, 1); filter: blur(0px);
+        }
+        .clock-time-node.digit-1.clock-exit { 
+            opacity: 0; transform: translateY(-80%) scale(1.08, 0.9); filter: blur(40px);
+        }
+
         @keyframes pulse-colon {
-            0%, 100% { opacity: 0.8; transform: scale(1); }
-            50% { opacity: 0.2; transform: scale(0.85); }
+            0%, 100% { 
+                opacity: 0.85; 
+                transform: translate3d(0, 0, 0) scale(1); 
+            }
+            50% { 
+                opacity: 0.25; 
+                transform: translate3d(0, 0, 0) scale(0.85); 
+            }
         }
 
         /* ==========================================
@@ -634,62 +730,79 @@
             position: relative; overflow: hidden; display: inline-flex; height: 52px; border: none;
             align-items: center; justify-content: center; padding: 0 24px;
             border-radius: var(--radius-element); cursor: pointer; font-size: 16px !important; font-weight: 700 !important; 
-            /* 极致顺滑的过渡: 使用弹性阻尼曲线, 保留 transform 硬件加速 */
-            transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), background 0.3s ease, box-shadow 0.3s ease; 
+            transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), background 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease; 
             outline: none; letter-spacing: 0.5px;
-            will-change: auto; 
+            will-change: transform; 
         }
-
-        button::before { display: none; }
-        button:active { transform: scale(0.96) !important; }
         
+        /* ------------------------------------------------
+        1. Primary - 清透蓝色玻璃
+        ------------------------------------------------ */
         .primary {
-            border: 1px solid rgba(217, 237, 254, 0.85);
-            background: 
-                radial-gradient(circle at 85% 15%, rgba(255, 250, 240, 0.35) 0%, transparent 60%),
-                linear-gradient(135deg, rgba(145, 205, 255, 0.65) 0%, rgba(115, 185, 255, 0.35) 100%);
-            color: #0f172a; 
-            box-shadow: 
-                0 6px 20px rgba(88, 135, 179, 0.2), 
-                inset 0 1.5px 2px rgba(255, 255, 255, 0.75), 
-                inset -1px -1px 2px rgba(255, 255, 255, 0.3), 
-                0 0 0 0.5px rgba(211, 234, 255, 0.95); 
-            backdrop-filter: blur(16px) saturate(180%); 
+            border: 1px solid transparent !important;
+            background:
+                linear-gradient(135deg,
+                    rgba(207, 231, 253, 0.89) 0%,
+                    rgba(183, 219, 253, 0.87) 52%,
+                    rgba(203, 234, 253, 0.88) 100%) padding-box,
+                linear-gradient(135deg,
+                    rgba(225, 241, 255, 1) 0%,
+                    rgba(225, 241, 255, 0.65) 48%,
+                    rgba(225, 248, 255, 1) 100%) border-box !important;
+            color: #0f172a;
+            box-shadow:
+                0 0 16px rgba(157, 210, 255, 0.19),
+                0 12px 44px rgba(162, 209, 252, 0.36),
+                inset 0 1.5px 2px rgba(255, 255, 255, 0.68),
+                inset 0 -1px 2px rgba(183, 219, 253, 0.16);
+            backdrop-filter: blur(16px) saturate(180%);
             -webkit-backdrop-filter: blur(16px) saturate(180%);
         }
 
-        .primary:hover { 
-            background: 
-                radial-gradient(circle at 85% 15%, rgba(255, 250, 240, 0.55) 0%, transparent 65%),
-                linear-gradient(135deg, rgba(175, 220, 255, 0.95) 0%, rgba(145, 205, 255, 0.55) 100%);
-            transform: translateY(-2px); 
-            box-shadow: 
-                0 12px 24px rgba(120, 175, 225, 0.3), 
-                inset 0 2px 3px rgba(255, 255, 255, 1), 
-                inset -1px -1px 2px rgba(255, 255, 255, 0.30),
-                /* 将刺眼的蓝色霓虹边, 改为带有一点点冷蓝调的「高透霜白色」 */
-                0 0 0 1.5px rgba(240, 248, 255, 0.9); 
+        .primary:hover {
+            background:
+                linear-gradient(135deg,
+                    rgba(207, 231, 253, 0.96) 0%,
+                    rgba(183, 219, 253, 0.94) 52%,
+                    rgba(203, 234, 253, 0.95) 100%) padding-box,
+                linear-gradient(135deg,
+                    rgba(225, 241, 255, 1) 0%,
+                    rgba(225, 241, 255, 0.78) 48%,
+                    rgba(225, 248, 255, 1) 100%) border-box !important;
+            box-shadow:
+                0 12px 46px rgba(162, 209, 252, 0.53),
+                inset 0 2px 3px rgba(255, 255, 255, 0.78),
+                inset 0 -1px 2px rgba(183, 219, 253, 0.2);
         }
 
         .primary:active {
-            background: 
-                radial-gradient(circle at 85% 15%, rgba(255, 250, 240, 0.2) 0%, transparent 40%),
-                linear-gradient(135deg, rgba(135, 195, 255, 0.75) 0%, rgba(105, 175, 255, 0.35) 100%);
-            box-shadow: 
-                0 2px 6px rgba(120, 175, 225, 0.1), 
-                inset 0 3px 6px rgba(15, 23, 42, 0.08), 
-                inset 0 1px 1px rgba(255, 255, 255, 0.30),
-                /* 按下时蓝边暗淡, 贴合物理阴影 */
-                0 0 0 1px rgba(145, 205, 255, 0.6);
+            border: 1px solid transparent !important;
+            outline: none !important;
+            background:
+                linear-gradient(135deg,
+                    rgba(207, 231, 253, 0.92) 0%,
+                    rgba(183, 219, 253, 0.9) 52%,
+                    rgba(203, 234, 253, 0.91) 100%) padding-box,
+                linear-gradient(135deg,
+                    rgba(225, 241, 255, 1) 0%,
+                    rgba(225, 241, 255, 0.65) 48%,
+                    rgba(225, 248, 255, 1) 100%) border-box !important;
+            box-shadow:
+                0 6px 30px rgba(162, 209, 252, 0.39),
+                inset 0 1px 2px rgba(255, 255, 255, 0.58),
+                inset 0 -1px 2px rgba(183, 219, 253, 0.14) !important;
         }
 
+        /* ------------------------------------------------
+        2. Secondary (清透玻璃) - 微调适配
+        ------------------------------------------------ */
         .secondary {
-            background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0.11) 45%, transparent 75%) !important;
+            background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.08) 45%, transparent 75%) !important;
             border-top: 2px solid rgba(255, 255, 255, 0.95) !important;
             border-left: 1px solid rgba(255, 255, 255, 0.8) !important;
             border-right: 1px solid rgba(255, 255, 255, 0.35) !important;
             border-bottom: 1px solid rgba(255, 255, 255, 0.25) !important;
-            box-shadow: 0 12px 28px rgba(15, 23, 42, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.08), inset 2px 3px 10px rgba(255, 255, 255, 0.35), inset -2px -3px 10px rgba(0, 0, 0, 0.03), inset 4px 6px 20px rgba(255, 255, 255, 0.15) !important;
+            box-shadow: 0 12px 32px rgba(15, 23, 42, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.08), inset 2px 3px 10px rgba(255, 255, 255, 0.35), inset -2px -3px 10px rgba(0, 0, 0, 0.03), inset 4px 6px 20px rgba(255, 255, 255, 0.15) !important;
             backdrop-filter: blur(20px) saturate(130%) !important; -webkit-backdrop-filter: blur(20px) saturate(130%) !important;
             color: var(--monet-text, #2F354F);
 
@@ -698,7 +811,6 @@
 
         .secondary:hover {
             background: linear-gradient(135deg, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0.3) 100%) !important;
-            transform: translateY(-2px);
             border-color: rgba(255, 255, 255, 0.40); border-width: 1.5px;
             box-shadow: 
                 0 12px 28px rgba(15, 23, 42, 0.07), 
@@ -707,23 +819,24 @@
                 0 0 0 1.25px rgba(255, 255, 255, 0.95);
         }
 
-        .secondary:active { background: linear-gradient(135deg, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0.3) 100%);
-            transform: scale(0.96) translateY(0px);
+        .secondary:active { 
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0.25) 100%) !important;
             box-shadow: 
-                0 2px 6px rgba(15, 23, 42, 0.03), 
-                inset 0 3px 6px rgba(15, 23, 42, 0.05), 
-                inset 0 1px 1px rgba(255, 255, 255, 0.30),
+                0 4px 14px rgba(15, 23, 42, 0.06), 
+                inset 0 0 0 1px rgba(255, 255, 255, 0.1), 
+                inset 1.5px 2px 8px rgba(255, 255, 255, 0.4), 
                 0 0 0 1px rgba(226, 232, 240, 0.6);
         }
 
         .glass-btn {
-            position: absolute; right: 20px; bottom: 20px;
+            position: absolute !important; right: 20px !important; bottom: 20px !important; z-index: 10 !important;
             display: inline-flex; align-items: center; justify-content: center; 
-            height: 44px; padding: 0 20px; 
+            height: 44px !important; padding: 0 20px; 
             min-width: 124px; /* 固化宽度, 彻底解决跳字导致的形变 */
             border-radius: var(--radius-sub);
             background: rgba(255, 255, 255, 0.25); 
             backdrop-filter: blur(40px) saturate(130%);
+            -webkit-backdrop-filter: blur(40px) saturate(130%);
             font-size: 15px; font-weight: 700; color: #0f172a; 
             /* 边缘描边淡化 */
             border-top: 1.5px solid rgba(255, 255, 255, 0.65); 
@@ -736,24 +849,24 @@
             /* 全局丝滑阻尼过渡 */
             transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), 
                         background 0.4s ease, border-color 0.4s ease, 
-                        color 0.4s ease, box-shadow 0.4s ease !important;
+                        color 0.4s ease, box-shadow 0.4s ease;
             will-change: transform;
         }
         .glass-btn:hover { 
             background: rgba(255, 255, 255, 0.65); 
-            transform: translateY(-2px); 
             border: 2px solid rgba(255, 255, 255, 0.95); 
-            box-shadow: inset 0 2px 4px rgba(255,255,255,0.45);
+            box-shadow: 0 8px 24px rgba(15,23,42,0.08), inset 0 2px 4px rgba(255,255,255,0.45);
         }
         /* 独立抽离的成功状态类 */
         .glass-btn.success-state {
-            background: rgba(255, 255, 255, 0.65);
-            color: var(--monet-text); /* 接入 monet-text 变量 */
-            /* 增加微幅放大与强发光反馈 */
-            transform: scale(1.05) translateY(-2px);
-            box-shadow: 0 8px 24px rgba(15,23,42,0.08), inset 0 2px 4px rgba(255,255,255,1);
+            --lq-state-scale: 1.05 !important;
+            --lq-state-ty: -2px !important;
+            background: rgba(255, 255, 255, 0.65) !important;
+            color: var(--monet-text) !important;
+            border: 2px solid rgba(255, 255, 255, 0.95) !important;
+            box-shadow: 0 8px 24px rgba(15,23,42,0.08), inset 0 2px 4px rgba(255,255,255,1) !important;
         }
-        /* 稍有深色的壁纸下，“更换壁纸”按钮文字变白（透明度0.85） */
+        /* 深色的壁纸下, 按钮文字变白 */
         .preview-board.dark-wp .glass-btn:not(.success-state) {
             color: rgba(255, 255, 255, 0.85) !important;
         }
@@ -808,7 +921,7 @@
 
 <style id="glass-fix">
 /* Card Elements Glass Override */
-.task-card, .side-card, .nav-card, .chart-card, .chart-wrap, .stats-card, .sphere-modal, .form-container, .alpha-menu, .flatpickr-calendar, .flatpickr-innerContainer, .alarm-modal, .modal, .dropdown, .context-menu, .progress-card, .info-card {
+.task-card, .side-card, .nav-card, .chart-card, .chart-wrap, .stats-card, .form-container, .alpha-menu, .flatpickr-calendar, .flatpickr-innerContainer, .dropdown, .context-menu, .progress-card, .info-card {
     background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.08) 45%, transparent 75%) !important;
     
       border-top: 2px solid rgba(255, 255, 255, 0.95) !important;
@@ -855,8 +968,11 @@ body.is-zoom-scaling *::after {
     transition-duration: 0s !important;
     animation-play-state: paused !important;
 }
-body.is-zoom-scaling .sunbeam { filter: blur(4px) !important; }
-body.is-zoom-scaling .orb { filter: blur(4px) !important; }
+body.is-zoom-scaling .ambient-motion-stage {
+    animation-play-state: paused !important;
+}
+body.is-zoom-scaling .sunbeam { filter: blur(4px) !important; will-change: auto !important; }
+body.is-zoom-scaling .orb { filter: blur(4px) !important; will-change: auto !important; }
 body.is-zoom-scaling .sidebar,
 body.is-zoom-scaling .panel,
 body.is-zoom-scaling .task-card,
@@ -907,39 +1023,142 @@ body.is-zoom-scaling .clock-container,
 body.is-zoom-scaling .back-btn,
 body.is-zoom-scaling .card,
 body.is-zoom-scaling .preview-board::before {
-    backdrop-filter: blur(4px) saturate(110%) !important;
-    -webkit-backdrop-filter: blur(4px) saturate(110%) !important;
+    backdrop-filter: blur(16px) saturate(120%) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(120%) !important;
 }
 
-/* ================== 苹果级 Toast / SyncStatus 视觉特效 (与 TaskFlow 保持一致) ================== */
-.toast-notification {
-    position: fixed; 
-    top: 24px; 
-    left: 50%; 
-    transform: translateX(-50%) translateY(-20px) scale(0.95);
-    z-index: 10001; 
-    padding: 14px 28px; 
-    border-radius: var(--radius-element, 16px);
-    background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.08) 50%, transparent 85%) !important;
-    border-top: 2px solid rgba(255, 255, 255, 0.95) !important;
-    border-left: 1px solid rgba(255, 255, 255, 0.7) !important;
-    border-right: 1px solid rgba(255, 255, 255, 0.35) !important;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.25) !important;
-    box-shadow: 0 16px 40px rgba(15, 23, 42, 0.12), inset 0 0 0 1px rgba(255, 255, 255, 0.1), inset 2px 3px 10px rgba(255, 255, 255, 0.35), inset -2px -3px 10px rgba(0, 0, 0, 0.03), inset 4px 6px 20px rgba(255, 255, 255, 0.18) !important;
-    backdrop-filter: blur(20px) saturate(130%); 
-    -webkit-backdrop-filter: blur(20px) saturate(130%);
-    font-size: 15px; 
-    font-weight: 700; 
-    color: var(--monet-text, var(--text, #0f172a));
-    opacity: 0; 
+/* ================== 全局 Toast / SyncStatus 纵深堆叠与流体光影通知引擎 ================== */
+.toast-container {
+    position: fixed;
+    top: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10005;
     pointer-events: none;
-    transition:
-        opacity 0.45s var(--ease, ease),
-        transform 0.45s var(--ease, ease);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: max-content;
+    max-width: calc(100vw - 32px);
 }
+
+.toast-notification {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%) translateY(-24px) scale(0.82);
+    padding: 14px 30px;
+    border-radius: var(--radius-element, 18px);
+    background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0.1) 50%, transparent 85%) !important;
+    border-top: 2px solid rgba(255, 255, 255, 0.95) !important;
+    border-left: 1px solid rgba(255, 255, 255, 0.75) !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.4) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.25) !important;
+    box-shadow: 0 16px 42px rgba(15, 23, 42, 0.14),
+                inset 0 0 0 1px rgba(255, 255, 255, 0.12),
+                inset 2px 3px 12px rgba(255, 255, 255, 0.38),
+                inset -2px -3px 10px rgba(0, 0, 0, 0.03),
+                inset 4px 6px 22px rgba(255, 255, 255, 0.2) !important;
+    backdrop-filter: blur(22px) saturate(140%);
+    -webkit-backdrop-filter: blur(22px) saturate(140%);
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--monet-text, var(--text, #0f172a));
+    white-space: nowrap;
+    opacity: 0;
+    filter: blur(6px);
+    pointer-events: none;
+    overflow: hidden;
+    transition: transform 0.42s cubic-bezier(0.34, 1.56, 0.64, 1),
+                opacity 0.3s cubic-bezier(0.2, 0.9, 0.3, 1),
+                filter 0.32s ease,
+                background 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+                border 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+                border-color 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+                box-shadow 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+                backdrop-filter 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+                -webkit-backdrop-filter 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: transform, background, box-shadow;
+}
+
+/* 顶部流体高光线与表面折射微光 */
+.toast-notification::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 12%;
+    right: 12%;
+    height: 1.5px;
+    background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.95) 50%, transparent 100%);
+    border-radius: 999px;
+    pointer-events: none;
+    opacity: 0.85;
+    transition: opacity 0.4s ease;
+}
+
+.toast-notification::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.22) 0%, transparent 65%);
+    pointer-events: none;
+    opacity: 0.9;
+}
+
 .toast-notification.show {
     opacity: 1;
-    transform: translateX(-50%) translateY(0) scale(1);
+    filter: blur(0px);
+}
+
+/* 流体消散弹离动效 (Exit Animation) */
+.toast-notification.dismiss {
+    opacity: 0 !important;
+    transform: translateX(-50%) translateY(-26px) scale(0.84) !important;
+    filter: blur(14px) brightness(1.12) !important;
+    transition: transform 0.38s cubic-bezier(0.36, 0, 0.66, -0.2),
+                opacity 0.3s cubic-bezier(0.4, 0, 1, 1),
+                filter 0.32s ease-out !important;
+    pointer-events: none !important;
+}
+
+.toast-notification .toast-icon {
+    width: 18px;
+    height: 18px;
+    vertical-align: -3px;
+    margin-right: 6px;
+    object-fit: contain;
+    display: inline-block;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.12));
+    position: relative;
+    z-index: 1;
+}
+
+/* 深色背景/深度较深适配: 伴随平滑过渡动画切换为高对比度纯白毛玻璃衬底 */
+body.dark-wp .toast-notification,
+body.dark-mode .toast-notification,
+body.is-dark-bg .toast-notification,
+.dark-wp .toast-notification,
+.dark-mode .toast-notification,
+.toast-notification.deep-bg {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.94) 0%, rgba(255, 255, 255, 0.82) 100%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.95) !important;
+    border-top: 1.5px solid #ffffff !important;
+    border-left: 1px solid rgba(255, 255, 255, 0.95) !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.95) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.95) !important;
+    box-shadow: 0 14px 36px rgba(15, 23, 42, 0.14),
+                inset 0 1px 2px rgba(255, 255, 255, 0.98),
+                inset 0 -1px 2px rgba(0, 0, 0, 0.03) !important;
+    backdrop-filter: blur(26px) saturate(145%) !important;
+    -webkit-backdrop-filter: blur(26px) saturate(145%) !important;
+}
+
+body.dark-wp .toast-notification::before,
+body.dark-mode .toast-notification::before,
+body.is-dark-bg .toast-notification::before,
+.toast-notification.deep-bg::before {
+    opacity: 0.4;
 }
 
 .sphere-modal {
@@ -949,13 +1168,24 @@ body.is-zoom-scaling .preview-board::before {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(246, 248, 250, 0.4);
-    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
-    transition: opacity 0.3s var(--ease);
+    background-color: rgba(148, 163, 184, 0.4);
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.04'/%3E%3C/svg%3E");
+    backdrop-filter: blur(12px) saturate(140%);
+    -webkit-backdrop-filter: blur(12px) saturate(140%);
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.3s var(--ease), backdrop-filter 0.3s var(--ease), -webkit-backdrop-filter 0.3s var(--ease), visibility 0s 0s;
+    will-change: opacity;
+    transform: translateZ(0);
 }
 .sphere-modal.hidden {
+    display: flex !important;
     opacity: 0;
+    visibility: hidden;
     pointer-events: none;
+    backdrop-filter: blur(0px);
+    -webkit-backdrop-filter: blur(0px);
+    transition: opacity 0.3s var(--ease), backdrop-filter 0.3s var(--ease), -webkit-backdrop-filter 0.3s var(--ease), visibility 0s 0.3s;
 }
 .sphere-modal .modal-content {
     background: rgba(255, 255, 255, 0.75);
@@ -967,8 +1197,33 @@ body.is-zoom-scaling .preview-board::before {
     transform: translateY(0) scale(1);
     transition: transform 0.4s var(--ease);
 }
+.dialog-sticker-icon {
+    width: 60px;
+    height: 60px;
+    object-fit: contain;
+    display: inline-block;
+    filter: drop-shadow(0 0 1.5px rgba(255, 255, 255, 0.90)) drop-shadow(0 0 3.5px rgba(255, 255, 255, 0.75)) drop-shadow(0 0 6.5px rgba(255, 255, 255, 0.45)) drop-shadow(0 8px 18px rgba(15, 23, 42, 0.14));
+}
 .sphere-modal.hidden .modal-content {
     transform: translateY(20px) scale(0.95);
+}
+
+/* ================== 全局页面切换动效 ================== */
+@keyframes alphaPageIn {
+    0% { opacity: 0; transform: translateX(60px); }
+    100% { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes alphaPageOut {
+    0% { opacity: 1; transform: translateX(0); }
+    100% { opacity: 0; transform: translateX(-60px); }
+}
+
+.page-transition-leave {
+    animation: alphaPageOut 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards !important;
+    pointer-events: none;
+    position: relative;
+    z-index: 1; 
 }
 </style>
 <script>
@@ -994,13 +1249,20 @@ body.is-zoom-scaling .preview-board::before {
             updateStacking();
         });
     }
+    const observer = new MutationObserver(scheduleStacking);
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', updateStacking);
+        document.addEventListener('DOMContentLoaded', () => {
+            updateStacking();
+            if (document.body) {
+                observer.observe(document.body, { childList: true, subtree: true });
+            }
+        });
     } else {
         updateStacking();
+        if (document.body) {
+            observer.observe(document.body, { childList: true, subtree: true });
+        }
     }
-    const observer = new MutationObserver(scheduleStacking);
-    observer.observe(document.body, { childList: true, subtree: true });
 })();
 </script>
 </head>
@@ -1008,18 +1270,145 @@ body.is-zoom-scaling .preview-board::before {
 <script>
 (function alphaZoomGuard() {
     var zt = 0;
-    function onZoom() {
-        if (!document.body.classList.contains('is-zoom-scaling')) {
-            document.body.classList.add('is-zoom-scaling');
+    var isScaling = false;
+    var sharedCanvas = null;
+
+    function ensureSnapshotOverlay(bgEl) {
+        var snap = bgEl.querySelector('.alpha-bg-snapshot');
+        if (!snap) {
+            snap = document.createElement('div');
+            snap.className = 'alpha-bg-snapshot';
+            bgEl.insertBefore(snap, bgEl.firstChild);
         }
-        clearTimeout(zt);
-        zt = setTimeout(function() {
-            document.body.classList.remove('is-zoom-scaling');
-        }, 150);
+        return snap;
     }
-    window.addEventListener('wheel', function(e) { if (e.ctrlKey) onZoom(); }, { passive: true });
-    window.addEventListener('gesturestart', onZoom, { passive: true });
-    window.addEventListener('gesturechange', onZoom, { passive: true });
+
+    function captureBlurredBgPNG(bgEl, onDone) {
+        try {
+            var bw = window.innerWidth;
+            var bh = window.innerHeight;
+            var w = Math.floor(bw / 2);
+            var h = Math.floor(bh / 2);
+
+            if (!sharedCanvas) {
+                sharedCanvas = document.createElement('canvas');
+            }
+            sharedCanvas.width = w;
+            sharedCanvas.height = h;
+            var ctx = sharedCanvas.getContext('2d');
+
+            // Clone background element
+            var clone = bgEl.cloneNode(true);
+            var oldSnap = clone.querySelector('.alpha-bg-snapshot');
+            if (oldSnap) oldSnap.remove();
+
+            // Inline the computed positional and transform styles of dynamic stages
+            var stages = bgEl.querySelectorAll('.ambient-motion-stage');
+            var cloneStages = clone.querySelectorAll('.ambient-motion-stage');
+            stages.forEach(function(origStage, idx) {
+                if (cloneStages[idx]) {
+                    var cs = window.getComputedStyle(origStage);
+                    cloneStages[idx].style.width = cs.width;
+                    cloneStages[idx].style.height = cs.height;
+                    cloneStages[idx].style.top = cs.top;
+                    cloneStages[idx].style.left = cs.left;
+                    cloneStages[idx].style.transform = cs.transform;
+                    cloneStages[idx].style.opacity = cs.opacity;
+                    cloneStages[idx].style.animation = 'none';
+                    cloneStages[idx].style.visibility = 'visible';
+                }
+            });
+
+            // Inline the computed styles of child elements (gradients, filters, opacity)
+            var origChildren = bgEl.querySelectorAll('.orb, .sunbeam');
+            var cloneChildren = clone.querySelectorAll('.orb, .sunbeam');
+            origChildren.forEach(function(origChild, idx) {
+                if (cloneChildren[idx]) {
+                    var cs = window.getComputedStyle(origChild);
+                    cloneChildren[idx].style.background = cs.background;
+                    cloneChildren[idx].style.filter = cs.filter;
+                    cloneChildren[idx].style.opacity = cs.opacity;
+                }
+            });
+
+            // SVG string layout structure with absolute pixel inline variables
+            var svgString = '<svg xmlns="http://www.w3.org/2000/svg" width="' + bw + '" height="' + bh + '">' +
+              '<defs>' +
+                '<style>' +
+                  '.alpha-ambient-bg { position: absolute; inset: 0; background-color: #f4f8fc; opacity: 0.97; overflow: hidden; }' +
+                  '.ambient-motion-stage { position: absolute; pointer-events: none; }' +
+                  '.orb, .sunbeam { position: absolute; inset: 0; }' +
+                '</style>' +
+              '</defs>' +
+              '<foreignObject width="100%" height="100%">' +
+                '<div xmlns="http://www.w3.org/1999/xhtml" style="width:100%;height:100%;margin:0;padding:0;overflow:hidden;">' +
+                  clone.outerHTML +
+                '</div>' +
+              '</foreignObject>' +
+            '</svg>';
+
+            var img = new Image();
+            var svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+            var blobUrl = URL.createObjectURL(svgBlob);
+
+            img.onload = function() {
+                ctx.drawImage(img, 0, 0, w, h);
+                URL.revokeObjectURL(blobUrl);
+                try {
+                    var dataUrl = sharedCanvas.toDataURL('image/png');
+                    if (onDone) onDone(dataUrl);
+                } catch(e) {}
+            };
+            img.onerror = function() {
+                URL.revokeObjectURL(blobUrl);
+            };
+            img.src = blobUrl;
+        } catch (e) {
+            // Safe fallback
+        }
+    }
+
+    function onZoomStart() {
+        var bgEl = document.querySelector('.alpha-ambient-bg');
+        if (!isScaling) {
+            isScaling = true;
+            if (!document.body.classList.contains('is-zoom-scaling')) {
+                document.body.classList.add('is-zoom-scaling');
+            }
+            if (bgEl) {
+                var snap = ensureSnapshotOverlay(bgEl);
+                captureBlurredBgPNG(bgEl, function(pngUrl) {
+                    if (pngUrl && isScaling) {
+                        snap.style.backgroundImage = 'url("' + pngUrl + '")';
+                        snap.style.opacity = '1';
+                        bgEl.classList.add('is-bg-frozen');
+                    }
+                });
+            }
+        }
+
+        clearTimeout(zt);
+        zt = setTimeout(onZoomEnd, 220);
+    }
+
+    function onZoomEnd() {
+        isScaling = false;
+        document.body.classList.remove('is-zoom-scaling');
+        var bgEl = document.querySelector('.alpha-ambient-bg');
+        if (bgEl) {
+            bgEl.classList.remove('is-bg-frozen');
+            var snap = bgEl.querySelector('.alpha-bg-snapshot');
+            if (snap) {
+                snap.style.opacity = '0';
+                snap.style.backgroundImage = 'none';
+            }
+        }
+    }
+
+    window.addEventListener('wheel', function(e) { if (e.ctrlKey) onZoomStart(); }, { passive: true });
+    window.addEventListener('gesturestart', onZoomStart, { passive: true });
+    window.addEventListener('gesturechange', onZoomStart, { passive: true });
+    window.addEventListener('resize', onZoomStart, { passive: true });
 })();
 </script>
 
@@ -1043,12 +1432,15 @@ body.is-zoom-scaling .preview-board::before {
             </div>
 
             <h2 class="group-title">账户</h2>
-            <div class="card account-card" onclick="if (window.parent && window.parent.ALPHA && typeof window.parent.ALPHA.navigate === 'function') { window.parent.ALPHA.navigate('Account.html'); } else { location.href = 'Account.html'; }">
+            <div class="card account-card" id="accountCard" data-nav-mode="auto">
                 <div class="account-info">
                     <img id="accAvatarImg" class="avatar" src="./icons/Avatar.png" alt="Avatar" style="object-fit: cover;">
                     <div>
-                        <div class="acc-name" id="accNameDisplay">Tasks_001</div>
-                        <div class="acc-email" id="accBioDisplay">本地账户</div>
+                        <div class="acc-name" style="display: flex; align-items: center; gap: 6px;">
+                            <span id="accNameDisplay">Tasks User</span>
+                            <span id="accGenderIcon" style="display: none; align-items: center; justify-content: center; flex-shrink: 0;"></span>
+                        </div>
+                        <div class="acc-email" id="accBioDisplay">ID: Tasks_001</div>
                     </div>
                 </div>
                 <div class="chevron">
@@ -1063,7 +1455,7 @@ body.is-zoom-scaling .preview-board::before {
                 <div class="setting-item">
                     <div class="setting-text">
                         <h3>在新标签页中打开超链接</h3>
-                        <p>关闭后, 每次跳转至新界面, 都会覆盖当前界面</p>
+                        <p id="navBehaviorDesc">关闭后, 每次跳转至新界面, 都会覆盖当前界面</p>
                     </div>
                     <label class="switch-wrap">
                         <input type="checkbox" id="navBehaviorToggle" checked>
@@ -1074,10 +1466,46 @@ body.is-zoom-scaling .preview-board::before {
                 <div class="setting-item">
                     <div class="setting-text">
                         <h3>启用「专注」界面</h3>
-                        <p>开启后, 在主页向下滚动, 将进入负一屏「专注」界面</p>
+                        <p id="focusDesc">开启后, 在主页向下滚动, 将进入负一屏「专注」界面</p>
                     </div>
                     <label class="switch-wrap">
                         <input type="checkbox" id="focusToggle" checked>
+                        <div class="alpha-switch"></div>
+                    </label>
+                </div>
+
+                <div class="setting-item">
+                    <div class="setting-text">
+                        <h3>减弱动态效果</h3>
+                        <p id="reduceMotionDesc">选择是否减弱动画以优化性能</p>
+                    </div>
+                    <label class="switch-wrap">
+                        <input type="checkbox" id="reduceMotionToggle">
+                        <div class="alpha-switch"></div>
+                    </label>
+                </div>
+            </div>
+
+            <h2 class="group-title">启动</h2>
+            <div class="card">
+                <div class="setting-item">
+                    <div class="setting-text">
+                        <h3>开机自启动</h3>
+                        <p>随系统开机在托盘加载应用</p>
+                    </div>
+                    <label class="switch-wrap">
+                        <input type="checkbox" id="autoStartToggle">
+                        <div class="alpha-switch"></div>
+                    </label>
+                </div>
+
+                <div class="setting-item">
+                    <div class="setting-text">
+                        <h3>关闭应用后退出</h3>
+                        <p id="exitOnCloseDesc">关闭应用后, 立即退出</p>
+                    </div>
+                    <label class="switch-wrap">
+                        <input type="checkbox" id="closeToTrayToggle" checked>
                         <div class="alpha-switch"></div>
                     </label>
                 </div>
@@ -1097,7 +1525,7 @@ body.is-zoom-scaling .preview-board::before {
                         <div class="clock-digit-slot" id="prev-slot-m2"></div>
                     </div>
                     
-                    <button class="glass-btn" id="uploadWpBtn" onclick="document.getElementById('wpInput').click()">更换壁纸</button>
+                    <button class="glass-btn" id="uploadWpBtn">更换壁纸</button>
                     <input type="file" id="wpInput" hidden accept="image/*">
                 </div>
 
@@ -1141,16 +1569,42 @@ body.is-zoom-scaling .preview-board::before {
     const wpInput = document.getElementById('wpInput');
     const previewBoard = document.querySelector('.preview-board');
 
-    // 1. 移植并改造 Home.html 的 iOS 景深模糊动画引擎
+    function isDefaultWallpaper(wp) {
+        if (!wp) return true;
+        const clean = wp.trim().replace(/^url\(["']?/, '').replace(/["']?\)$/, '');
+        return clean === './background.png' || clean === 'background.png' || clean === './background_dark.png' || clean === 'background_dark.png' || clean.endsWith('/background.png') || clean.endsWith('\\background.png') || clean.endsWith('/background_dark.png') || clean.endsWith('\\background_dark.png');
+    }
+    function getDefaultWallpaper() {
+        try {
+            const isDark = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            return isDark ? './background_dark.png' : './background.png';
+        } catch (_) {
+            return './background.png';
+        }
+    }
+    function getEffectiveWallpaper() {
+        const saved = localStorage.getItem('alpha_wallpaper');
+        if (!saved || isDefaultWallpaper(saved)) {
+            return getDefaultWallpaper();
+        }
+        return saved;
+    }
+
+    // 使用内存变量记录当前壁纸
+    let currentDisplayedWp = getEffectiveWallpaper();
+
+    // 1. 移植并同步 Home.html 的 iOS 景深模糊动画引擎 (双重 rAF 防死锁防偏移)
     function runIOSBlurTransition(oldBgStr, newUrl, parentEl) {
+        if (!parentEl) return;
+
         const container = document.createElement('div');
-        container.style = `position:absolute; inset:0; z-index:-2; overflow:hidden; pointer-events:none; border-radius:inherit;`;
+        container.style = `position:absolute; inset:0; z-index:0; overflow:hidden; pointer-events:none; border-radius:inherit;`;
         
         const oldLayer = document.createElement('div');
-        oldLayer.style = `position:absolute; inset:0; background:${oldBgStr} center/cover; opacity:1; filter:blur(0px); transform:scale(1); transition:opacity 0.6s ease, filter 0.6s ease, transform 0.8s cubic-bezier(0.22,1,0.36,1); z-index:1;`;
+        oldLayer.style = `position:absolute; inset:0; background:${oldBgStr} center/cover no-repeat; opacity:1; filter:blur(0px); transform:scale(1); transition:opacity 0.6s ease, filter 0.6s ease, transform 0.8s cubic-bezier(0.22,1,0.36,1); z-index:1;`;
         
         const newLayer = document.createElement('div');
-        newLayer.style = `position:absolute; inset:0; background:url("${newUrl}") center/cover; opacity:0; filter:blur(40px); transform:scale(1.08); transition:opacity 0.6s ease, filter 0.6s ease, transform 0.8s cubic-bezier(0.22,1,0.36,1); z-index:2;`;
+        newLayer.style = `position:absolute; inset:0; background:url("${newUrl}") center/cover no-repeat; opacity:0; filter:blur(40px); transform:scale(1.08); transition:opacity 0.6s ease, filter 0.6s ease, transform 0.8s cubic-bezier(0.22,1,0.36,1); z-index:2;`;
 
         container.appendChild(oldLayer); container.appendChild(newLayer);
         parentEl.insertBefore(container, parentEl.firstChild);
@@ -1158,7 +1612,7 @@ body.is-zoom-scaling .preview-board::before {
         const originalIsolation = parentEl.style.isolation || '';
         parentEl.style.isolation = 'isolate';
         
-        const originalBg = parentEl.style.backgroundImage;
+        // 动画期间暂时清空父级原有背景, 由 container 接管展示
         parentEl.style.backgroundImage = 'none';
 
         requestAnimationFrame(() => {
@@ -1170,38 +1624,105 @@ body.is-zoom-scaling .preview-board::before {
 
         setTimeout(() => {
             parentEl.style.backgroundImage = `url("${newUrl}")`;
-            void parentEl.offsetHeight; 
-            parentEl.style.isolation = originalIsolation;
-            container.remove();
+            parentEl.style.backgroundSize = 'cover';
+            parentEl.style.backgroundPosition = 'center';
+            parentEl.style.backgroundRepeat = 'no-repeat';
+            
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    parentEl.style.isolation = originalIsolation;
+                    container.remove();
+                });
+            });
         }, 850); 
     }
 
-    // 亮度检测：稍有深色的壁纸即判定为 dark-wp
+    // 亮度检测: 深色壁纸判定为 dark-wp
     let dataWorkerInstance = null;
     let workerTaskId = 0;
     const workerPromises = new Map();
 
+    function executeMainThreadDataAction(action, payload) {
+      if (action === 'calc_luminance') {
+        const { pixels } = payload;
+        if (!pixels || pixels.length === 0) return { isDark: false, luminance: 255 };
+        let totalLuminance = 0;
+        const count = pixels.length / 4;
+        for (let i = 0; i < pixels.length; i += 4) {
+          totalLuminance += (0.299 * pixels[i] + 0.587 * pixels[i + 1] + 0.114 * pixels[i + 2]);
+        }
+        const avgLuminance = totalLuminance / count;
+        return { isDark: avgLuminance < 160, luminance: avgLuminance };
+      }
+      return { isDark: false, luminance: 255 };
+    }
+
     function getDataWorker() {
-      if (!dataWorkerInstance) {
-        dataWorkerInstance = new Worker('data_worker.js');
-        dataWorkerInstance.onmessage = function(e) {
-          const { taskId, success, result, error } = e.data;
-          if (workerPromises.has(taskId)) {
-            const { resolve, reject } = workerPromises.get(taskId);
-            workerPromises.delete(taskId);
-            if (success) resolve(result);
-            else reject(new Error(error));
-          }
-        };
+      if (!dataWorkerInstance && window.location.protocol !== 'file:' && typeof Worker !== 'undefined') {
+        try {
+          dataWorkerInstance = new Worker('data_worker.js');
+          dataWorkerInstance.onmessage = function(e) {
+            const { taskId, success, result, error } = e.data;
+            if (workerPromises.has(taskId)) {
+              const { resolve, reject, timeoutId } = workerPromises.get(taskId);
+              clearTimeout(timeoutId);
+              workerPromises.delete(taskId);
+              if (success) resolve(result);
+              else reject(new Error(error));
+            }
+          };
+          dataWorkerInstance.onerror = function(err) {
+            console.warn('DataWorker 异常, 回退主线程:', err);
+            for (const [taskId, { resolve, timeoutId, action, payload }] of workerPromises.entries()) {
+              clearTimeout(timeoutId);
+              try { resolve(executeMainThreadDataAction(action, payload)); } catch(e) {}
+            }
+            workerPromises.clear();
+          };
+        } catch (e) {
+          dataWorkerInstance = null;
+        }
       }
       return dataWorkerInstance;
     }
 
     function runWebWorker(worker, action, payload = {}) {
       return new Promise((resolve, reject) => {
+        if (window.location.protocol === 'file:' || !worker || typeof Worker === 'undefined') {
+          try {
+            resolve(executeMainThreadDataAction(action, payload));
+          } catch(err) {
+            reject(err);
+          }
+          return;
+        }
+
         const taskId = ++workerTaskId;
-        workerPromises.set(taskId, { resolve, reject });
-        worker.postMessage({ taskId, action, payload });
+        const timeoutId = setTimeout(() => {
+          if (workerPromises.has(taskId)) {
+            workerPromises.delete(taskId);
+            try { resolve(executeMainThreadDataAction(action, payload)); } catch(e) { reject(e); }
+          }
+        }, 1500);
+
+        workerPromises.set(taskId, {
+          resolve: (val) => { clearTimeout(timeoutId); resolve(val); },
+          reject: (err) => {
+            clearTimeout(timeoutId);
+            try { resolve(executeMainThreadDataAction(action, payload)); } catch(e) { reject(e); }
+          },
+          timeoutId,
+          action,
+          payload
+        });
+
+        try {
+          worker.postMessage({ taskId, action, payload });
+        } catch (postErr) {
+          clearTimeout(timeoutId);
+          workerPromises.delete(taskId);
+          try { resolve(executeMainThreadDataAction(action, payload)); } catch(e) { reject(e); }
+        }
       });
     }
 
@@ -1217,10 +1738,19 @@ body.is-zoom-scaling .preview-board::before {
             const data = ctx.getImageData(0, 0, 40, 40).data;
             try {
                 const { luminance } = await runWebWorker(getDataWorker(), 'calc_luminance', { pixels: data });
-                if (luminance < 160) {
+                const isDark = luminance < 160;
+                if (isDark) {
                     previewBoard.classList.add('dark-wp');
+                    document.body.classList.add('dark-wp');
                 } else {
                     previewBoard.classList.remove('dark-wp');
+                    document.body.classList.remove('dark-wp');
+                }
+                if (typeof updateToastStackPositions === 'function') {
+                    updateToastStackPositions();
+                    if (typeof ensureToastDepthMonitor === 'function') {
+                        ensureToastDepthMonitor();
+                    }
                 }
             } catch (e) {
                 console.error("Web Worker luminance calculation error", e);
@@ -1231,11 +1761,13 @@ body.is-zoom-scaling .preview-board::before {
 
 
     // 2. 恢复本地设置状态
-    const savedWp = localStorage.getItem('alpha_wallpaper');
+    const savedWp = getEffectiveWallpaper();
+    currentDisplayedWp = savedWp;
     if (savedWp) {
         previewBoard.style.backgroundImage = `url("${savedWp}")`;
         previewBoard.style.backgroundSize = 'cover';
         previewBoard.style.backgroundPosition = 'center';
+        previewBoard.style.backgroundRepeat = 'no-repeat';
         checkWallpaperLuminance(savedWp);
     }
 
@@ -1254,6 +1786,131 @@ body.is-zoom-scaling .preview-board::before {
         localStorage.setItem('alpha_show_clock', e.target.checked);
         window.parent.postMessage({type: 'alpha_show_clock', value: e.target.checked}, '*');
     });
+
+    // 恢复与监听通用开关 (专注界面 & 标签页打开行为)
+    const focusToggle = document.getElementById('focusToggle');
+    if (focusToggle) {
+        const enableFocus = localStorage.getItem('alpha_enable_focus') !== 'false';
+        focusToggle.checked = enableFocus;
+        const focusDesc = document.getElementById('focusDesc');
+        if (focusDesc) focusDesc.innerText = enableFocus ? '关闭后, 在主页向下滚动时, 将不再进入「专注」界面' : '开启后, 在主页向下滚动, 将进入负一屏「专注」界面';
+        focusToggle.addEventListener('change', (e) => {
+            if (focusDesc) focusDesc.innerText = e.target.checked ? '关闭后, 在主页向下滚动时, 将不再进入「专注」界面' : '开启后, 在主页向下滚动, 将进入负一屏「专注」界面';
+            localStorage.setItem('alpha_enable_focus', e.target.checked);
+            window.parent.postMessage({type: 'alpha_enable_focus', value: e.target.checked}, '*');
+        });
+    }
+
+    const navBehaviorToggle = document.getElementById('navBehaviorToggle');
+    if (navBehaviorToggle) {
+        const openNewTab = localStorage.getItem('alpha_open_new_tab') !== 'false';
+        navBehaviorToggle.checked = openNewTab;
+        const navDesc = document.getElementById('navBehaviorDesc');
+        if (navDesc) navDesc.innerText = openNewTab ? '关闭后, 每次跳转至新界面, 都会覆盖当前界面' : '开启后, 每次跳转至新界面, 将在新标签页中打开';
+        navBehaviorToggle.addEventListener('change', (e) => {
+            if (navDesc) navDesc.innerText = e.target.checked ? '关闭后, 每次跳转至新界面, 都会覆盖当前界面' : '开启后, 每次跳转至新界面, 将在新标签页中打开';
+            localStorage.setItem('alpha_open_new_tab', e.target.checked);
+            window.parent.postMessage({type: 'alpha_open_new_tab', value: e.target.checked}, '*');
+        });
+    }
+
+    const reduceMotionToggle = document.getElementById('reduceMotionToggle');
+    if (reduceMotionToggle) {
+        const reduceMotion = localStorage.getItem('alpha_reduce_motion') === 'true'; // 默认关闭
+        reduceMotionToggle.checked = reduceMotion;
+        const descEl = document.getElementById('reduceMotionDesc');
+        if (descEl) descEl.innerText = reduceMotion ? '已开启，已减弱动态效果并优化性能' : '选择是否减弱动画以优化性能';
+
+        reduceMotionToggle.addEventListener('change', (e) => {
+            const enabled = e.target.checked;
+            if (descEl) descEl.innerText = enabled ? '已开启，已减弱动态效果并优化性能' : '选择是否减弱动画以优化性能';
+            localStorage.setItem('alpha_reduce_motion', enabled ? 'true' : 'false');
+            window.parent.postMessage({type: 'alpha_reduce_motion', value: enabled}, '*');
+            if (window.AlphaReduceMotion && typeof window.AlphaReduceMotion.set === 'function') {
+                window.AlphaReduceMotion.set(enabled);
+            }
+        });
+
+        window.addEventListener('storage', (e) => {
+            if (e.key === 'alpha_reduce_motion' && reduceMotionToggle) {
+                const enabled = (e.newValue === 'true');
+                reduceMotionToggle.checked = enabled;
+                if (descEl) descEl.innerText = enabled ? '已开启，已减弱动态效果并优化性能' : '选择是否减弱动画以优化性能';
+            }
+        });
+    }
+
+    const autoStartToggle = document.getElementById('autoStartToggle');
+    if (autoStartToggle) {
+        const autoStart = localStorage.getItem('alpha_auto_start') === 'true'; // 默认关闭
+        autoStartToggle.checked = autoStart;
+
+        const topAPI = window.electronAPI || window.parent?.electronAPI || window.top?.electronAPI;
+        if (topAPI && topAPI.getAutoStart) {
+            topAPI.getAutoStart().then(enabled => {
+                autoStartToggle.checked = !!enabled;
+                localStorage.setItem('alpha_auto_start', !!enabled);
+            });
+        }
+
+        if (topAPI && topAPI.onAutoStartChanged) {
+            topAPI.onAutoStartChanged((enabled) => {
+                autoStartToggle.checked = !!enabled;
+                localStorage.setItem('alpha_auto_start', !!enabled);
+            });
+        }
+
+        window.addEventListener('storage', (e) => {
+            if (e.key === 'alpha_auto_start' && autoStartToggle) {
+                autoStartToggle.checked = (e.newValue === 'true');
+            }
+        });
+
+        window.addEventListener('message', (e) => {
+            if (e.data && e.data.type === 'alpha_auto_start' && autoStartToggle) {
+                autoStartToggle.checked = !!e.data.value;
+                localStorage.setItem('alpha_auto_start', !!e.data.value);
+            }
+        });
+
+        autoStartToggle.addEventListener('change', (e) => {
+            localStorage.setItem('alpha_auto_start', e.target.checked);
+            window.parent.postMessage({type: 'alpha_auto_start', value: e.target.checked}, '*');
+            if (topAPI && topAPI.setAutoStart) {
+                topAPI.setAutoStart(e.target.checked);
+            }
+        });
+    }
+
+    const closeToTrayToggle = document.getElementById('closeToTrayToggle');
+    if (closeToTrayToggle) {
+        const exitOnClose = localStorage.getItem('alpha_exit_on_close') !== 'false'; // 默认开启退出
+        closeToTrayToggle.checked = exitOnClose;
+        const descEl = document.getElementById('exitOnCloseDesc');
+        if (descEl) descEl.innerText = exitOnClose ? '开启后, 关闭主窗口时退出应用' : '关闭后, 关闭主窗口仍保留托盘显示';
+        
+        const topAPI = window.electronAPI || window.parent?.electronAPI || window.top?.electronAPI;
+        if (topAPI && topAPI.setCloseToTray) {
+            topAPI.setCloseToTray(!exitOnClose);
+        }
+
+        window.addEventListener('storage', (e) => {
+            if (e.key === 'alpha_exit_on_close' && closeToTrayToggle) {
+                const isExit = (e.newValue !== 'false');
+                closeToTrayToggle.checked = isExit;
+                if (descEl) descEl.innerText = isExit ? '开启后, 关闭主窗口时退出应用' : '关闭后, 关闭主窗口仍保留托盘显示';
+            }
+        });
+
+        closeToTrayToggle.addEventListener('change', (e) => {
+            if (descEl) descEl.innerText = e.target.checked ? '开启后, 关闭主窗口时退出应用' : '关闭后, 关闭主窗口仍保留托盘显示';
+            localStorage.setItem('alpha_exit_on_close', e.target.checked);
+            window.parent.postMessage({type: 'alpha_exit_on_close', value: e.target.checked}, '*');
+            if (topAPI && topAPI.setCloseToTray) {
+                topAPI.setCloseToTray(!e.target.checked);
+            }
+        });
+    }
 
     // 4. 全新壁纸解析与双向分发动效引擎
     wpInput.addEventListener('change', (e) => {
@@ -1278,8 +1935,9 @@ body.is-zoom-scaling .preview-board::before {
                     checkWallpaperLuminance(compressed);
                     
                     // 触发设置页自身的 iOS 模糊过渡动画
-                    const oldBgStr = getComputedStyle(previewBoard).backgroundImage;
+                    const oldBgStr = currentDisplayedWp.startsWith('url(') ? currentDisplayedWp : `url("${currentDisplayedWp}")`;
                     runIOSBlurTransition(oldBgStr, compressed, previewBoard);
+                    currentDisplayedWp = compressed;
                     
                     // 修复按钮交互动画: 锁定尺寸、触发状态类
                     const btn = document.getElementById('uploadWpBtn');
@@ -1303,6 +1961,48 @@ body.is-zoom-scaling .preview-board::before {
         reader.readAsDataURL(file);
     });
 
+    // 5. 单击打开文件选择器 / 双击恢复默认壁纸
+    const uploadWpBtn = document.getElementById('uploadWpBtn');
+    let wpClickTimer = null;
+
+    if (uploadWpBtn) {
+        uploadWpBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (wpClickTimer) return;
+            wpClickTimer = setTimeout(() => {
+                wpClickTimer = null;
+                document.getElementById('wpInput').click();
+            }, 250);
+        });
+
+        uploadWpBtn.addEventListener('dblclick', (e) => {
+            e.preventDefault();
+            if (wpClickTimer) {
+                clearTimeout(wpClickTimer);
+                wpClickTimer = null;
+            }
+
+            const defaultWp = getDefaultWallpaper();
+            if (currentDisplayedWp !== defaultWp || localStorage.getItem('alpha_wallpaper')) {
+                localStorage.removeItem('alpha_wallpaper');
+                const oldBgStr = currentDisplayedWp.startsWith('url(') ? currentDisplayedWp : `url("${currentDisplayedWp}")`;
+                runIOSBlurTransition(oldBgStr, defaultWp, previewBoard);
+                currentDisplayedWp = defaultWp;
+                checkWallpaperLuminance(defaultWp);
+
+                const oldText = "更换壁纸";
+                uploadWpBtn.textContent = "已恢复默认壁纸";
+                uploadWpBtn.classList.add('success-state');
+                setTimeout(() => {
+                    uploadWpBtn.classList.remove('success-state');
+                    setTimeout(() => {
+                        uploadWpBtn.textContent = oldText;
+                    }, 150);
+                }, 2000);
+            }
+        });
+    }
+
     // ==========================================
     // 实时时钟引擎 (同步 Home.html 液态玻璃动态逻辑)
     // ==========================================
@@ -1325,11 +2025,24 @@ body.is-zoom-scaling .preview-board::before {
             { id: 'prev-slot-m2', val: m[1], typeClass: 'minute-node' }
         ];
 
+        const isReduceMotion = (typeof localStorage !== 'undefined' && localStorage.getItem('alpha_reduce_motion') === 'true');
+
         timeMappings.forEach(item => {
             if (prevDigitsState[item.id] !== item.val) {
                 const slot = document.getElementById(item.id);
                 if (!slot) return;
                 
+                // 减弱动态效果开启时：新数字直接替换，旧数字瞬间消失，0ms 瞬切
+                if (isReduceMotion) {
+                    slot.innerHTML = '';
+                    const newNode = document.createElement('div');
+                    newNode.textContent = item.val;
+                    newNode.className = `clock-time-node ${item.typeClass}${item.val === '1' ? ' digit-1' : ''}`;
+                    slot.appendChild(newNode);
+                    prevDigitsState[item.id] = item.val;
+                    return;
+                }
+
                 const isInitialRender = prevDigitsState[item.id] === '';
 
                 // 1. 旧数字离场: 模糊上升消散
@@ -1346,7 +2059,7 @@ body.is-zoom-scaling .preview-board::before {
                 // 2. 新数字进场
                 const newNode = document.createElement('div');
                 newNode.textContent = item.val;
-                newNode.className = `clock-time-node ${item.typeClass}`;
+                newNode.className = `clock-time-node ${item.typeClass}${item.val === '1' ? ' digit-1' : ''}`;
                 
                 if (isInitialRender) {
                     newNode.classList.add('clock-enter-active');
@@ -1366,27 +2079,61 @@ body.is-zoom-scaling .preview-board::before {
         });
     }
 
-    updateSettingsClock();
-    setInterval(updateSettingsClock, 1000);
+    let settingsClockInterval = null;
+    function startSettingsClock() {
+        if (!settingsClockInterval) {
+            updateSettingsClock();
+            settingsClockInterval = setInterval(updateSettingsClock, 1000);
+        }
+    }
+    function stopSettingsClock() {
+        if (settingsClockInterval) {
+            clearInterval(settingsClockInterval);
+            settingsClockInterval = null;
+        }
+    }
+
+    startSettingsClock();
+    window.addEventListener('AlphaSleep', stopSettingsClock);
+    window.addEventListener('AlphaWake', startSettingsClock);
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) stopSettingsClock();
+        else startSettingsClock();
+    });
 
     // 账户数据同步引擎
     function loadAccountDataInSettings() {
         const DEFAULT_AVATAR = "./icons/Avatar.png";
+        const genderIconMap = {
+            'male': '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-mars" style="width: 18px; height: 18px; display: block; color: #60a5fa;" aria-hidden="true"><path d="M16 3h5v5"/><path d="m21 3-6.75 6.75"/><circle cx="10" cy="14" r="6"/></svg>',
+            'female': '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-venus" style="width: 18px; height: 18px; display: block; color: #f472b6;" aria-hidden="true"><path d="M12 15v7"/><path d="M9 19h6"/><circle cx="12" cy="9" r="6"/></svg>',
+            'custom': '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-dashed" style="width: 18px; height: 18px; display: block; color: #9b84e1;" aria-hidden="true"><path d="M10.1 2.182a10 10 0 0 1 3.8 0"/><path d="M17.609 3.721a10 10 0 0 1 2.69 2.69"/><path d="M21.818 10.1a10 10 0 0 1 0 3.8"/><path d="M20.279 17.609a10 10 0 0 1-2.69 2.69"/><path d="M13.9 21.818a10 10 0 0 1-3.8 0"/><path d="M6.291 20.279a10 10 0 0 1-2.69-2.69"/><path d="M2.182 13.9a10 10 0 0 1 0-3.8"/><path d="M3.721 6.391a10 10 0 0 1 2.69-2.69"/></svg>'
+        };
+
         try {
             const raw = localStorage.getItem("alpha_account_data");
             const data = raw ? JSON.parse(raw) : null;
             const imgEl = document.getElementById('accAvatarImg');
             const nameEl = document.getElementById('accNameDisplay');
             const bioEl = document.getElementById('accBioDisplay');
+            const genderEl = document.getElementById('accGenderIcon');
 
-            if (data) {
-                if (imgEl) imgEl.src = data.avatar || DEFAULT_AVATAR;
-                if (nameEl) nameEl.textContent = data.name || data.id || "Tasks User";
-                if (bioEl) bioEl.textContent = data.bio || data.id || "本地账户";
-            } else {
-                if (imgEl) imgEl.src = DEFAULT_AVATAR;
-                if (nameEl) nameEl.textContent = "Tasks_001";
-                if (bioEl) bioEl.textContent = "本地账户";
+            const nickname = (data && data.name && data.name.trim()) ? data.name.trim() : "Tasks User";
+            const userId = (data && data.id && data.id.trim()) ? data.id.trim() : "Tasks_001";
+            const formattedId = userId.startsWith("ID:") ? userId : `ID: ${userId}`;
+
+            if (imgEl) imgEl.src = (data && data.avatar) ? data.avatar : DEFAULT_AVATAR;
+            if (nameEl) nameEl.textContent = nickname;
+            if (bioEl) bioEl.textContent = formattedId;
+
+            if (genderEl) {
+                if (data && data.gender && genderIconMap[data.gender]) {
+                    genderEl.innerHTML = genderIconMap[data.gender];
+                    genderEl.style.display = 'inline-flex';
+                } else {
+                    genderEl.innerHTML = '';
+                    genderEl.style.display = 'none';
+                }
             }
         } catch(e) {
             console.error("加载账户设置失败", e);
@@ -1399,10 +2146,96 @@ body.is-zoom-scaling .preview-board::before {
         if (e.key === "alpha_account_data") {
             loadAccountDataInSettings();
         }
+        if (e.key === "alpha_wallpaper") {
+            const newWp = getEffectiveWallpaper();
+            if (newWp !== currentDisplayedWp) {
+                const oldBgStr = currentDisplayedWp.startsWith('url(') ? currentDisplayedWp : `url("${currentDisplayedWp}")`;
+                runIOSBlurTransition(oldBgStr, newWp, previewBoard);
+                currentDisplayedWp = newWp;
+                checkWallpaperLuminance(newWp);
+            }
+        }
     });
+
+    // 系统深色/浅色模式切换监听：若使用默认壁纸，伴随过渡动画无缝切换
+    if (typeof window !== 'undefined' && window.matchMedia) {
+        const darkMedia = window.matchMedia('(prefers-color-scheme: dark)');
+        const onThemeChange = () => {
+            const saved = localStorage.getItem('alpha_wallpaper');
+            if (!saved || isDefaultWallpaper(saved)) {
+                const targetWp = getDefaultWallpaper();
+                if (currentDisplayedWp !== targetWp) {
+                    const oldBgStr = currentDisplayedWp.startsWith('url(') ? currentDisplayedWp : `url("${currentDisplayedWp}")`;
+                    runIOSBlurTransition(oldBgStr, targetWp, previewBoard);
+                    currentDisplayedWp = targetWp;
+                    checkWallpaperLuminance(targetWp);
+                }
+            }
+        };
+        if (darkMedia.addEventListener) {
+            darkMedia.addEventListener('change', onThemeChange);
+        } else if (darkMedia.addListener) {
+            darkMedia.addListener(onThemeChange);
+        }
+    }
+
+    // 账户卡片点击交互
+    const accountCard = document.getElementById('accountCard') || document.querySelector('.account-card');
+    if (accountCard) {
+        accountCard.addEventListener('click', function(e) {
+            e.preventDefault();
+            if (this.classList.contains('is-navigating')) return;
+            this.classList.add('is-navigating');
+
+            // 触发缩小再回弹动画
+            this.classList.remove('anim-bounce');
+            void this.offsetWidth; // 触发 reflow 重置关键帧
+            this.classList.add('anim-bounce');
+
+            // 延迟 140ms 等待轻量回弹动效充分呈现, 再衔接页面切换
+            setTimeout(() => {
+                const targetUrl = 'Account.html';
+                const openNewTab = localStorage.getItem('alpha_open_new_tab') !== 'false';
+                const container = document.querySelector('.settings-container');
+
+                const performNavigation = () => {
+                    const alphaNav = (window.parent && window.parent.ALPHA && typeof window.parent.ALPHA.navigate === 'function')
+                        ? window.parent.ALPHA
+                        : (window.ALPHA && typeof window.ALPHA.navigate === 'function' ? window.ALPHA : null);
+
+                    if (alphaNav) {
+                        alphaNav.navigate(targetUrl, 'auto');
+                    } else {
+                        window.location.href = targetUrl;
+                    }
+                };
+
+                if (container && !openNewTab) {
+                    container.classList.add('page-transition-leave');
+                    setTimeout(performNavigation, 350);
+                } else {
+                    performNavigation();
+                    setTimeout(() => {
+                        this.classList.remove('is-navigating', 'anim-bounce');
+                    }, 320);
+                }
+            }, 140);
+        });
+    }
 
     window.addEventListener('AlphaWake', () => {
         loadAccountDataInSettings();
+        const container = document.querySelector('.settings-container');
+        if (container) container.classList.remove('page-transition-leave');
+        const card = document.getElementById('accountCard') || document.querySelector('.account-card');
+        if (card) card.classList.remove('is-navigating', 'anim-bounce');
+    });
+
+    window.addEventListener('pageshow', () => {
+        const container = document.querySelector('.settings-container');
+        if (container) container.classList.remove('page-transition-leave');
+        const card = document.getElementById('accountCard') || document.querySelector('.account-card');
+        if (card) card.classList.remove('is-navigating', 'anim-bounce');
     });
 
     function goBack() {
@@ -1454,7 +2287,7 @@ body.is-zoom-scaling .preview-board::before {
             console.warn("Electron IPC 读取 version.json 失败:", e);
         }
 
-        // 策略 1: XHR 读取 (不能加 ?_t= 等 query 参数，否则在 file:// 协议下会导致 ERR_FILE_NOT_FOUND)
+        // 策略 1: XHR 读取 (不能加 ?_t= 等 query 参数, 否则在 file:// 协议下会导致 ERR_FILE_NOT_FOUND)
         const tryXHR = (url) => new Promise((resolve) => {
             try {
                 const xhr = new XMLHttpRequest();
@@ -1538,33 +2371,365 @@ body.is-zoom-scaling .preview-board::before {
         loadVersion();
     }
 
-    let toastTimeout;
-    function showGlobalToast(msg, color = "var(--monet-text, var(--text))", duration = 3000) {
-        let toast = document.getElementById('globalToast');
-        if (!toast) {
-            toast = document.createElement('div');
-            toast.id = 'globalToast';
-            toast.className = 'toast-notification';
-            document.body.appendChild(toast);
+    function formatToastMsg(msg) {
+        if (!msg) return "";
+        const map = {
+            '🎉': 'icons/Alarm/Congratulations.png',
+            '🎊': 'icons/Alarm/Congratulations.png',
+            '🌟': 'icons/Alarm/Congratulations.png',
+            '✨': 'icons/Alarm/Done.png',
+            '✅': 'icons/Alarm/Done.png',
+            '✔️': 'icons/Alarm/Done.png',
+            '💡': 'icons/Alarm/Done.png',
+            '🔔': 'icons/Alarm/Done.png',
+            '💾': 'icons/Alarm/Done.png',
+            '📸': 'icons/Alarm/Done.png',
+            '📦': 'icons/Alarm/Done.png',
+            '☑️': 'icons/Alarm/Done.png',
+            '❌': 'icons/Alarm/Error.png',
+            '🚫': 'icons/Alarm/Error.png',
+            '⚠️': 'icons/Alarm/Warning.png',
+            '❗': 'icons/Alarm/Warning.png',
+            '⏰': 'icons/Alarm/Warning.png',
+            '📅': 'icons/Alarm/Warning.png',
+            '⏳': 'icons/Alarm/Rocket.png',
+            '📋': 'icons/Alarm/Done.png',
+            '📝': 'icons/Alarm/Write_In.png',
+            '🗑️': 'icons/Alarm/Rubbish_Bin.png',
+            '🗑': 'icons/Alarm/Rubbish_Bin.png',
+            '🚀': 'icons/Alarm/Rocket.png',
+            '🗞️': 'icons/Alarm/Rocket.png',
+            '⏬': 'icons/Alarm/Done.png'
+        };
+        let formatted = msg;
+        for (const [emoji, path] of Object.entries(map)) {
+            if (formatted.includes(emoji)) {
+                formatted = formatted.split(emoji).join(`<img src="${path}" class="toast-icon" style="width: 18px; height: 18px; vertical-align: -3px; margin-right: 6px; object-fit: contain;" alt="">`);
+            }
         }
-        toast.innerHTML = msg;
-        toast.style.color = color;
-        toast.classList.add('show');
+        return formatted;
+    }
 
-        if (toastTimeout) clearTimeout(toastTimeout);
-        if (duration > 0) {
-            toastTimeout = setTimeout(() => toast.classList.remove('show'), duration);
+    function formatDialogIcon(icon) {
+        const stickerStyle = 'width: 60px; height: 60px; object-fit: contain; display: inline-block; filter: drop-shadow(0 0 1.5px rgba(255, 255, 255, 0.90)) drop-shadow(0 0 3.5px rgba(255, 255, 255, 0.75)) drop-shadow(0 0 6.5px rgba(255, 255, 255, 0.45)) drop-shadow(0 8px 18px rgba(15, 23, 42, 0.14));';
+        
+        if (!icon) return `<img src="icons/Alarm/Done.png" class="dialog-sticker-icon" style="${stickerStyle}" alt="">`;
+        if (typeof icon === 'string') {
+            if (icon.startsWith('<svg') || icon.startsWith('<img') || icon.startsWith('<div')) {
+                return icon;
+            }
+            if (icon.endsWith('.png') || icon.endsWith('.svg') || icon.includes('/')) {
+                return `<img src="${icon}" class="dialog-sticker-icon" style="${stickerStyle}" alt="">`;
+            }
+            const map = {
+                'Congratulations': 'icons/Alarm/Congratulations.png',
+                'Done': 'icons/Alarm/Done.png',
+                'Error': 'icons/Alarm/Error.png',
+                'Rocket': 'icons/Alarm/Rocket.png',
+                'Rubbish_Bin': 'icons/Alarm/Rubbish_Bin.png',
+                'Warning': 'icons/Alarm/Warning.png',
+                'Write_In': 'icons/Alarm/Write_In.png',
+                '🎉': 'icons/Alarm/Congratulations.png',
+                '🎊': 'icons/Alarm/Congratulations.png',
+                '🌟': 'icons/Alarm/Congratulations.png',
+                '✨': 'icons/Alarm/Done.png',
+                '✅': 'icons/Alarm/Done.png',
+                '✔️': 'icons/Alarm/Done.png',
+                '💡': 'icons/Alarm/Done.png',
+                '🔔': 'icons/Alarm/Done.png',
+                '🔄': 'icons/Alarm/Done.png',
+                '💾': 'icons/Alarm/Done.png',
+                '📸': 'icons/Alarm/Done.png',
+                '📦': 'icons/Alarm/Done.png',
+                '☑️': 'icons/Alarm/Done.png',
+                '🎵': 'icons/Alarm/Done.png',
+                '❌': 'icons/Alarm/Error.png',
+                '🚫': 'icons/Alarm/Error.png',
+                '⚠️': 'icons/Alarm/Warning.png',
+                '❗': 'icons/Alarm/Warning.png',
+                '⏰': 'icons/Alarm/Warning.png',
+                '📅': 'icons/Alarm/Warning.png',
+                '⏳': 'icons/Alarm/Warning.png',
+                '📋': 'icons/Alarm/Write_In.png',
+                '📝': 'icons/Alarm/Write_In.png',
+                '✏️': 'icons/Alarm/Write_In.png',
+                '🗑️': 'icons/Alarm/Rubbish_Bin.png',
+                '🗑': 'icons/Alarm/Rubbish_Bin.png',
+                '🚀': 'icons/Alarm/Rocket.png'
+            };
+            const src = map[icon] || 'icons/Alarm/Done.png';
+            return `<img src="${src}" class="dialog-sticker-icon" style="${stickerStyle}" alt="">`;
         }
+        return icon;
+    }
+
+    /* ================== 全局 Toast / SyncStatus 纵深堆叠通知引擎 ================== */
+    let activeToastStack = [];
+    let persistentToastItem = null;
+
+    function getOrCreateToastContainer() {
+        let container = document.getElementById('globalToastContainer');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'globalToastContainer';
+            container.className = 'toast-container';
+            document.body.appendChild(container);
+        }
+        return container;
+    }
+
+    /* ================== Toast 实时背景深度检测与平滑自适应引擎 ================== */
+let toastDepthCheckTimer = null;
+
+function parseRgbaColor(str) {
+    if (!str || str === 'transparent' || str === 'inherit') return null;
+    const match = str.match(/rgba?\(\s*(\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\s*\)/);
+    if (match) {
+        return {
+            r: parseInt(match[1], 10),
+            g: parseInt(match[2], 10),
+            b: parseInt(match[3], 10),
+            a: match[4] !== undefined ? parseFloat(match[4]) : 1.0
+        };
+    }
+    return null;
+}
+
+function detectToastUnderlyingDepth(toastEl) {
+    if (!toastEl || !toastEl.isConnected) return false;
+    const rect = toastEl.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return false;
+
+    // 取 Toast 弹出位置的横向多点（左 25%、中 50%、右 75%）进行下层采样
+    const samplePoints = [
+        { x: rect.left + rect.width * 0.25, y: rect.top + rect.height * 0.5 },
+        { x: rect.left + rect.width * 0.5, y: rect.top + rect.height * 0.5 },
+        { x: rect.left + rect.width * 0.75, y: rect.top + rect.height * 0.5 }
+    ];
+
+    let darkCount = 0;
+    let sampleCount = 0;
+
+    for (const pt of samplePoints) {
+        const x = Math.max(0, Math.min(window.innerWidth - 1, pt.x));
+        const y = Math.max(0, Math.min(window.innerHeight - 1, pt.y));
+
+        const elements = (document.elementsFromPoint ? document.elementsFromPoint(x, y) : []) || [];
+        let pointIsDark = false;
+        let foundOpaque = false;
+
+        for (const el of elements) {
+            if (!el || el === toastEl || toastEl.contains(el) || el.id === 'globalToastContainer' || el.classList.contains('toast-container')) {
+                continue;
+            }
+
+            // 1. 如果下层元素本身处于深色模式/深色壁纸容器中
+            if (el.closest && el.closest('.dark-wp, .dark-mode, .is-dark-bg, .dark-theme, [data-theme="dark"]')) {
+                pointIsDark = true;
+                foundOpaque = true;
+                break;
+            }
+
+            const win = el.ownerDocument ? el.ownerDocument.defaultView : window;
+            const style = win.getComputedStyle(el);
+            const bg = parseRgbaColor(style.backgroundColor);
+
+            // 2. 分析下层元素的实际背景色亮度
+            if (bg && bg.a > 0.15) {
+                const rEff = bg.r * bg.a + 255 * (1 - bg.a);
+                const gEff = bg.g * bg.a + 255 * (1 - bg.a);
+                const bEff = bg.b * bg.a + 255 * (1 - bg.a);
+                const luma = 0.299 * rEff + 0.587 * gEff + 0.114 * bEff;
+                if (luma < 160) {
+                    pointIsDark = true;
+                }
+                foundOpaque = true;
+                break;
+            }
+
+            // 3. 分析文字与背景反差（浅色高亮文字一般代表深色卡片/背景）
+            const fg = parseRgbaColor(style.color);
+            if (fg && fg.a > 0.6) {
+                const fgLuma = 0.299 * fg.r + 0.587 * fg.g + 0.114 * fg.b;
+                if (fgLuma > 215 && (style.backgroundImage !== 'none' || bg)) {
+                    pointIsDark = true;
+                    foundOpaque = true;
+                    break;
+                }
+            }
+        }
+
+        // 4. 若未命中具体卡片，则回退到当前 body/页面整体壁纸深度判断
+        if (!foundOpaque) {
+            if (document.body.classList.contains('dark-wp') || document.body.classList.contains('dark-mode')) {
+                pointIsDark = true;
+            }
+        }
+
+        if (pointIsDark) darkCount++;
+        sampleCount++;
+    }
+
+    return sampleCount > 0 && (darkCount >= Math.ceil(sampleCount / 2));
+}
+
+function checkAllActiveToastDepths() {
+    if (!activeToastStack || activeToastStack.length === 0) {
+        if (toastDepthCheckTimer) {
+            clearInterval(toastDepthCheckTimer);
+            toastDepthCheckTimer = null;
+        }
+        return;
+    }
+
+    activeToastStack.forEach(item => {
+        if (!item || !item.el) return;
+        const isDeep = detectToastUnderlyingDepth(item.el);
+        if (isDeep) {
+            item.el.classList.add('deep-bg');
+        } else {
+            item.el.classList.remove('deep-bg');
+        }
+    });
+
+    updateToastStackPositions();
+}
+
+function ensureToastDepthMonitor() {
+    if (document.hidden) return;
+    if (!toastDepthCheckTimer) {
+        // 每隔 1.2 秒进行一次实时下层深度轮询
+        toastDepthCheckTimer = setInterval(checkAllActiveToastDepths, 1200);
+    }
+    // 异步微任务中执行单次首检，避免同步重入
+    Promise.resolve().then(checkAllActiveToastDepths);
+}
+
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+        if (toastDepthCheckTimer) {
+            clearInterval(toastDepthCheckTimer);
+            toastDepthCheckTimer = null;
+        }
+    } else if (activeToastStack.length > 0) {
+        ensureToastDepthMonitor();
+    }
+});
+
+window.addEventListener('AlphaSleep', () => {
+    if (toastDepthCheckTimer) {
+        clearInterval(toastDepthCheckTimer);
+        toastDepthCheckTimer = null;
+    }
+});
+
+window.addEventListener('AlphaWake', () => {
+    if (activeToastStack.length > 0) {
+        ensureToastDepthMonitor();
+    }
+});
+
+function updateToastStackPositions() {
+    const total = activeToastStack.length;
+    const isDeepBg = document.body.classList.contains('dark-wp') || 
+                     document.body.classList.contains('dark-mode') || 
+                     document.body.classList.contains('is-dark-bg');
+    activeToastStack.forEach((item, index) => {
+        const depth = total - 1 - index; // 0 = 最新(最前景), 1 = 次新, 2 = 较早
+        const el = item.el;
+        if (!el || el.classList.contains('dismiss')) return;
+
+        // 视觉纵深体系:
+        // 最新 (depth 0): 稍微下沉 (index * 14px), 放大 (scale 1.04)
+        // 较早 (depth 1, 2...): scale 逐渐变小, 保持容器 opacity: 1 (由毛玻璃与折射自然呈现透叠), 确保 Chromium 正确渲染多层 Backdrop Filter
+        const scale = Math.max(0.86, 1.04 - depth * 0.06);
+        const translateY = index * 14;
+        const zIndex = 10005 + index;
+
+        el.style.zIndex = zIndex;
+        el.style.transform = `translateX(-50%) translateY(${translateY}px) scale(${scale})`;
+        if (isDeepBg || el.classList.contains('deep-bg')) {
+            if (depth === 0) {
+                el.style.boxShadow = '0 16px 36px rgba(15, 23, 42, 0.16), inset 0 1px 2px rgba(255, 255, 255, 0.95), inset 0 -1px 2px rgba(0, 0, 0, 0.03)';
+            } else {
+                el.style.boxShadow = '0 8px 20px rgba(15, 23, 42, 0.08), inset 0 1px 2px rgba(255, 255, 255, 0.95)';
+            }
+        } else {
+            if (depth === 0) {
+                el.style.boxShadow = '0 16px 40px rgba(15, 23, 42, 0.12), inset 0 0 0 1px rgba(255, 255, 255, 0.1), inset 2px 3px 10px rgba(255, 255, 255, 0.35), inset -2px -3px 10px rgba(0, 0, 0, 0.03), inset 4px 6px 20px rgba(255, 255, 255, 0.18)';
+            } else {
+                el.style.boxShadow = '0 8px 24px rgba(15, 23, 42, 0.08), inset 0 0 0 1px rgba(255, 255, 255, 0.1), inset 2px 3px 6px rgba(255, 255, 255, 0.25)';
+            }
+        }
+    });
+}
+    function showGlobalToast(msg, color = "var(--monet-text, var(--text))", duration = 3000) {
+        const container = getOrCreateToastContainer();
+        
+        if (activeToastStack.length >= 4) {
+            const oldest = activeToastStack.shift();
+            if (oldest && oldest.el) {
+                oldest.el.classList.add('dismiss');
+                clearTimeout(oldest.timer);
+                setTimeout(() => { if (oldest.el.parentNode) oldest.el.parentNode.removeChild(oldest.el); }, 420);
+            }
+        }
+        
+        const toast = document.createElement('div');
+        toast.className = 'toast-notification';
+        toast.innerHTML = formatToastMsg(msg);
+        if (color) toast.style.color = color;
+        container.appendChild(toast);
+        
+        void toast.offsetWidth;
+        toast.classList.add('show');
+        
+        const toastItem = {
+            el: toast,
+            timer: null
+        };
+        activeToastStack.push(toastItem);
+        updateToastStackPositions();
+        
+        if (duration > 0) {
+            toastItem.timer = setTimeout(() => {
+                toast.classList.add('dismiss');
+                const idx = activeToastStack.indexOf(toastItem);
+                if (idx !== -1) {
+                    activeToastStack.splice(idx, 1);
+                }
+                updateToastStackPositions();
+                setTimeout(() => {
+                    if (toast.parentNode) toast.parentNode.removeChild(toast);
+                }, 420);
+            }, duration);
+        }
+        return toast;
     }
 
     function showPersistentToast(msg, color = "var(--monet-text, var(--text))") {
-        showGlobalToast(msg, color, 0);
+        if (persistentToastItem && persistentToastItem.el && persistentToastItem.el.parentNode) {
+            persistentToastItem.el.innerHTML = formatToastMsg(msg);
+            if (color) persistentToastItem.el.style.color = color;
+            return;
+        }
+        const toast = showGlobalToast(msg, color, 0);
+        persistentToastItem = activeToastStack.find(item => item.el === toast);
     }
 
     function hideGlobalToast() {
-        let toast = document.getElementById('globalToast');
-        if (toast) toast.classList.remove('show');
-        if (toastTimeout) clearTimeout(toastTimeout);
+        if (persistentToastItem) {
+            const idx = activeToastStack.indexOf(persistentToastItem);
+            if (idx !== -1) activeToastStack.splice(idx, 1);
+            persistentToastItem.el.classList.add('dismiss');
+            setTimeout(() => {
+                if (persistentToastItem && persistentToastItem.el && persistentToastItem.el.parentNode) {
+                    persistentToastItem.el.parentNode.removeChild(persistentToastItem.el);
+                }
+                persistentToastItem = null;
+            }, 350);
+            updateToastStackPositions();
+        }
     }
 
     function formatSpeed(bytesPerSecond) {
@@ -1575,7 +2740,7 @@ body.is-zoom-scaling .preview-board::before {
         return (bytesPerSecond / 1024).toFixed(0) + ' KB/s';
     }
 
-    function customAlert(msg, title = "提示", icon = "🔔") {
+    function customAlert(msg, title = "提示", icon = "Done") {
         let dialog = document.getElementById('customDialog');
         if (!dialog) {
             dialog = document.createElement('div');
@@ -1583,7 +2748,7 @@ body.is-zoom-scaling .preview-board::before {
             dialog.className = 'sphere-modal hidden';
             dialog.innerHTML = `
                 <div class="modal-content" style="width: 360px; text-align: center;">
-                    <div id="dialogIcon" style="font-size: 48px; margin-bottom: 16px; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.1));"></div>
+                    <div id="dialogIcon" style="min-height: 60px; display: flex; align-items: center; justify-content: center; margin-bottom: 16px;"></div>
                     <h3 id="dialogTitle" style="margin-bottom: 12px; color: #0f172a; font-size: 20px;"></h3>
                     <div id="dialogMessage" style="color: #64748b; font-size: 15px; line-height: 1.6; margin-bottom: 24px;"></div>
                     <div style="display: flex; gap: 12px; justify-content: center;">
@@ -1595,7 +2760,7 @@ body.is-zoom-scaling .preview-board::before {
             document.body.appendChild(dialog);
         }
 
-        document.getElementById('dialogIcon').textContent = icon;
+        document.getElementById('dialogIcon').innerHTML = formatDialogIcon(icon);
         document.getElementById('dialogTitle').textContent = title;
         document.getElementById('dialogMessage').innerHTML = msg;
         document.getElementById('dialogCancelBtn').style.display = 'none';
@@ -1679,12 +2844,12 @@ body.is-zoom-scaling .preview-board::before {
         const btn = document.getElementById('checkUpdateBtn');
         const api = (window.electronAPI) || (window.parent && window.parent.electronAPI);
 
-        // 1. 如果更新已经下载完成但用户未重启: 无需重复下载，弹出 custom alarm 提示重启
+        // 1. 如果更新已经下载完成但用户未重启: 无需重复下载, 弹出 custom alarm 提示重启
         if (isUpdateDownloadedLocal) {
             customAlert(
-                "新版本更新差异包已下载完成，无需重复下载。<br><br>点击“立即重启”以应用最新版本更新。",
+                "新版本已下载<br><br>点击「立即重启」以应用更新",
                 "更新就绪",
-                "🚀"
+                "Rocket"
             );
             const cancelBtn = document.getElementById('dialogCancelBtn');
             if (cancelBtn) {
@@ -1729,7 +2894,7 @@ body.is-zoom-scaling .preview-board::before {
             }
 
             if (!navigator.onLine) {
-                showGlobalToast("❌ 网络未连接，无法检查更新", "var(--monet-text)");
+                showGlobalToast("❌ 网络未连接, 无法检查更新", "var(--monet-text)");
                 if (btn) btn.disabled = false;
                 return;
             }
@@ -1758,11 +2923,11 @@ body.is-zoom-scaling .preview-board::before {
             const cmp = compareVersions(latestVersion, currentVersionInfo.version);
             
             if (cmp > 0) {
-                // 发现新版本：点击蓝色按钮更新过程静默下载
+                // 发现新版本
                 customAlert(
-                    `发现新版本 ${latestVersion}，您当前的本地版本是 ${currentVersionInfo.version}。<br><br>点击“更新”立即开始后台静默差分更新。`, 
+                    `${currentVersionInfo.version} → ${latestVersion}. 点击「更新」按钮开始更新`, 
                     "发现更新", 
-                    "🎉"
+                    "Rocket"
                 );
                 
                 const cancelBtn = document.getElementById('dialogCancelBtn');
@@ -1772,7 +2937,7 @@ body.is-zoom-scaling .preview-board::before {
                 }
                 const confirmBtn = document.getElementById('dialogConfirmBtn');
                 if (confirmBtn) {
-                    confirmBtn.textContent = "更新"; // 蓝色按钮
+                    confirmBtn.textContent = "更新";
                     confirmBtn.className = "primary";
                 }
 
@@ -1780,14 +2945,14 @@ body.is-zoom-scaling .preview-board::before {
                     document.getElementById('customDialog').classList.add('hidden');
                     window.dialogConfirmCallback = null;
                     
-                    showPersistentToast("⏬ 已启动静默更新，正在下载差异包...", "var(--monet-text)");
+                    showPersistentToast("⏬ 已启动静默更新, 正在下载差异包...", "var(--monet-text)");
 
                     if (api && api.startDownloadUpdate) {
                         try {
                             const res = await api.startDownloadUpdate();
                             if (res && res.status === 'downloaded') {
                                 isUpdateDownloadedLocal = true;
-                                showGlobalToast("✨ 更新差异包已存在，请重启完成更新", "var(--monet-text)");
+                                showGlobalToast("✨ 更新差异包已存在, 请重启完成更新", "var(--monet-text)");
                             }
                         } catch (err) {
                             console.error("启动差分更新失败:", err);
@@ -1813,16 +2978,125 @@ body.is-zoom-scaling .preview-board::before {
         } catch (e) {
             console.error("检查更新失败:", e);
             if (e.name === 'AbortError') {
-                showGlobalToast("❌ 检查更新超时，请重试", "var(--monet-text)");
+                showGlobalToast("❌ 检查更新超时, 请重试", "var(--monet-text)");
             } else if (!navigator.onLine) {
-                showGlobalToast("❌ 网络未连接，检查更新失败", "var(--monet-text)");
+                showGlobalToast("❌ 网络未连接, 检查更新失败", "var(--monet-text)");
             } else {
-                showGlobalToast("❌ 检查更新失败，请重试", "var(--monet-text)");
+                showGlobalToast("❌ 检查更新失败, 请重试", "var(--monet-text)");
             }
         } finally {
             if (btn) btn.disabled = false;
         }
     }
+
+    // ======= 自适应节能与性能降载联动引擎 (Adaptive Activity & Power Throttler) =======
+    (function initPerformanceThrottle() {
+        let isSleeping = false;
+        let isIdle = false;
+        let idleTimer = null;
+        const IDLE_TIMEOUT_MS = 2500;
+
+        function applyVisualFreeze(freeze) {
+            const docEl = document.documentElement;
+            const bodyEl = document.body;
+            if (!docEl) return;
+            if (freeze) {
+                docEl.classList.add('pause-bg-motion', 'pause-clock-breath');
+                if (bodyEl) bodyEl.classList.add('pause-bg-motion', 'pause-clock-breath');
+            } else if (!isSleeping) {
+                docEl.classList.remove('pause-bg-motion', 'pause-clock-breath');
+                if (bodyEl) bodyEl.classList.remove('pause-bg-motion', 'pause-clock-breath');
+            }
+        }
+
+        function onUserActive() {
+            if (isSleeping) return;
+            if (isIdle) {
+                isIdle = false;
+                applyVisualFreeze(false);
+            }
+            if (idleTimer) clearTimeout(idleTimer);
+            idleTimer = setTimeout(() => {
+                isIdle = true;
+                applyVisualFreeze(true);
+            }, IDLE_TIMEOUT_MS);
+        }
+
+        function onSleep() {
+            isSleeping = true;
+            if (idleTimer) {
+                clearTimeout(idleTimer);
+                idleTimer = null;
+            }
+            applyVisualFreeze(true);
+            try {
+                if (window.AlphaCardGlow && typeof window.AlphaCardGlow.sleep === 'function') {
+                    window.AlphaCardGlow.sleep(document);
+                }
+                if (window.AlphaLiquidGlass && typeof window.AlphaLiquidGlass.releaseAll === 'function') {
+                    window.AlphaLiquidGlass.releaseAll();
+                }
+            } catch (_) {}
+        }
+
+        function onWake() {
+            isSleeping = false;
+            isIdle = false;
+            applyVisualFreeze(false);
+            try {
+                if (window.AlphaCardGlow && typeof window.AlphaCardGlow.wake === 'function') {
+                    window.AlphaCardGlow.wake(document);
+                }
+            } catch (_) {}
+            onUserActive();
+        }
+
+        const activityEvents = ['pointermove', 'pointerdown', 'keydown', 'scroll', 'wheel', 'touchstart'];
+        activityEvents.forEach(evt => {
+            window.addEventListener(evt, onUserActive, { passive: true, capture: true });
+        });
+
+        window.addEventListener('AlphaSleep', onSleep);
+        window.addEventListener('AlphaWake', onWake);
+        window.addEventListener('blur', () => {
+            if (idleTimer) clearTimeout(idleTimer);
+            isIdle = true;
+            applyVisualFreeze(true);
+        });
+        window.addEventListener('focus', onUserActive);
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) onSleep();
+            else onWake();
+        });
+
+        onUserActive();
+
+        function applyThrottle(throttle) {
+            if (!throttle) return;
+            if (throttle.pauseBgMotion || throttle.pauseClockBreath) {
+                applyVisualFreeze(true);
+            } else if (!isIdle && !isSleeping) {
+                applyVisualFreeze(false);
+            }
+        }
+
+        window.addEventListener('AlphaPerformanceThrottle', (e) => applyThrottle(e.detail));
+        const api = window.electronAPI || window.top?.electronAPI || window.parent?.electronAPI;
+        if (api && typeof api.onPerformanceThrottleChanged === 'function') {
+            api.onPerformanceThrottleChanged(applyThrottle);
+        }
+        if (api && typeof api.getPerformanceThrottleState === 'function') {
+            api.getPerformanceThrottleState().then(applyThrottle).catch(() => {});
+        }
+    })();
+
+    // 禁止通过 F11 快捷键切换全屏
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'F11' || e.keyCode === 122 || e.code === 'F11') {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+    }, true);
     </script>
 </body>
 </html>

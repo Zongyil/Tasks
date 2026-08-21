@@ -1,14 +1,30 @@
 <!DOCTYPE html>
-<html>
+<html class="wrapper-html" id="wrapperHtml">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data: local-font:; frame-src 'self' data: blob:; child-src 'self' data: blob:; object-src 'none'; base-uri 'none'; form-action 'self'" />
+  <script src="./assets/liquid-glass.js"></script>
+  <script src="./assets/input-glow.js"></script>
+  <script src="./assets/scroll-bounce.js"></script>
+  <script src="./assets/reduce-motion.js"></script>
   <style>
 
-    *, *::before, *::after { box-sizing: border-box; }
+    *, *::before, *::after { 
+      box-sizing: border-box; 
+      -webkit-tap-highlight-color: transparent; 
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    input, textarea, select, [contenteditable="true"], [contenteditable] {
+      user-select: text !important;
+      -webkit-user-select: text !important;
+    }
 
     :root {
       --tab-width: 180px;
+      --radius-sm: 8px;
     }
 
     @font-face { 
@@ -19,7 +35,7 @@
 
     html, body {
       margin: 0; padding: 0; width: 100%; height: 100%;
-      background: transparent; overflow: hidden; user-select: none;
+      background: transparent; overflow: hidden; user-select: none; -webkit-user-select: none;
       font-family: "OPPO Sans 4.0", "Segoe UI Variable", -apple-system, BlinkMacSystemFont, sans-serif;
     }
 
@@ -31,25 +47,95 @@
       display: flex; align-items: center;
       padding-left: 12px;
       padding-right: 192px; 
-      z-index: 99999;
+      z-index: 9999995;
+      opacity: 0;
+      transform: translateY(-20px);
+      transition: opacity 1.2s cubic-bezier(0.16, 1, 0.3, 1), transform 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+      /* 截断进入下方 iframe 的标签页阴影，顶部及左右阴影保持完整展开 */
+      clip-path: inset(-100px -100px 0px -100px);
+      -webkit-clip-path: inset(-100px -100px 0px -100px);
     }
+
+    /*
+     * Electron 会把 -webkit-app-region:drag 单独交给原生窗口命中测试。
+     * 标签排序期间暂时关闭这一原生区域，避免它与指针捕获及 backdrop
+     * 合成竞争；拖拽结束后由 JS 自动恢复。
+     */
+    #title-bar.tab-drag-active {
+      -webkit-app-region: no-drag !important;
+    }
+
+
 
     .app-icon {
       width: 18px; height: 19px;
       margin-right: 14px;
-      -webkit-app-region: drag;
-      pointer-events: none;
+      -webkit-app-region: no-drag;
+      pointer-events: auto;
+      cursor: pointer;
       flex-shrink: 0;
+    }
+
+    .title-text {
+      display: block;
+      font-size: 14px;
+      font-weight: 600;
+      color: #0f172a;
+      -webkit-app-region: drag;
+      user-select: none;
+      white-space: nowrap;
+      max-width: 0;
+      margin-right: 0;
+      letter-spacing: -0.2px;
+      overflow: hidden;
+      opacity: 0;
+      transform: translate3d(-10px, 0, 0) scale(0.92);
+      transform-origin: left center;
+      pointer-events: none;
+      transition: opacity 0.22s ease,
+                  transform 0.36s cubic-bezier(0.16, 1, 0.3, 1),
+                  max-width 0.36s cubic-bezier(0.16, 1, 0.3, 1),
+                  margin-right 0.36s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     .tabs-wrapper {
       display: flex; align-items: center;
-      /* 未满时紧贴包裹卡片；溢出时被限制最大宽度, 触发渐隐 */
-      flex: 0 1 auto; 
-      min-width: 0; height: 100%;
+      flex: 0 0 auto; 
+      width: var(--alpha-tabs-wrapper-width, auto);
+      min-width: 0; max-width: calc(100vw - 256px);
+      height: 52px;
+      margin: -4px -14px;
+      padding: 0;
       overflow: hidden;
-      /* 补全标准的 transition 属性 */
-      transition: -webkit-mask-image 0.2s ease, mask-image 0.2s ease;
+      opacity: 1;
+      transform: none;
+      transform-origin: left center;
+      transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+                  opacity 0.2s ease,
+                  transform 0.36s cubic-bezier(0.16, 1, 0.3, 1),
+                  max-width 0.36s cubic-bezier(0.16, 1, 0.3, 1),
+                  -webkit-mask-image 0.2s ease,
+                  mask-image 0.2s ease;
+    }
+
+    /* 单页模式：标签组收拢淡出，同时让 Tasks 标题从左侧自然浮现。 */
+    #title-bar.single-page-mode .title-text {
+      max-width: 96px;
+      margin-right: 14px;
+      opacity: 1;
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+
+    #title-bar.single-page-mode .tabs-wrapper {
+      width: 0 !important;
+      max-width: 0 !important;
+      padding-left: 0 !important;
+      padding-right: 0 !important;
+      margin-left: 0 !important;
+      margin-right: 0 !important;
+      opacity: 0;
+      transform: translate3d(-10px, 0, 0) scale(0.94);
+      pointer-events: none;
     }
 
     /* 高阶拟态边缘渐隐遮罩引擎 */
@@ -60,10 +146,17 @@
 
     /* 滑动容器 */
     .tabs-container {
+      position: relative;
       display: flex; align-items: center; 
       overflow-x: auto; overflow-y: hidden;
       height: 100%;
-      padding: 0 4px; /* 彻底移除之前乱加的 padding, 恢复精准的溢出计算 */
+      /*
+       * 阴影缓冲区必须位于真正执行 overflow 裁切的滚动层内部。
+       * 外层用等量负 margin 抵消，因此标签和加号的位置、间距均不改变；
+       * 但首尾标签（包括 active 的 scale）现在有空间完整绘制阴影。
+       */
+      padding: 4px 14px;
+      margin: 0;
       -webkit-app-region: no-drag;
       scroll-behavior: smooth;
     }
@@ -90,57 +183,192 @@
                   margin 0.4s cubic-bezier(0.16, 1, 0.3, 1), 
                   opacity 0.4s ease;
       transform-origin: center;
-      transform: translate3d(0, 0, 0) scale(1); 
+      /* 静止标签不强制创建 3D 合成层；缩放视觉保持不变。 */
+      transform: scale(1); 
+      touch-action: none;
+      -webkit-app-region: no-drag;
     }
 
-    /* 丝滑入场与退场动画类 */
-    .tab.entering, .tab.closing {
-      min-width: 0 !important; max-width: 0 !important;
-      padding-left: 0 !important; padding-right: 0 !important;
-      margin-right: 0 !important; opacity: 0 !important; border-width: 0 !important;
+    /* 单标签页或单页模式：允许在选中的标签页及标题栏非功能区上拖拽窗口 */
+    #title-bar.single-tab-mode .tab.active,
+    #title-bar.single-page-mode .tab {
+      -webkit-app-region: drag !important;
     }
-    /* 微调初始物理形态, 配合已有的布局阻尼曲线与视觉回弹曲线, 达成完美的液态充气感 */
-    .tab.entering { transform: translate3d(0, 14px, 0) scale(0.72); }
-    .tab.closing  { transform: translate3d(0, -10px, 0) scale(0.85); }
+
+    #title-bar.single-tab-mode .tabs-container {
+      -webkit-app-region: drag;
+    }
+
+    /* 保证功能按键始终响应交互 */
+    .app-icon,
+    .add-tab-btn,
+    .more-btn,
+    .tab-close {
+      -webkit-app-region: no-drag !important;
+      pointer-events: auto !important;
+    }
+
+    /* 拖动层保留在标签组的同一容器中，供局部渲染副本精确对齐。 */
+    .tab.dragging,
+    .tab.active.dragging,
+    .tab.inactive.dragging {
+      position: absolute !important;
+      z-index: 99999999 !important;
+      margin-right: 0 !important;
+      cursor: grabbing;
+      transition: none !important;
+      opacity: 1 !important;
+      contain: none !important;
+      will-change: transform !important;
+      isolation: isolate;
+      overflow: hidden !important;
+      pointer-events: auto;
+      -webkit-app-region: no-drag !important;
+      transform: translate3d(var(--alpha-tab-drag-x, 0px), 0, 0) scale(1.05) !important;
+      /*
+       * 方案 2：表层清空所有白雾，直出 100% 纯净高斯模糊底色
+       */
+      background: transparent !important;
+      /*
+       * 拖拽态不再依赖 backdrop-filter。Electron 的透明/Mica 窗口会把
+       * 拖拽元素提升到独立 RenderSurface，背景取样链可能因此被截断。
+       * 真正的高斯模糊由下方 .tab-drag-filter-strip 对小型 DOM 副本执行。
+       */
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      border-top: 1.2px solid rgba(255, 255, 255, 0.75) !important;
+      border-left: 1px solid rgba(255, 255, 255, 0.55) !important;
+      border-right: 1px solid rgba(255, 255, 255, 0.25) !important;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.18) !important;
+      box-shadow: 0 12px 32px rgba(15, 23, 42, 0.18), 0 3px 8px rgba(15, 23, 42, 0.08), inset 0 1px 1px rgba(255, 255, 255, 0.40) !important;
+    }
+
+    /*
+     * 纯模糊底色方案（方案 2）：
+     * 1. 底层（.tab-drag-filter-layer）：100% 实色纯白衬底遮蔽原生清晰文字；
+     * 2. 核心（.tab-drag-filter-strip）：100% 原汁原味纯正高斯模糊（无额外白雾滤镜）；
+     * 3. 顶层（.tab-title / .tab-close）：标签文本与图标。
+     */
+    .tab-drag-filter-layer {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      overflow: hidden;
+      border-radius: inherit;
+      pointer-events: none;
+      /*
+       * 实色遮蔽基底：100% 阻断原生文字透光
+       */
+      background: #ffffff !important;
+      opacity: 1 !important;
+    }
+
+    .tab-drag-filter-layer::after {
+      display: none !important;
+    }
+
+    .tab-drag-filter-strip {
+      position: absolute !important;
+      z-index: 1;
+      display: flex !important;
+      align-items: center !important;
+      height: 52px !important;
+      margin: 0 !important;
+      padding: 4px 14px !important;
+      overflow: visible !important;
+      transform: scale(var(--alpha-drag-filter-inverse-scale, 0.952381));
+      transform-origin: left top;
+      /* 纯粹高斯模糊处理，零滤镜调色失真，真实还原下方色彩与光斑 */
+      filter: blur(14px) saturate(100%) contrast(100%) brightness(1.0) !important;
+      opacity: 1;
+      pointer-events: none !important;
+      contain: paint;
+      will-change: transform, opacity;
+      transition: opacity 180ms cubic-bezier(0.2, 0, 0.2, 1);
+    }
+
+    .tab-drag-filter-strip .tab {
+      transition: none !important;
+      animation: none !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      pointer-events: none !important;
+    }
+
+    .tab.dragging > .tab-title,
+    .tab.dragging > .tab-close {
+      position: relative;
+      z-index: 3;
+    }
+
+    /*
+     * 拖拽进行期间，非拖拽标签暂时关闭自身的 backdrop-filter，
+     * 避免 Chromium Skia 在同一 RenderPass 树中因嵌套 backdrop-filter 阻断模糊采样。
+     * 这样拖拽中的标签可以 100% 完整捕获并高斯模糊下方所有标签的实体卡片与文字。
+     */
+    #title-bar.tab-drag-active .tab:not(.dragging) {
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+    }
+
+    .tab.dragging .tab-close { pointer-events: none; }
+
+    .tab-drag-placeholder {
+      flex: 0 0 auto;
+      height: 32px;
+      margin-right: 6px;
+      border-radius: 8px;
+      pointer-events: none;
+    }
 
     /* 选中状态 (高亮纯白发光态) */
     .tab.active {
-      background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0.25) 100%);
-      backdrop-filter: blur(40px) saturate(130%) brightness(1.05); -webkit-backdrop-filter: blur(40px) saturate(130%) brightness(1.05);
+      background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.75) 0%, rgba(255, 255, 255, 0.45) 100%);
+      backdrop-filter: blur(40px) saturate(140%) brightness(1.05); -webkit-backdrop-filter: blur(40px) saturate(140%) brightness(1.05);
       border-top: 1.5px solid rgba(255, 255, 255, 0.95);
-      border-left: 1px solid rgba(255, 255, 255, 0.8);
-      border-right: 1px solid rgba(255, 255, 255, 0.35);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.25);
-      box-shadow: 0 12px 28px rgba(15, 23, 42, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.08), inset 2px 3px 10px rgba(255, 255, 255, 0.35), inset -2px -3px 10px rgba(0, 0, 0, 0.03), inset 4px 6px 20px rgba(255, 255, 255, 0.15);
+      border-left: 1px solid rgba(255, 255, 255, 0.85);
+      border-right: 1px solid rgba(255, 255, 255, 0.45);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.35);
+      box-shadow: 0 6px 20px rgba(15, 23, 42, 0.10), 0 2px 6px rgba(15, 23, 42, 0.06), inset 0 0 0 1px rgba(255, 255, 255, 0.12), inset 2px 3px 10px rgba(255, 255, 255, 0.45), inset -2px -3px 10px rgba(0, 0, 0, 0.03), inset 4px 6px 20px rgba(255, 255, 255, 0.20);
       font-weight: 700; color: #0f172a; z-index: 2;
-      transform: translate3d(0, 0, 0) scale(1.03) !important; /* 物理级充气浮现感 */
+      transform: scale(1.03) !important; /* 物理级充气浮现感 */
     }
 
     /* 未选中状态 (幽灵玻璃态) */
     .tab.inactive {
-      background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.05) 100%);
+      background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.42) 0%, rgba(255, 255, 255, 0.18) 100%);
       backdrop-filter: blur(24px) saturate(130%); -webkit-backdrop-filter: blur(24px) saturate(130%);
-      border-top: 1px solid rgba(255, 255, 255, 0.5);
-      border-left: 1px solid rgba(255, 255, 255, 0.4);
-      border-right: 1px solid rgba(255, 255, 255, 0.1);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05), inset 0 1px 2px rgba(255, 255, 255, 0.2);
-      font-weight: 600; color: #475569; z-index: 1;
-      transform: translate3d(0, 0, 0) scale(0.97); /* 空间退后感 */
+      border-top: 1px solid rgba(255, 255, 255, 0.7);
+      border-left: 1px solid rgba(255, 255, 255, 0.55);
+      border-right: 1px solid rgba(255, 255, 255, 0.25);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05), inset 0 1px 2px rgba(255, 255, 255, 0.35);
+      font-weight: 600; color: #334155; z-index: 1;
+      transform: scale(0.97); /* 空间退后感 */
     }
     .tab.inactive:hover {
       background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0.15) 100%);
-      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08), inset 0 2px 4px rgba(255, 255, 255, 0.35);
+      box-shadow: 0 5px 16px rgba(15, 23, 42, 0.08), 0 1px 4px rgba(15, 23, 42, 0.04), inset 0 2px 4px rgba(255, 255, 255, 0.35);
       border-top: 1px solid rgba(255, 255, 255, 0.75);
       border-left: 1px solid rgba(255, 255, 255, 0.6);
-      transform: translate3d(0, 0, 0) scale(1.0);
+      transform: scale(1.0);
     }
     .tab.inactive:active {
       background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0.3) 100%);
-      transform: translate3d(0, 0, 0) scale(0.98);
+      transform: scale(0.98);
       border-top: 1.5px solid rgba(255, 255, 255, 0.85);
       border-left: 1px solid rgba(255, 255, 255, 0.75);
     }
+
+    /* 丝滑入场与退场动画类 (必须放在最后以覆盖 active/inactive 状态) */
+    .tab.entering, .tab.closing {
+      width: 0 !important; min-width: 0 !important; max-width: 0 !important;
+      padding-left: 0 !important; padding-right: 0 !important;
+      margin-right: 0 !important; opacity: 0 !important; border-width: 0 !important;
+    }
+    /* 微调初始物理形态, 配合已有的布局阻尼曲线与视觉回弹曲线, 达成完美的液态充气感 */
+    .tab.entering { transform: translateY(14px) scale(0.72) !important; }
+    .tab.closing  { transform: translateY(-10px) scale(0.85) !important; }
 
     .tab-title {
       flex: 1 1 auto; text-align: left; 
@@ -154,10 +382,11 @@
       width: 18px; height: 18px; border-radius: 5px;
       color: #64748b;
       transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+      transform-origin: center;
+      transform: translate3d(0, 0, 0) scale(1);
     }
-    .tab:hover .tab-close { color: #0f172a; }
-    .tab-close:hover { background: rgba(15, 23, 42, 0.09); color: #0f172a; }
-    .tab-close:active { transform: scale(0.82); background: rgba(15, 23, 42, 0.15); }
+    .tab-close:hover { background: rgba(255, 255, 255, 0.6); color: #0f172a; transform: translate3d(0, 0, 0) scale(1.1); }
+    .tab-close:active { transform: translate3d(0, 0, 0) scale(0.82); background: rgba(255, 255, 255, 0.75); }
 
     /* 加号按键动态置顶 */
     .add-tab-btn {
@@ -175,52 +404,77 @@
       border-bottom: 1px solid rgba(255, 255, 255, 0.15);
       box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05), inset 0 1px 2px rgba(255, 255, 255, 0.35);
       color: #0f172a; cursor: pointer;
-      transition: background 0.2s, box-shadow 0.2s, border-color 0.2s, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+      transition: background 0.2s,
+                  box-shadow 0.2s,
+                  border-color 0.2s,
+                  transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1),
+                  width 0.36s cubic-bezier(0.16, 1, 0.3, 1),
+                  margin-left 0.36s cubic-bezier(0.16, 1, 0.3, 1),
+                  opacity 0.2s ease;
       -webkit-app-region: no-drag;
+      transform-origin: center;
+      transform: translate3d(0, 0, 0) scale(1);
     }
     .add-tab-btn:hover { 
       background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.65) 0%, rgba(255, 255, 255, 0.25) 100%);
       border-top: 1px solid rgba(255, 255, 255, 0.95);
       border-left: 1px solid rgba(255, 255, 255, 0.8);
       box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08), inset 0 2px 4px rgba(255, 255, 255, 0.5); 
+      transform: translate3d(0, 0, 0) scale(1.08);
     }
     .add-tab-btn:active { 
       background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.4) 100%);
-      transform: scale(0.90); 
+      transform: translate3d(0, 0, 0) scale(0.90); 
       box-shadow: 0 2px 6px rgba(15, 23, 42, 0.05), inset 0 2px 5px rgba(255, 255, 255, 0.6);
       border-top: 1.5px solid rgba(255, 255, 255, 1);
       border-left: 1px solid rgba(255, 255, 255, 0.9);
     }
 
+    #title-bar.tabs-saturated .tabs-wrapper {
+      flex: 0 1 auto;
+    }
+    #title-bar.tabs-saturated .add-tab-btn {
+      position: relative;
+      margin-left: 8px;
+    }
+
+    #title-bar.single-page-mode .add-tab-btn {
+      width: 0;
+      margin-left: 0;
+      opacity: 0;
+      transform: translate3d(-8px, 0, 0) scale(0.75);
+      border-width: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
     .more-btn {
-      position: absolute; right: 138px; top: 6px;
-      width: 32px; height: 32px;
-      border-radius: 8px;
+      position: absolute; right: 138px; top: 0;
+      width: 46px; height: 44px;
       display: flex; justify-content: center; align-items: center;
-      cursor: pointer; color: #334155;
+      cursor: pointer; color: #0f172a;
       -webkit-app-region: no-drag;
-      transition: background 0.2s, box-shadow 0.2s, border-color 0.2s, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-      border: 1px solid transparent;
+      transition: background 0.12s ease, color 0.12s ease;
+      z-index: 10;
     }
-    .more-btn:hover { 
-      background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0.25) 100%);
-      backdrop-filter: blur(24px) saturate(150%); -webkit-backdrop-filter: blur(24px) saturate(150%);
-      border-top: 1px solid rgba(255, 255, 255, 0.85);
-      border-left: 1px solid rgba(255, 255, 255, 0.65);
-      border-right: 1px solid rgba(255, 255, 255, 0.25);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.15);
-      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05), inset 0 1px 2px rgba(255, 255, 255, 0.35);
-    }
-    .more-btn:active {
-      transform: scale(0.90);
-      background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.75) 0%, rgba(255, 255, 255, 0.35) 100%);
-    }
+    .more-btn:hover { background: rgba(0, 0, 0, 0.07); }
+    .more-btn:active { background: rgba(0, 0, 0, 0.12); }
 
     /* ========== 内容容器 ========== */
     #iframe-container {
       position: absolute; top: 44px; left: 0; width: 100vw; height: calc(100vh - 44px);
       z-index: 1;
       background: transparent;
+      opacity: 1;
+      transform: translate3d(0, 0, 0) scale(1);
+      filter: blur(0px);
+      transition: opacity 1.5s cubic-bezier(0.16, 1, 0.3, 1), transform 1.5s cubic-bezier(0.16, 1, 0.3, 1), filter 1.5s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    
+    #iframe-container.entering {
+      opacity: 0;
+      transform: translateY(45px) scale(0.96);
+      filter: blur(16px);
     }
     
     .content-frame {
@@ -230,7 +484,7 @@
       background: transparent;
       transform: translate3d(0, 0, 0) scale(1);
       filter: blur(0px);
-      will-change: transform, opacity, filter;
+      will-change: auto;
       /* 混合过渡: 位移使用高阶视差阻尼曲线, 透明度保持自然流畅 */
       transition: opacity 0.35s cubic-bezier(0.25, 1, 0.5, 1),
                   transform 0.42s cubic-bezier(0.16, 1, 0.3, 1),
@@ -255,63 +509,760 @@
       transform: translate3d(0, 0, 0) scale(1) !important;
       filter: blur(0px) !important;
     }
+
+    /*
+     * 已有标签页之间的统一切换动画。
+     *
+     * View Transition 会由 Chromium 为切换前后的 #iframe-container 各生成一张
+     * 临时合成快照。模糊、位移和透明度只作用于快照，不会在动画的每一帧重新
+     * 栅格化完整 iframe；动画完成后浏览器会自动释放两张快照。
+     * 标题栏不参与快照，因此标签状态和拖拽/关闭逻辑保持原样。
+     */
+    html.alpha-tab-snapshot-capable {
+      view-transition-name: none;
+    }
+
+    html.alpha-tab-snapshot-capable #iframe-container {
+      view-transition-name: alpha-tab-content;
+    }
+
+    html.alpha-tab-snapshot-running #iframe-container,
+    html.alpha-tab-snapshot-running .content-frame {
+      transition: none !important;
+    }
+
+    ::view-transition-group(alpha-tab-content) {
+      animation-duration: 360ms;
+      animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+      overflow: clip;
+    }
+
+    ::view-transition-image-pair(alpha-tab-content) {
+      isolation: isolate;
+    }
+
+    ::view-transition-old(alpha-tab-content),
+    ::view-transition-new(alpha-tab-content) {
+      animation-duration: 360ms;
+      animation-fill-mode: both;
+      backface-visibility: hidden;
+      mix-blend-mode: normal;
+    }
+
+    html.alpha-tab-switch-right::view-transition-old(alpha-tab-content) {
+      animation-name: alpha-tab-snapshot-exit-left;
+      animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    html.alpha-tab-switch-right::view-transition-new(alpha-tab-content) {
+      animation-name: alpha-tab-snapshot-enter-right;
+      animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    html.alpha-tab-switch-left::view-transition-old(alpha-tab-content) {
+      animation-name: alpha-tab-snapshot-exit-right;
+      animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    html.alpha-tab-switch-left::view-transition-new(alpha-tab-content) {
+      animation-name: alpha-tab-snapshot-enter-left;
+      animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes alpha-tab-snapshot-exit-left {
+      0%   { opacity: 1; transform: translate3d(0, 0, 0) scale(1); filter: blur(0); }
+      45%  { opacity: 0.72; filter: blur(2px); }
+      100% { opacity: 0; transform: translate3d(-36px, 0, 0) scale(0.985); filter: blur(6px); }
+    }
+
+    @keyframes alpha-tab-snapshot-exit-right {
+      0%   { opacity: 1; transform: translate3d(0, 0, 0) scale(1); filter: blur(0); }
+      45%  { opacity: 0.72; filter: blur(2px); }
+      100% { opacity: 0; transform: translate3d(36px, 0, 0) scale(0.985); filter: blur(6px); }
+    }
+
+    @keyframes alpha-tab-snapshot-enter-right {
+      0%   { opacity: 0; transform: translate3d(36px, 0, 0) scale(0.985); filter: blur(6px); }
+      55%  { opacity: 0.88; filter: blur(1.5px); }
+      100% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); filter: blur(0); }
+    }
+
+    @keyframes alpha-tab-snapshot-enter-left {
+      0%   { opacity: 0; transform: translate3d(-36px, 0, 0) scale(0.985); filter: blur(6px); }
+      55%  { opacity: 0.88; filter: blur(1.5px); }
+      100% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); filter: blur(0); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      ::view-transition-group(alpha-tab-content),
+      ::view-transition-old(alpha-tab-content),
+      ::view-transition-new(alpha-tab-content) {
+        animation-duration: 1ms !important;
+      }
+    }
+
+    /* 仅在实际切换期间创建合成层；后台页动画结束后不再长期占用 GPU 内存。 */
+    .content-frame.frame-transitioning,
+    .content-frame.enter-right,
+    .content-frame.enter-left,
+    .content-frame.exit-left,
+    .content-frame.exit-right {
+      will-change: transform, opacity, filter;
+    }
+
+    /*
+     * 全屏 iframe 上的 filter:blur 会让 Chromium 为整张页面建立并反复
+     * 栅格化离屏纹理。在浏览器标签页中尚可接受，但在 Electron 的透明/
+     * Mica 窗口中代价会显著放大。Electron 仅保留 transform + opacity，
+     * 网页端仍沿用原有视觉。
+     */
+    .electron-runtime #iframe-container {
+      filter: none !important;
+      transition: opacity 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+                  transform 0.45s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    }
+
+    .electron-runtime::view-transition-old(alpha-tab-content),
+    .electron-runtime::view-transition-new(alpha-tab-content) {
+      filter: none !important;
+    }
+
+    .electron-runtime #iframe-container.entering,
+    .electron-runtime .content-frame,
+    .electron-runtime .content-frame.enter-right,
+    .electron-runtime .content-frame.enter-left,
+    .electron-runtime .content-frame.exit-left,
+    .electron-runtime .content-frame.exit-right,
+    .electron-runtime .content-frame.active,
+    .electron-runtime .content-frame.stationary {
+      filter: none !important;
+    }
+
+    .electron-runtime .content-frame {
+      transition: opacity 0.26s cubic-bezier(0.25, 1, 0.5, 1),
+                  transform 0.30s cubic-bezier(0.16, 1, 0.3, 1),
+                  visibility 0.30s !important;
+    }
+
+    .electron-runtime .content-frame.frame-transitioning,
+    .electron-runtime .content-frame.enter-right,
+    .electron-runtime .content-frame.enter-left,
+    .electron-runtime .content-frame.exit-left,
+    .electron-runtime .content-frame.exit-right {
+      will-change: transform, opacity;
+    }
+
+    /* 仅供不支持 View Transition 的旧版 Chromium 使用。模糊半径保持轻量，
+       且只在 1 次切换的短窗口内覆盖 Electron 的常驻禁用规则。 */
+    html.alpha-tab-live-fallback-running .content-frame {
+      transition: opacity 0.30s cubic-bezier(0.25, 1, 0.5, 1),
+                  transform 0.34s cubic-bezier(0.16, 1, 0.3, 1),
+                  filter 0.34s cubic-bezier(0.16, 1, 0.3, 1),
+                  visibility 0.34s !important;
+    }
+
+    html.alpha-tab-live-fallback-running .content-frame.enter-right,
+    html.alpha-tab-live-fallback-running .content-frame.enter-left,
+    html.alpha-tab-live-fallback-running .content-frame.exit-left,
+    html.alpha-tab-live-fallback-running .content-frame.exit-right {
+      filter: blur(6px) !important;
+    }
+
+    html.alpha-tab-live-fallback-running .content-frame.active {
+      filter: blur(0) !important;
+    }
+
+    /* 标题栏面积很小，保留真实毛玻璃；适当降低采样半径以减少 GPU 带宽。 */
+    .electron-runtime .tab.active {
+      backdrop-filter: blur(18px) saturate(130%) brightness(1.05);
+      -webkit-backdrop-filter: blur(18px) saturate(130%) brightness(1.05);
+    }
+
+    .electron-runtime .tab.inactive {
+      backdrop-filter: blur(12px) saturate(125%);
+      -webkit-backdrop-filter: blur(12px) saturate(125%);
+    }
+
+    .electron-runtime .tab.dragging,
+    .electron-runtime .tab.active.dragging,
+    .electron-runtime .tab.inactive.dragging {
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+    }
     
     #alphaTooltip {
       position: fixed; top: 0; left: 0; padding: 6px 12px;
       background: radial-gradient(ellipse at top left, rgba(255, 255, 255, 0.65) 0%, rgba(255, 255, 255, 0.35) 100%);
-      backdrop-filter: blur(40px) saturate(130%) brightness(1.05); -webkit-backdrop-filter: blur(40px) saturate(130%) brightness(1.05);
-      border-top: 1.5px solid rgba(255, 255, 255, 0.95);
-      border-left: 1px solid rgba(255, 255, 255, 0.8);
-      border-right: 1px solid rgba(255, 255, 255, 0.35);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.25);
-      box-shadow: 0 12px 32px rgba(15, 23, 42, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.08), inset 2px 3px 10px rgba(255, 255, 255, 0.35), inset -2px -3px 10px rgba(0, 0, 0, 0.03), inset 4px 6px 20px rgba(255, 255, 255, 0.15);
-      border-radius: 10px; font-size: 12px; color: #0f172a; font-weight: 500;
-      pointer-events: none; z-index: 100000; opacity: 0;
+      backdrop-filter: blur(36px) saturate(180%) brightness(1.05);
+      -webkit-backdrop-filter: blur(36px) saturate(180%) brightness(1.05);
+      border-top: 1px solid rgba(255, 255, 255, 0.85);
+      border-left: 1px solid rgba(255, 255, 255, 0.65);
+      border-right: 1px solid rgba(255, 255, 255, 0.25);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: 
+        0 8px 24px rgba(15, 23, 42, 0.08),
+        0 2px 6px rgba(15, 23, 42, 0.04),
+        inset 0 1px 1px 0 rgba(255, 255, 255, 0.60),
+        inset 0 -1px 2px 0 rgba(0, 0, 0, 0.02);
+      border-radius: 10px; 
+      font-size: 12px; 
+      color: #0f172a; 
+      font-weight: 500;
+      pointer-events: none; 
+      z-index: 10000000; 
+      opacity: 0;
       transform: translateY(6px) scale(0.94);
-      transition: opacity 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-      will-change: transform, opacity; white-space: nowrap;
+      transition: opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+                  transform 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+                  color 0.2s ease,
+                  background 0.2s ease,
+                  border-color 0.2s ease,
+                  box-shadow 0.2s ease;
+      will-change: transform, opacity; 
+      white-space: nowrap;
+      backface-visibility: hidden;
+      -webkit-font-smoothing: antialiased;
     }
-    #alphaTooltip.visible { opacity: 1; transform: translateY(0) scale(1); }
+    #alphaTooltip::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: radial-gradient(circle 80px at 20% 0%, rgba(255, 255, 255, 0.35) 0%, transparent 80%);
+      pointer-events: none;
+      opacity: 0.5;
+      mix-blend-mode: overlay;
+    }
+    #alphaTooltip.visible { 
+      opacity: 1; 
+      transform: translateY(0) scale(1); 
+    }
+    #alphaTooltip.dark-mode {
+      color: rgba(240, 246, 255, 0.88);
+      background: radial-gradient(ellipse at top left, rgba(28, 32, 44, 0.70) 0%, rgba(14, 17, 24, 0.50) 100%);
+      backdrop-filter: blur(32px) saturate(140%);
+      -webkit-backdrop-filter: blur(32px) saturate(140%);
+      border-top: 1.2px solid rgba(255, 255, 255, 0.22);
+      border-left: 1px solid rgba(255, 255, 255, 0.14);
+      border-right: 1px solid rgba(255, 255, 255, 0.06);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+      box-shadow: 
+        0 14px 32px rgba(0, 0, 0, 0.40),
+        0 3px 8px rgba(0, 0, 0, 0.22),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.03),
+        inset 0 1px 2px rgba(255, 255, 255, 0.08),
+        inset 0 -1.5px 3px rgba(0, 0, 0, 0.22);
+    }
+    #alphaTooltip.dark-mode::after {
+      background: radial-gradient(circle 80px at 20% 0%, rgba(255, 255, 255, 0.10) 0%, transparent 80%);
+      opacity: 0.3;
+    }
 
-    /* ===== 限制布局/样式重算范围 ===== */
+    @media (prefers-color-scheme: dark) {
+      #alphaTooltip:not(.light-mode) {
+        color: rgba(240, 246, 255, 0.88);
+        background: radial-gradient(ellipse at top left, rgba(28, 32, 44, 0.70) 0%, rgba(14, 17, 24, 0.50) 100%);
+        backdrop-filter: blur(32px) saturate(140%);
+        -webkit-backdrop-filter: blur(32px) saturate(140%);
+        border-top: 1.2px solid rgba(255, 255, 255, 0.22);
+        border-left: 1px solid rgba(255, 255, 255, 0.14);
+        border-right: 1px solid rgba(255, 255, 255, 0.06);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+        box-shadow: 
+          0 14px 32px rgba(0, 0, 0, 0.40),
+          0 3px 8px rgba(0, 0, 0, 0.22),
+          inset 0 0 0 1px rgba(255, 255, 255, 0.03),
+          inset 0 1px 2px rgba(255, 255, 255, 0.08),
+          inset 0 -1.5px 3px rgba(0, 0, 0, 0.22);
+      }
+      #alphaTooltip:not(.light-mode)::after {
+        background: radial-gradient(circle 80px at 20% 0%, rgba(255, 255, 255, 0.10) 0%, transparent 80%);
+        opacity: 0.3;
+      }
+    }
+
+    /* ===== 性能优化调整 (原限制布局/样式重算范围导致 backdrop-filter 失效) ===== */
+  /*
   .tabs-container {
     contain: layout style;
   }
   .tab {
     contain: layout style;
-    will-change: transform;            /* 提前提升到合成层, 动画更丝滑 */
+    will-change: auto;
   }
+  .tab.active,
+  .tab:hover,
+  .tab.entering,
+  .tab.closing {
+    will-change: transform, opacity;
+  }
+  */
+
+        /* =========================================================
+           系统深浅色模式 (Dark / Light Mode) 适配引擎
+           ========================================================= */
+        :root {
+            --menu-bg-light: rgba(243, 243, 243, 0.65);
+            --item-hover-light: rgba(255, 255, 255, 0.6);
+            --item-active-light: rgba(255, 255, 255, 0.4);
+            --border-top-light: rgba(255, 255, 255, 0.9);
+            --border-mid-light: rgba(255, 255, 255, 0.4);
+            --border-bot-light: rgba(255, 255, 255, 0.1);
+            --text-color-light: #1C1C1C;
+            --separator-light: rgba(0, 0, 0, 0.08);
+            --shadow-light: rgba(0, 0, 0, 0.15);
+
+            --menu-bg-dark: rgba(28, 28, 28, 0.35);
+            --item-hover-dark: rgba(255, 255, 255, 0.08);
+            --item-active-dark: rgba(255, 255, 255, 0.04);
+            --border-top-dark: rgba(255, 255, 255, 0.35);
+            --border-mid-dark: rgba(255, 255, 255, 0.1);
+            --border-bot-dark: rgba(255, 255, 255, 0.02);
+            --text-color-dark: #F3F3F3;
+            --separator-dark: rgba(255, 255, 255, 0.08);
+            --shadow-dark: rgba(0, 0, 0, 0.3);
+
+            --menu-bg: var(--menu-bg-light);
+            --item-hover: var(--item-hover-light);
+            --item-active: var(--item-active-light);
+            --border-top: var(--border-top-light);
+            --border-mid: var(--border-mid-light);
+            --border-bot: var(--border-bot-light);
+            --text-color: var(--text-color-light);
+            --separator: var(--separator-light);
+            --shadow-base: var(--shadow-light);
+            --splash-bg: #f4f7fb;
+
+            --bezier-enter: cubic-bezier(0.16, 1, 0.3, 1);
+            --bezier-exit: cubic-bezier(0.7, 0, 0.84, 0);
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --menu-bg: rgba(20, 24, 34, 0.65);
+                --item-hover: rgba(255, 255, 255, 0.08);
+                --item-active: rgba(255, 255, 255, 0.04);
+                --border-top: rgba(255, 255, 255, 0.20);
+                --border-mid: rgba(255, 255, 255, 0.10);
+                --border-bot: rgba(255, 255, 255, 0.02);
+                --text-color: rgba(240, 246, 255, 0.88);
+                --separator: rgba(255, 255, 255, 0.08);
+                --shadow-base: rgba(0, 0, 0, 0.40);
+                --splash-bg: #151821;
+            }
+            .more-btn {
+                color: rgba(240, 246, 255, 0.85);
+            }
+            .more-btn:hover {
+                background: rgba(255, 255, 255, 0.08);
+            }
+            .more-btn:active {
+                background: rgba(255, 255, 255, 0.15);
+            }
+            .title-text {
+                color: rgba(240, 246, 255, 0.88);
+            }
+            .tab.active {
+                background: radial-gradient(ellipse at 50% 0%, rgba(36, 42, 56, 0.75) 0%, rgba(16, 20, 28, 0.90) 100%) !important;
+                backdrop-filter: blur(32px) saturate(140%) !important;
+                -webkit-backdrop-filter: blur(32px) saturate(140%) !important;
+                border-top: 1.2px solid rgba(255, 255, 255, 0.22) !important;
+                border-left: 1px solid rgba(255, 255, 255, 0.14) !important;
+                border-right: 1px solid rgba(255, 255, 255, 0.06) !important;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.02) !important;
+                box-shadow: 
+                    0 8px 24px rgba(0, 0, 0, 0.40),
+                    0 2px 6px rgba(0, 0, 0, 0.25),
+                    inset 0 0 0 1px rgba(255, 255, 255, 0.04),
+                    inset 0 1.5px 3px rgba(255, 255, 255, 0.12),
+                    inset 0 -2px 4px rgba(0, 0, 0, 0.25) !important;
+                color: rgba(240, 246, 255, 0.88);
+            }
+            .tab.inactive {
+                background: radial-gradient(ellipse at 50% 0%, rgba(26, 30, 42, 0.45) 0%, rgba(12, 14, 20, 0.60) 100%) !important;
+                backdrop-filter: blur(28px) saturate(130%) !important;
+                -webkit-backdrop-filter: blur(28px) saturate(130%) !important;
+                border-top: 1px solid rgba(255, 255, 255, 0.10) !important;
+                border-left: 1px solid rgba(255, 255, 255, 0.06) !important;
+                border-right: 1px solid rgba(255, 255, 255, 0.03) !important;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.01) !important;
+                box-shadow: 
+                    0 4px 14px rgba(0, 0, 0, 0.25),
+                    inset 0 0 0 1px rgba(255, 255, 255, 0.02),
+                    inset 0 1px 2px rgba(255, 255, 255, 0.06),
+                    inset 0 -1.5px 3px rgba(0, 0, 0, 0.18) !important;
+                color: #94a3b8;
+            }
+            .tab.inactive:hover {
+                background: radial-gradient(ellipse at 50% 0%, rgba(36, 42, 58, 0.60) 0%, rgba(18, 22, 32, 0.72) 100%) !important;
+                border-top: 1px solid rgba(255, 255, 255, 0.16) !important;
+                border-left: 1px solid rgba(255, 255, 255, 0.10) !important;
+                border-right: 1px solid rgba(255, 255, 255, 0.05) !important;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.02) !important;
+                box-shadow: 
+                    0 6px 18px rgba(0, 0, 0, 0.32),
+                    0 1px 4px rgba(0, 0, 0, 0.18),
+                    inset 0 1px 2px rgba(255, 255, 255, 0.10),
+                    inset 0 -1.5px 3px rgba(0, 0, 0, 0.20) !important;
+                color: rgba(240, 246, 255, 0.85);
+            }
+            .tab.inactive:active {
+                background: radial-gradient(ellipse at 50% 0%, rgba(44, 52, 70, 0.70) 0%, rgba(22, 26, 38, 0.80) 100%) !important;
+                border-top: 1.2px solid rgba(255, 255, 255, 0.20) !important;
+                border-left: 1px solid rgba(255, 255, 255, 0.14) !important;
+            }
+            .tab.dragging,
+            .tab.active.dragging,
+            .tab.inactive.dragging {
+                background: transparent !important;
+                backdrop-filter: none !important;
+                -webkit-backdrop-filter: none !important;
+                border-top: 1.2px solid rgba(255, 255, 255, 0.20) !important;
+                border-left: 1px solid rgba(255, 255, 255, 0.14) !important;
+                border-right: 1px solid rgba(255, 255, 255, 0.06) !important;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.02) !important;
+                box-shadow: 0 12px 32px rgba(0, 0, 0, 0.50), 0 3px 8px rgba(0, 0, 0, 0.30), inset 0 1px 2px rgba(255, 255, 255, 0.10) !important;
+                color: rgba(240, 246, 255, 0.90) !important;
+            }
+
+            .tab-drag-filter-layer {
+                background: #11141c !important;
+                opacity: 1 !important;
+            }
+
+            .tab-drag-filter-layer::after {
+                display: none !important;
+            }
+
+            .add-tab-btn {
+                background: radial-gradient(ellipse at 50% 0%, rgba(26, 30, 42, 0.50) 0%, rgba(12, 15, 22, 0.65) 100%) !important;
+                backdrop-filter: blur(32px) saturate(140%) !important;
+                -webkit-backdrop-filter: blur(32px) saturate(140%) !important;
+                border-top: 1px solid rgba(255, 255, 255, 0.15) !important;
+                border-left: 1px solid rgba(255, 255, 255, 0.10) !important;
+                border-right: 1px solid rgba(255, 255, 255, 0.04) !important;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.02) !important;
+                box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25), inset 0 1px 2px rgba(255, 255, 255, 0.08), inset 0 -1.5px 3px rgba(0, 0, 0, 0.18) !important;
+                color: rgba(240, 246, 255, 0.85);
+            }
+            .add-tab-btn:hover {
+                background: radial-gradient(ellipse at 50% 0%, rgba(38, 45, 62, 0.70) 0%, rgba(18, 22, 32, 0.80) 100%) !important;
+                border-top: 1px solid rgba(255, 255, 255, 0.22) !important;
+                border-left: 1px solid rgba(255, 255, 255, 0.15) !important;
+                border-right: 1px solid rgba(255, 255, 255, 0.06) !important;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.02) !important;
+                box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35), inset 0 1.5px 3px rgba(255, 255, 255, 0.15), inset 0 -1.5px 3px rgba(0, 0, 0, 0.22) !important;
+                color: rgba(240, 246, 255, 0.92);
+            }
+            .add-tab-btn:active {
+                background: radial-gradient(ellipse at 50% 0%, rgba(46, 54, 74, 0.80) 0%, rgba(22, 28, 40, 0.90) 100%) !important;
+                border-top: 1.2px solid rgba(255, 255, 255, 0.25) !important;
+                border-left: 1px solid rgba(255, 255, 255, 0.18) !important;
+            }
+
+            .tab-close {
+                color: #94a3b8;
+            }
+            .tab-close:hover {
+                background: rgba(255, 255, 255, 0.12) !important;
+                color: rgba(240, 246, 255, 0.92) !important;
+            }
+            .tab-close:active {
+                background: rgba(255, 255, 255, 0.20) !important;
+            }
+
+            .window-controls-menu {
+                background: rgba(20, 24, 34, 0.65) !important;
+                backdrop-filter: blur(32px) saturate(140%) !important;
+                -webkit-backdrop-filter: blur(32px) saturate(140%) !important;
+                border-top: 1.5px solid rgba(255, 255, 255, 0.20) !important;
+                border-left: 1px solid rgba(255, 255, 255, 0.12) !important;
+                border-right: 1px solid rgba(255, 255, 255, 0.05) !important;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.02) !important;
+                box-shadow: 
+                    0 16px 36px rgba(0, 0, 0, 0.45),
+                    0 4px 12px rgba(0, 0, 0, 0.25),
+                    inset 0 0 0 1px rgba(255, 255, 255, 0.03),
+                    inset 0 1.5px 3px rgba(255, 255, 255, 0.08),
+                    inset 0 -2px 4px rgba(0, 0, 0, 0.25) !important;
+                color: rgba(240, 246, 255, 0.88) !important;
+            }
+        }
+
+        #splashFrame {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 10000000;
+            border: none;
+            pointer-events: auto;
+            background: transparent;
+            transition: opacity 1.0s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .window-controls-menu {
+            position: fixed;
+            width: 160px; 
+            padding: 6px;
+            border-radius: 12px;
+            
+            background: var(--menu-bg);
+            color: var(--text-color);
+
+            border-top: 1.5px solid var(--border-top);
+            border-left: 1px solid var(--border-mid);
+            border-right: 1px solid var(--border-mid);
+            border-bottom: 1px solid var(--border-bot);
+            
+            box-shadow: 
+                0 12px 32px var(--shadow-base),
+                0 4px 12px rgba(0, 0, 0, 0.1);
+                
+            backdrop-filter: blur(28px) saturate(180%);
+            -webkit-backdrop-filter: blur(28px) saturate(180%);
+            
+            opacity: 0;
+            transform: scale(0.95) translateY(-8px) translateZ(0);
+            pointer-events: none;
+            z-index: 9999998;
+            transform-origin: top left;
+            transition: 
+                opacity 0.1s var(--bezier-exit),
+                transform 0.1s var(--bezier-exit);
+                
+            will-change: transform, opacity;
+            backface-visibility: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .window-controls-menu.show {
+            opacity: 1;
+            transform: scale(1) translateY(0) translateZ(0);
+            pointer-events: auto;
+            transition: 
+                opacity 0.22s var(--bezier-enter),
+                transform 0.26s var(--bezier-enter);
+        }
+
+        .window-controls-menu.hiding {
+            opacity: 0;
+            transform: scale(0.96) translateY(-6px) translateZ(0);
+            pointer-events: none;
+            transition: 
+                opacity 0.08s var(--bezier-exit),
+                transform 0.08s var(--bezier-exit);
+        }
+
+        .window-controls-menu::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1);
+            pointer-events: none;
+        }
+
+        .menu-item {
+            position: relative;
+            display: flex;
+            align-items: center;
+            width: 100%;
+            padding: 8px 10px;
+            border-radius: 6px; 
+            cursor: pointer; 
+            box-sizing: border-box;
+            font-size: 13.5px;
+            font-weight: 400;
+            color: var(--text-color);
+            background: transparent;
+            transform-origin: center center;
+            transform: scale(1) translateY(0);
+            backface-visibility: hidden;
+            -webkit-font-smoothing: antialiased;
+            /* 释放回弹：原生级 Q弹贝塞尔曲线 */
+            transition: 
+                background-color 0.15s ease, 
+                color 0.15s ease,
+                transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+            will-change: transform;
+        }
+
+        /* 展开时的优雅阶梯进场 (Staggered Cascade Entrance) */
+        .window-controls-menu.show .menu-item,
+        .window-controls-menu.show .menu-separator {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            transition: 
+                opacity 0.22s var(--bezier-enter),
+                transform 0.26s var(--bezier-enter),
+                background-color 0.15s ease, 
+                color 0.15s ease;
+        }
+
+        .window-controls-menu.show > *:nth-child(1) { transition-delay: 20ms, 20ms, 0s, 0s; }
+        .window-controls-menu.show > *:nth-child(2) { transition-delay: 45ms, 45ms, 0s, 0s; }
+        .window-controls-menu.show > *:nth-child(3) { transition-delay: 65ms, 65ms, 0s, 0s; }
+        .window-controls-menu.show > *:nth-child(4) { transition-delay: 85ms, 85ms, 0s, 0s; }
+
+        /* 初始与收起状态 */
+        .window-controls-menu:not(.show) .menu-item,
+        .window-controls-menu:not(.show) .menu-separator {
+            opacity: 0;
+            transform: translateY(6px) scale(0.98);
+            transition: opacity 0.08s ease, transform 0.08s ease;
+            transition-delay: 0s !important;
+        }
+
+        .menu-item:hover {
+            background-color: var(--item-hover);
+            transition-delay: 0s !important;
+        }
+
+        .menu-item:active {
+            background-color: var(--item-active);
+            transform: scale(0.96) !important;
+            transition: transform 0.06s cubic-bezier(0.1, 0.9, 0.2, 1), background-color 0.06s ease !important;
+            transition-delay: 0s !important;
+        }
+
+        .menu-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 18px;
+            height: 18px;
+            margin-right: 12px;
+            opacity: 0.8;
+            color: inherit;
+            transition: opacity 0.15s ease;
+            margin-top: 0.5px;
+            flex-shrink: 0;
+            pointer-events: none;
+        }
+
+        .menu-item:hover .menu-icon {
+            opacity: 1;
+        }
+
+        .menu-label {
+            flex: 1;
+            white-space: nowrap;
+            line-height: 1;
+            pointer-events: none;
+        }
+
+        .menu-separator {
+            height: 1px;
+            margin: 4px 2px; 
+            background: linear-gradient(
+                90deg, 
+                transparent 0%, 
+                var(--separator) 10%, 
+                var(--separator) 90%, 
+                transparent 100%
+            );
+            flex-shrink: 0;
+        }
+        
+        .menu-item.danger:hover {
+            background-color: rgba(243, 155, 155, 0.3) !important;
+            color: #FA423E !important; 
+            transition-delay: 0s !important;
+        }
+        .menu-item.danger:active {
+            background-color: rgba(243, 155, 155, 0.3) !important;
+            color: #FA423E !important;
+            transform: scale(0.96) !important;
+            transition-delay: 0s !important;
+        }
+        .menu-backdrop {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            width: 100vw; height: 100vh;
+            z-index: 9999997;
+            background: rgba(0, 0, 0, 0.0001);
+            display: none;
+            pointer-events: auto;
+        }
+        .menu-backdrop.show {
+            display: block;
+        }
   </style>
 </head>
-<body>
-<iframe id="splashFrame" src="splash.html" style="position:fixed; top:0; left:0; width:100%; height:100%; z-index:999999; border:none; pointer-events:all; background-color: transparent; transition: opacity 1.0s cubic-bezier(0.16, 1, 0.3, 1);"></iframe>
+<body id="wrapperBody" class="wrapper-body">
+<iframe id="splashFrame" src="splash.html"></iframe>
 
   <div id="title-bar">
-    <img src="./Icon.png" class="app-icon" alt="Alpha" onerror="this.style.opacity='0'">
+    <img id="appIconBtn" src="./Icon.png" class="app-icon" alt="Alpha">
+    <div id="titleText" class="title-text">Tasks</div>
     
     <div class="tabs-wrapper mask-none" id="tabsWrapper">
         <div class="tabs-container" id="tabsContainer">
           </div>
       </div>
       
-      <div class="add-tab-btn" id="addTabBtn" onclick="ALPHA.navigate('Home.html', 'new')" title="新标签页">
-        <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 2v12M2 8h12"/></svg>
+      <div class="add-tab-btn" id="addTabBtn" title="新标签页">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="pointer-events: none; display: block;"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
       </div>
     
-      <div class="more-btn" onclick="ALPHA.navigate('settings.html', 'new')" title="设置">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-          <circle cx="3.5" cy="8" r="1.2" />
-          <circle cx="8" cy="8" r="1.2" />
-          <circle cx="12.5" cy="8" r="1.2" />
-        </svg>
+      <div class="more-btn" id="settingsBtn" title="设置">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="pointer-events: none; display: block;"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+      </div>
+
+
+  </div>
+
+  <!-- 全局透明遮罩层（用于捕获全屏及 iframe 内部点击关闭菜单） -->
+  <div class="menu-backdrop" id="menuBackdrop"></div>
+
+  <!-- 窗口控制菜单 -->
+  <div class="window-controls-menu" id="controlsMenu">
+      <div class="menu-item" id="menuItemMaximize" data-action="最大化">
+          <div class="menu-icon" id="menuIconMaximize">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M8 3H5a2 2 0 0 0-2 2v3"></path>
+                  <path d="M21 8V5a2 2 0 0 0-2-2h-3"></path>
+                  <path d="M3 16v3a2 2 0 0 0 2 2h3"></path>
+                  <path d="M16 21h3a2 2 0 0 0 2-2v-3"></path>
+              </svg>
+          </div>
+          <span class="menu-label" id="menuLabelMaximize">最大化</span>
+      </div>
+      <div class="menu-item" id="menuItemMinimize" data-action="最小化">
+          <div class="menu-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M5 12h14"></path>
+              </svg>
+          </div>
+          <span class="menu-label">最小化</span>
+      </div>
+      <div class="menu-separator"></div>
+      <div class="menu-item danger" data-action="退出">
+          <div class="menu-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+          </div>
+          <span class="menu-label">退出</span>
       </div>
   </div>
 
-  <div id="iframe-container"></div>
+  <div id="iframe-container" class="entering"></div>
   <div class="alpha-tooltip" id="alphaTooltip"></div>
 
   <script>
+    const IS_ELECTRON_RUNTIME = !!window.electronAPI || /Electron\//i.test(navigator.userAgent);
+    const FRAME_TRANSITION_TIMEOUT = IS_ELECTRON_RUNTIME ? 340 : 460;
+    const SUPPORTS_TAB_SNAPSHOT_TRANSITION = typeof document.startViewTransition === 'function';
+    document.documentElement.classList.toggle('electron-runtime', IS_ELECTRON_RUNTIME);
+    document.documentElement.classList.toggle('alpha-tab-snapshot-capable', SUPPORTS_TAB_SNAPSHOT_TRANSITION);
+
     let currentTabWidth = 120; // 缓存的全局标签宽度
+    let tabVisibilityRafId = null;
+    let trackedVisibleTabId = null;
 
     function ensureTabVisible(tab, trackingStartTime = null) {
         const wrapper = tabsContainer;
@@ -320,25 +1271,36 @@
         // 1. 获取目标标签的真实数据层索引
         const tabId = tab.getAttribute('data-id');
         const index = tabs.findIndex(t => t.id === tabId);
-        if (index === -1) return;
+        if (index === -1) {
+          if (trackingStartTime !== null) {
+            tabVisibilityRafId = null;
+            trackedVisibleTabId = null;
+          }
+          return;
+        }
 
         // 2. 获取动态计算的标准标签宽度 (使用 JS 缓存, 避免 getComputedStyle 导致的强制重排)
         const expectedWidth = currentTabWidth;
         
         // 3. 核心物理空间常数
         const GAP = 6;            
-        const PADDING_LEFT = 4;   
+        // 与 .tabs-container 的水平内边距保持一致；它只用于阴影缓冲，
+        // 外层负 margin 已抵消其布局占位。
+        const PADDING_LEFT = 14;
         const MARGIN = 24;        
 
         // 4. 纯数学推算最终物理归宿坐标
         const finalLeft = PADDING_LEFT + index * (expectedWidth + GAP);
         const finalRight = finalLeft + expectedWidth;
 
-        // 5. 获取当前视口状态 (使用 ResizeObserver 缓存的容器宽度, 避免 clientWidth 强制重排)
+        // 5. 获取当前视口状态
         const scrollLeft = wrapper.scrollLeft;
-        const wrapperWidth = tabsContainerWidth || wrapper.clientWidth;
+        // 使用最大可用物理宽度进行碰撞预测，彻底消除在弹性膨胀期间因宽度误判而导致的抽搐
+        const maxWrapperWidth = window.innerWidth - 276;
+        const effectiveWrapperWidth = Math.max(tabsContainerWidth || wrapper.clientWidth, maxWrapperWidth);
+        
         const visibleLeft = scrollLeft;
-        const visibleRight = scrollLeft + wrapperWidth;
+        const visibleRight = scrollLeft + effectiveWrapperWidth;
 
         let targetLeft = null;
 
@@ -346,28 +1308,43 @@
         if (finalLeft < visibleLeft + MARGIN) {
             targetLeft = Math.max(0, finalLeft - MARGIN);
         } else if (finalRight > visibleRight - MARGIN) {
-            targetLeft = finalRight - wrapperWidth + MARGIN;
+            targetLeft = finalRight - effectiveWrapperWidth + MARGIN;
         }
 
         // 7. 是否处于高频追踪状态
         const isTracking = trackingStartTime !== null;
 
-        if (targetLeft !== null) {
-            wrapper.scrollTo({
-                left: targetLeft,
-                // 如果是高频追踪状态, 使用 'auto' 瞬间贴合, 打破 scrollWidth 钳制
-                // 普通的点击切换则继续使用 'smooth' 保持丝滑
-                behavior: isTracking ? 'auto' : 'smooth'
-            });
+        if (targetLeft !== null && Math.abs(targetLeft - scrollLeft) > 0.5) {
+            if (isTracking) {
+                // CSS 已声明 scroll-behavior:smooth；scrollTo({behavior:'auto'}) 在部分
+                // Chromium 版本仍会继承平滑行为，连续 400ms 重启滚动动画会明显掉帧。
+                // 直接赋值可让跟踪帧即时贴合，普通点击仍保留原有 smooth 动画。
+                wrapper.scrollLeft = targetLeft;
+            } else {
+                wrapper.scrollTo({ left: targetLeft, behavior: 'smooth' });
+            }
         }
 
         // 8. 启动 rAF 动画帧循环, 完美贴合 CSS width 的 cubic-bezier 过渡周期 (400ms)
         if (isTracking) {
-            const elapsed = Date.now() - trackingStartTime;
-            if (elapsed < 400) { 
-                requestAnimationFrame(() => ensureTabVisible(tab, trackingStartTime));
+            const elapsed = performance.now() - trackingStartTime;
+            if (elapsed < 400 && tab.isConnected && tab.getAttribute('data-id') === trackedVisibleTabId) {
+                tabVisibilityRafId = requestAnimationFrame(() => ensureTabVisible(tab, trackingStartTime));
+            } else {
+                tabVisibilityRafId = null;
+                trackedVisibleTabId = null;
             }
         }
+    }
+
+    function trackTabVisibility(tab) {
+      if (!tab) return;
+      if (tabVisibilityRafId !== null) {
+        cancelAnimationFrame(tabVisibilityRafId);
+        tabVisibilityRafId = null;
+      }
+      trackedVisibleTabId = tab.getAttribute('data-id');
+      ensureTabVisible(tab, performance.now());
     }
 
     let tabs = [];
@@ -375,132 +1352,1050 @@
     const tabElementMap = new Map();
     const iframeMap = new Map();
     const tabDataMap = new Map();
+    const knownFrameSources = new WeakSet();
+    let splashReadyNotified = false;
 
     // 缓存常用 DOM 元素（此时已解析完成, 可直接获取）
     const tabsContainer = document.getElementById('tabsContainer');
     const tabsWrapper = document.getElementById('tabsWrapper');
     const iframeContainer = document.getElementById('iframe-container');
     const addTabBtn = document.getElementById('addTabBtn');
+    const titleBarElement = document.getElementById('title-bar');
 
     const GAP = 6;
     const MIN_TAB_WIDTH = 120;
     const MAX_TAB_WIDTH = 240;
 
-    // 缓存上次计算的 tab 数量和容器宽度, 避免无谓的重复计算
-    let cachedTabCount = 0;
-    let lastContainerWidth = 0;
+    // 缓存上次实际写入的布局状态，避免 resize 期间重复触发样式失效。
+    let lastWrapperWidthValue = '';
+    let lastSaturatedState = null;
+    let lastOverlayMaskClass = '';
 
     //缓存当前活动标签/iframe的 DOM 引用, 避免全量遍历
     let activeTabElCache = null;
     let activeFrameCache = null;
+    const frameExitJobs = new WeakMap();
+    const frameActivationJobs = new WeakMap();
+    const titleUpdateTimers = new Map();
+    const titleUpdateGenerations = new Map();
+    const tabCloseTimers = new Map();
+
+    function cancelFrameActivation(frame) {
+      const job = frame && frameActivationJobs.get(frame);
+      if (!job) return;
+      cancelAnimationFrame(job.rafId);
+      if (job.timerId !== null) clearTimeout(job.timerId);
+      frame.removeEventListener('transitionend', job.onTransitionEnd);
+      frame.classList.remove('frame-transitioning');
+      frameActivationJobs.delete(frame);
+    }
+
+    function scheduleFrameActivation(frame, tabId, isHomeTransition) {
+      cancelFrameActivation(frame);
+      let finalized = false;
+      const finalize = (event) => {
+        if (finalized) return;
+        if (event && event.target !== frame) return;
+        if (event) {
+          const isStationaryFade = frame.classList.contains('stationary') && event.propertyName === 'opacity';
+          const isMotionEnd = event.propertyName === 'transform' || event.propertyName === 'filter';
+          if (!isStationaryFade && !isMotionEnd) return;
+        }
+
+        finalized = true;
+        const job = frameActivationJobs.get(frame);
+        if (job) {
+          if (job.timerId !== null) clearTimeout(job.timerId);
+          frame.removeEventListener('transitionend', job.onTransitionEnd);
+          frameActivationJobs.delete(frame);
+        }
+        if (activeTabId !== tabId || !frame.isConnected) return;
+        frame.classList.remove('enter-left', 'enter-right', 'stationary', 'frame-transitioning');
+      };
+
+      frame.classList.add('frame-transitioning');
+      const rafId = requestAnimationFrame(() => {
+        const job = frameActivationJobs.get(frame);
+        if (!job || !frame.isConnected || activeTabId !== tabId) {
+          cancelFrameActivation(frame);
+          return;
+        }
+        frame.classList.add('active');
+        job.timerId = setTimeout(() => finalize(), FRAME_TRANSITION_TIMEOUT);
+        frame.addEventListener('transitionend', finalize);
+        try {
+          if (frame.contentWindow) {
+            frame.contentWindow.dispatchEvent(new CustomEvent('AlphaWake', { detail: { isHomeTransition } }));
+          }
+        } catch (_) {}
+      });
+      frameActivationJobs.set(frame, { rafId, timerId: null, onTransitionEnd: finalize });
+    }
+
+    function cancelFrameExit(frame) {
+      const job = frame && frameExitJobs.get(frame);
+      if (!job) return;
+      clearTimeout(job.timerId);
+      frame.removeEventListener('transitionend', job.onTransitionEnd);
+      frameExitJobs.delete(frame);
+    }
+
+    function scheduleFrameExit(frame, frameTabId) {
+      if (!frame) return;
+      cancelFrameExit(frame);
+
+      let finalized = false;
+      const finalize = (event) => {
+        if (finalized) return;
+        if (event && event.target !== frame) return;
+        if (event && event.propertyName !== 'transform' && event.propertyName !== 'filter' && event.propertyName !== 'opacity') return;
+
+        finalized = true;
+        cancelFrameExit(frame);
+        if (activeTabId === frameTabId || !frame.isConnected) return;
+
+        frame.className = 'content-frame';
+        frame.style.opacity = '';
+        frame.style.display = 'none';
+        frame.inert = true;
+        frame.setAttribute('aria-hidden', 'true');
+        try {
+          if (frame.contentWindow) frame.contentWindow.dispatchEvent(new CustomEvent('AlphaSleep'));
+        } catch (_) {}
+      };
+
+      const timerId = setTimeout(() => finalize(), FRAME_TRANSITION_TIMEOUT);
+      frameExitJobs.set(frame, { timerId, onTransitionEnd: finalize });
+      frame.addEventListener('transitionend', finalize);
+    }
+
+    // ======= 性能与节能自适应降载协同引擎 =======
+    let currentThrottleState = {
+      isWindowActive: true,
+      cpuUsage: 0,
+      pauseClockBreath: false,
+      pauseBgMotion: false
+    };
+
+    function applyThrottleToIframe(iframeNode, throttle) {
+      if (!iframeNode || !throttle) return;
+      try {
+        const doc = iframeNode.contentDocument || (iframeNode.contentWindow ? iframeNode.contentWindow.document : null);
+        if (doc) {
+          const docEl = doc.documentElement;
+          const bodyEl = doc.body;
+          if (throttle.pauseClockBreath) {
+            if (docEl) docEl.classList.add('pause-clock-breath');
+            if (bodyEl) bodyEl.classList.add('pause-clock-breath');
+          } else {
+            if (docEl) docEl.classList.remove('pause-clock-breath');
+            if (bodyEl) bodyEl.classList.remove('pause-clock-breath');
+          }
+
+          if (throttle.pauseBgMotion) {
+            if (docEl) docEl.classList.add('pause-bg-motion');
+            if (bodyEl) bodyEl.classList.add('pause-bg-motion');
+          } else {
+            if (docEl) docEl.classList.remove('pause-bg-motion');
+            if (bodyEl) bodyEl.classList.remove('pause-bg-motion');
+          }
+        }
+        if (iframeNode.contentWindow) {
+          try {
+            iframeNode.contentWindow.dispatchEvent(new CustomEvent('AlphaPerformanceThrottle', { detail: throttle }));
+          } catch (_) {}
+        }
+      } catch (_) {}
+    }
+
+    function syncThrottleStateToAllFrames(throttle) {
+      if (!throttle) return;
+      // 保留主进程未来可能扩展的字段，仅跳过完全相同的重复状态。
+      const nextState = { ...currentThrottleState, ...throttle };
+      const stateKeys = new Set([...Object.keys(currentThrottleState), ...Object.keys(nextState)]);
+      if ([...stateKeys].every(key => Object.is(currentThrottleState[key], nextState[key]))) return;
+
+      currentThrottleState = nextState;
+      for (const frame of iframeMap.values()) {
+        applyThrottleToIframe(frame, nextState);
+      }
+    }
+
+    // 所有 iframe 共用一个 readyState 调度器，避免多标签各自维持高频计时器。
+    const frameReadyProbes = new Map();
+    let frameReadyTimer = null;
+    let frameReadyTimerDueAt = 0;
+
+    function getFrameProbeDelay(attempt) {
+      if (attempt < 6) return 25;
+      if (attempt < 18) return 60;
+      return 150;
+    }
+
+    function scheduleFrameReadyPump(delay = 0) {
+      const normalizedDelay = Math.max(0, delay);
+      const dueAt = performance.now() + normalizedDelay;
+      if (frameReadyTimer !== null) {
+        if (dueAt >= frameReadyTimerDueAt - 1) return;
+        clearTimeout(frameReadyTimer);
+      }
+      frameReadyTimerDueAt = dueAt;
+      frameReadyTimer = setTimeout(runFrameReadyPump, normalizedDelay);
+    }
+
+    function cancelFrameReadyProbe(tabId) {
+      frameReadyProbes.delete(tabId);
+      if (!frameReadyProbes.size && frameReadyTimer !== null) {
+        clearTimeout(frameReadyTimer);
+        frameReadyTimer = null;
+        frameReadyTimerDueAt = 0;
+      }
+    }
+
+    function runFrameReadyPump() {
+      frameReadyTimer = null;
+      frameReadyTimerDueAt = 0;
+      if (!frameReadyProbes.size) return;
+
+      const now = performance.now();
+      let nextDelay = 150;
+      for (const [tabId, probe] of frameReadyProbes) {
+        const { iframe, init } = probe;
+        if (!iframe.isConnected || !tabDataMap.has(tabId) || now >= probe.deadline) {
+          frameReadyProbes.delete(tabId);
+          continue;
+        }
+        if (now < probe.nextAt) {
+          nextDelay = Math.min(nextDelay, probe.nextAt - now);
+          continue;
+        }
+
+        try {
+          const doc = iframe.contentDocument || (iframe.contentWindow ? iframe.contentWindow.document : null);
+          if (doc && doc.readyState !== 'loading' && doc.URL !== 'about:blank') {
+            frameReadyProbes.delete(tabId);
+            init();
+            continue;
+          }
+        } catch (_) {
+          frameReadyProbes.delete(tabId);
+          continue;
+        }
+
+        probe.attempt++;
+        const delay = getFrameProbeDelay(probe.attempt);
+        probe.nextAt = now + delay;
+        nextDelay = Math.min(nextDelay, delay);
+      }
+
+      if (frameReadyProbes.size) scheduleFrameReadyPump(Math.max(0, Math.ceil(nextDelay)));
+    }
+
+    function watchFrameReady(tabId, iframe, init) {
+      const now = performance.now();
+      frameReadyProbes.set(tabId, {
+        iframe,
+        init,
+        attempt: 0,
+        nextAt: now,
+        deadline: now + 10000
+      });
+      scheduleFrameReadyPump(0);
+    }
 
     // ResizeObserver 缓存容器尺寸, 避免 scroll 事件中强制回流
     let tabsContainerWidth = 0;
 
-    // ================= ① 开放式自定义路由与【原生物理历史引擎】 =================
-    window.ALPHA = {
-      config: { linkMode: localStorage.getItem('alpha_link_mode') || 'new' },
-      reloadConfig: function() { this.config.linkMode = localStorage.getItem('alpha_link_mode') || 'new'; },
-      
-      navigate: function(url, mode = 'auto') {
-        const finalMode = (mode === 'auto') ? this.config.linkMode : mode;
-        if (finalMode === 'new') {
-          requestAnimationFrame(() => createNewTab(url, "加载中..."));
+    // ================= 标签拖拽排序（与新增/删除动画完全解耦） =================
+    let tabDragState = null;
+    let suppressTabClickUntil = 0;
+    let tabDragMoveRaf = null;
+    let pendingTabDragX = 0;
+    const tabFlipAnimations = new WeakMap();
+    const TAB_DRAG_SCALE = 1.05;
+
+    function stripSnapshotIdentity(root) {
+      root.removeAttribute('id');
+      root.removeAttribute('style');
+      root.setAttribute('aria-hidden', 'true');
+      root.inert = true;
+      for (const element of root.querySelectorAll('[id]')) element.removeAttribute('id');
+    }
+
+    function updateTabDragFilterAlignment(state, deltaX = 0) {
+      if (!state.dragFilterLayer) return;
+      const strips = state.dragFilterLayer.querySelectorAll('.tab-drag-filter-strip');
+      if (!strips.length) return;
+
+      /*
+       * 不在 pointermove 中调用 getBoundingClientRect()。拖拽标签的 scale 与
+       * transform-origin 已知，可以直接算出它在屏幕上的外框；这样每帧只有
+       * transform/left/top 写入，不会强制整条标签栏同步回流。
+       */
+      const draggedScreenLeft = state.initialLeft + deltaX - ((TAB_DRAG_SCALE - 1) * state.layoutWidth / 2);
+      const draggedScreenTop = state.initialTop - ((TAB_DRAG_SCALE - 1) * state.layoutHeight / 2);
+      const sourceScreenLeft = state.containerRect.left - tabsContainer.scrollLeft;
+      const sourceScreenTop = state.containerRect.top;
+
+      const left = `${(sourceScreenLeft - draggedScreenLeft) / TAB_DRAG_SCALE}px`;
+      const top = `${(sourceScreenTop - draggedScreenTop) / TAB_DRAG_SCALE}px`;
+      const inverseScale = `${1 / TAB_DRAG_SCALE}`;
+
+      strips.forEach(strip => {
+        strip.style.left = left;
+        strip.style.top = top;
+        strip.style.setProperty('--alpha-drag-filter-inverse-scale', inverseScale);
+      });
+    }
+
+    function refreshTabDragFilterSnapshot(state) {
+      if (!state.dragFilterLayer) return;
+
+      const previousStrip = state.dragFilterStrip;
+      const strip = tabsContainer.cloneNode(true);
+      strip.className = 'tab-drag-filter-strip';
+      strip.querySelectorAll('.dragging').forEach(element => element.remove());
+      stripSnapshotIdentity(strip);
+      strip.style.width = `${Math.max(tabsContainer.scrollWidth, tabsContainer.clientWidth)}px`;
+
+      if (previousStrip && previousStrip.isConnected) {
+        // 平滑交叉淡化过渡 (Cross-fade transition)，避免卡片底色/槽位重排时突兀硬切
+        strip.style.opacity = '0';
+        state.dragFilterLayer.appendChild(strip);
+        state.dragFilterStrip = strip;
+        updateTabDragFilterAlignment(state, pendingTabDragX - state.startX);
+
+        // 触发重绘并平滑淡入新副本
+        requestAnimationFrame(() => {
+          strip.style.opacity = '1';
+        });
+
+        previousStrip.style.opacity = '0';
+        setTimeout(() => {
+          if (previousStrip.isConnected && previousStrip !== state.dragFilterStrip) {
+            previousStrip.remove();
+          }
+        }, 200);
+      } else {
+        state.dragFilterLayer.replaceChildren(strip);
+        state.dragFilterStrip = strip;
+        updateTabDragFilterAlignment(state, pendingTabDragX - state.startX);
+      }
+    }
+
+    function createTabDragFilterSnapshot(state) {
+      const layer = document.createElement('div');
+      layer.className = 'tab-drag-filter-layer';
+      layer.setAttribute('aria-hidden', 'true');
+      layer.inert = true;
+      state.dragFilterLayer = layer;
+      state.tabEl.prepend(layer);
+      refreshTabDragFilterSnapshot(state);
+    }
+
+    function removeTabDragFilterSnapshot(state) {
+      state.dragFilterLayer?.remove();
+      state.dragFilterLayer = null;
+      state.dragFilterStrip = null;
+    }
+
+    function getTabPositions() {
+      const positions = new Map();
+      for (const el of tabsContainer.querySelectorAll('.tab:not(.closing)')) {
+        positions.set(el, el.getBoundingClientRect().left);
+      }
+      return positions;
+    }
+
+    function playTabFlip(previousPositions) {
+      for (const [el, previousLeft] of previousPositions) {
+        if (!el.isConnected) continue;
+        const previousAnimation = tabFlipAnimations.get(el);
+        if (previousAnimation) previousAnimation.cancel();
+        const delta = previousLeft - el.getBoundingClientRect().left;
+        if (Math.abs(delta) < 0.5) continue;
+        const animation = el.animate(
+          [{ translate: `${delta}px 0` }, { translate: '0 0' }],
+          { duration: 210, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' }
+        );
+        tabFlipAnimations.set(el, animation);
+        animation.addEventListener('finish', () => {
+          if (tabFlipAnimations.get(el) === animation) tabFlipAnimations.delete(el);
+        }, { once: true });
+        animation.addEventListener('cancel', () => {
+          if (tabFlipAnimations.get(el) === animation) tabFlipAnimations.delete(el);
+        }, { once: true });
+      }
+    }
+
+    function syncTabOrderFromDom(state = null) {
+      const orderedIds = [...tabsContainer.children]
+        .filter(el => !el.classList.contains('closing'))
+        .map(el => el === state?.placeholder
+          ? state.tabEl.getAttribute('data-id')
+          : el.getAttribute('data-id'))
+        .filter(Boolean);
+
+      const order = new Map(orderedIds.map((id, index) => [id, index]));
+      tabs.sort((a, b) => (order.get(a.id) ?? Number.MAX_SAFE_INTEGER) - (order.get(b.id) ?? Number.MAX_SAFE_INTEGER));
+    }
+
+    function reorderTabPlaceholder(state, pointerX) {
+      // 标签中心在拖拽开始时一次性缓存。移动帧只做数值比较，避免逐标签
+      // getBoundingClientRect() 与随后 DOM 写入交替造成强制同步布局。
+      const scrollLeft = tabsContainer.scrollLeft;
+      let targetIndex = 0;
+      let nearestDistance = Number.POSITIVE_INFINITY;
+      for (let index = 0; index < state.slotCenters.length; index++) {
+        const distance = Math.abs(pointerX - (state.slotCenters[index] - scrollLeft));
+        if (distance < nearestDistance) {
+          nearestDistance = distance;
+          targetIndex = index;
+        }
+      }
+      if (targetIndex === state.currentIndex) return;
+
+      const orderedNodes = [...tabsContainer.children]
+        .filter(el => !el.classList.contains('closing') && el !== state.tabEl);
+      const currentIndex = orderedNodes.indexOf(state.placeholder);
+      if (currentIndex === -1 || !orderedNodes.length) return;
+      targetIndex = Math.max(0, Math.min(targetIndex, orderedNodes.length - 1));
+      if (targetIndex === currentIndex) {
+        state.currentIndex = currentIndex;
+        return;
+      }
+
+      const previousPositions = getTabPositions();
+      const targetNode = orderedNodes[targetIndex];
+      if (targetIndex < currentIndex) targetNode.before(state.placeholder);
+      else targetNode.after(state.placeholder);
+      state.currentIndex = targetIndex;
+      syncTabOrderFromDom(state);
+      playTabFlip(previousPositions);
+      refreshTabDragFilterSnapshot(state);
+    }
+
+    function beginTabDrag(state) {
+      const placeholder = document.createElement('div');
+      placeholder.className = 'tab-drag-placeholder';
+      placeholder.style.width = `${state.layoutWidth}px`;
+      state.placeholder = placeholder;
+      state.dragging = true;
+
+      const scrollLeft = tabsContainer.scrollLeft;
+      const containerRect = tabsContainer.getBoundingClientRect();
+      state.containerRect = containerRect;
+
+      const draggableTabs = [...tabsContainer.querySelectorAll('.tab:not(.closing)')];
+      state.slotCenters = draggableTabs.map(el => {
+        const rect = el.getBoundingClientRect();
+        return rect.left + rect.width / 2 + scrollLeft;
+      });
+      state.currentIndex = Math.max(0, draggableTabs.indexOf(state.tabEl));
+
+      // 计算相对于 tabsContainer 滚动内容区域的绝对坐标
+      const initialOffsetLeft = state.initialLeft - containerRect.left + scrollLeft;
+      const initialOffsetTop = state.initialTop - containerRect.top;
+
+      // 占位符置于原位置，拖拽中的标签置于 tabsContainer 最顶层（同一合成层以保障毛玻璃实时采样）
+      tabsContainer.insertBefore(placeholder, state.tabEl);
+      state.tabEl.classList.add('dragging');
+      state.tabEl.style.width = `${state.layoutWidth}px`;
+      state.tabEl.style.left = `${initialOffsetLeft}px`;
+      state.tabEl.style.top = `${initialOffsetTop}px`;
+      state.tabEl.style.setProperty('--alpha-tab-drag-x', '0px');
+      tabsContainer.appendChild(state.tabEl);
+      titleBarElement?.classList.add('tab-drag-active');
+      pendingTabDragX = state.startX;
+      createTabDragFilterSnapshot(state);
+
+      try { state.tabEl.setPointerCapture(state.pointerId); } catch (_) {}
+    }
+
+    function finishTabDrag(event) {
+      const state = tabDragState;
+      if (!state || state.pointerId !== event.pointerId) return;
+      tabDragState = null;
+      if (tabDragMoveRaf !== null) {
+        cancelAnimationFrame(tabDragMoveRaf);
+        tabDragMoveRaf = null;
+      }
+      try { state.tabEl.releasePointerCapture(event.pointerId); } catch (_) {}
+      if (!state.dragging) return;
+
+      suppressTabClickUntil = performance.now() + 250;
+      const floatingRect = state.tabEl.getBoundingClientRect();
+      removeTabDragFilterSnapshot(state);
+      if (state.placeholder?.isConnected) {
+        state.placeholder.replaceWith(state.tabEl);
+      }
+
+      state.tabEl.classList.remove('dragging');
+      state.tabEl.style.removeProperty('width');
+      state.tabEl.style.removeProperty('left');
+      state.tabEl.style.removeProperty('top');
+      state.tabEl.style.removeProperty('--alpha-tab-drag-x');
+      titleBarElement?.classList.remove('tab-drag-active');
+      syncTabOrderFromDom();
+
+      const finalRect = state.tabEl.getBoundingClientRect();
+      const delta = floatingRect.left - finalRect.left;
+      if (Math.abs(delta) > 0.5) {
+        state.tabEl.animate(
+          [{ translate: `${delta}px 0` }, { translate: '0 0' }],
+          { duration: 180, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' }
+        );
+      }
+      requestOverlayUpdate();
+      ensureTabVisible(state.tabEl);
+    }
+
+    function installTabDrag(tabEl) {
+      tabEl.addEventListener('pointerdown', (event) => {
+        if (event.button !== undefined && event.button !== 0) return;
+        if (event.target.closest('.tab-close') || tabEl.classList.contains('closing')) return;
+
+        const rect = tabEl.getBoundingClientRect();
+        const layoutWidth = tabEl.offsetWidth;
+        const layoutHeight = tabEl.offsetHeight;
+        const initialLeft = rect.left + (rect.width - layoutWidth) / 2;
+        const initialTop = rect.top + (rect.height - layoutHeight) / 2;
+        tabDragState = {
+          tabEl,
+          pointerId: event.pointerId,
+          startX: event.clientX,
+          grabOffset: event.clientX - initialLeft,
+          initialLeft,
+          initialTop,
+          layoutWidth,
+          placeholder: null,
+          slotCenters: [],
+          currentIndex: 0,
+          dragFilterLayer: null,
+          dragFilterStrip: null,
+          dragging: false
+        };
+        try { tabEl.setPointerCapture(event.pointerId); } catch (_) {}
+      });
+    }
+
+    document.addEventListener('pointermove', (event) => {
+      const state = tabDragState;
+      if (!state || state.pointerId !== event.pointerId) return;
+
+      if (!state.dragging) {
+        if (Math.abs(event.clientX - state.startX) < 5) return;
+        beginTabDrag(state);
+      }
+
+      event.preventDefault();
+      pendingTabDragX = event.clientX;
+      if (tabDragMoveRaf !== null) return;
+      tabDragMoveRaf = requestAnimationFrame(() => {
+        tabDragMoveRaf = null;
+        const currentState = tabDragState;
+        if (!currentState || !currentState.dragging) return;
+        const deltaX = pendingTabDragX - currentState.startX;
+        currentState.tabEl.style.setProperty('--alpha-tab-drag-x', `${deltaX}px`);
+        reorderTabPlaceholder(currentState, pendingTabDragX);
+
+        const containerRect = currentState.containerRect || tabsContainer.getBoundingClientRect();
+        const edge = 36;
+        if (pendingTabDragX < containerRect.left + edge) tabsContainer.scrollLeft -= 12;
+        else if (pendingTabDragX > containerRect.right - edge) tabsContainer.scrollLeft += 12;
+        updateTabDragFilterAlignment(currentState, deltaX);
+      });
+    }, { passive: false });
+
+    document.addEventListener('pointerup', finishTabDrag);
+    document.addEventListener('pointercancel', finishTabDrag);
+
+    // 只允许应用目录内的 HTML 页面进入具有 Electron bridge 的标签页。
+    // 这会拦截远程 URL、javascript:/data:、UNC/绝对路径和目录穿越。
+    const APP_BASE_URL = new URL('./', window.location.href);
+    const APP_BASE_PATH = decodeURIComponent(APP_BASE_URL.pathname).replace(/\/+$/, '') + '/';
+
+    function normalizeLocalPageUrl(rawUrl) {
+      if (typeof rawUrl !== 'string') return null;
+      const value = rawUrl.trim();
+      if (!value || value.length > 2048 || /[\u0000-\u001F\u007F\\]/.test(value)) return null;
+      if (/^(?:[a-z][a-z0-9+.-]*:|\/\/|\/)/i.test(value)) return null;
+
+      try {
+        const resolved = new URL(value, APP_BASE_URL);
+        const path = decodeURIComponent(resolved.pathname);
+        const sameContainer = resolved.protocol === APP_BASE_URL.protocol &&
+          (APP_BASE_URL.protocol === 'file:' || resolved.origin === APP_BASE_URL.origin) &&
+          path.startsWith(APP_BASE_PATH);
+        if (!sameContainer || !/\.html$/i.test(path)) return null;
+
+        // 保留规范化后的相对地址，避免把 file:// 绝对路径暴露给页面数据。
+        return path.slice(APP_BASE_PATH.length) + resolved.search + resolved.hash;
+      } catch (_) {
+        return null;
+      }
+    }
+
+    function getIframePageRelativeUrl(iframeNode) {
+      try {
+        const win = iframeNode.contentWindow;
+        if (!win || !win.location) return null;
+        const loc = win.location;
+        if (loc.href === 'about:blank' || !loc.pathname) return null;
+
+        const path = decodeURIComponent(loc.pathname);
+        if (path.startsWith(APP_BASE_PATH)) {
+          const rel = path.slice(APP_BASE_PATH.length) + (loc.search || '') + (loc.hash || '');
+          if (/\.html(?:[?#]|$)/i.test(rel)) return rel;
+        }
+
+        const filenameMatch = path.match(/[^/\\]+\.html$/i);
+        if (filenameMatch) {
+          const baseName = filenameMatch[0];
+          return baseName + (loc.search || '') + (loc.hash || '');
+        }
+      } catch (_) {}
+      return null;
+    }
+
+    function secureOpenExternal(rawUrl) {
+      try {
+        const resolved = new URL(rawUrl);
+        if (!/^https?:$/.test(resolved.protocol)) return false;
+        if (window.electronAPI && typeof window.electronAPI.openExternal === 'function') {
+          window.electronAPI.openExternal(resolved.href);
+          return true;
+        }
+      } catch (_) {}
+      return false;
+    }
+
+    // =========================================================================
+    // ======= 智能空闲预热与休眠预渲染池引擎 (Idle Pre-warm & Dormant Pool Engine) =======
+    // =========================================================================
+    const PrewarmPool = {
+      pool: new Map(),           // safeUrl -> iframeElement
+      pendingQueue: [],          // Array<{ url: string, priority: string }>
+      inFlight: new Set(),       // Set of safeUrls currently loading
+      isProcessing: false,
+      idleTimerId: null,
+      started: false,
+
+      // 高频核心次级目标页列表 (按使用频率与加载复杂度排序)
+      CORE_TARGETS: ['TaskHub.html', 'TaskTimer.html', 'TaskFlow.html', 'settings.html', 'Account.html'],
+
+      has(url) {
+        const safeUrl = normalizeLocalPageUrl(url);
+        return safeUrl ? this.pool.has(safeUrl) : false;
+      },
+
+      // 从池中提取已就绪的 iframe (0ms DOM 构建与编译延迟)
+      acquire(safeUrl, tabId) {
+        if (!safeUrl || !this.pool.has(safeUrl)) return null;
+        const frame = this.pool.get(safeUrl);
+        this.pool.delete(safeUrl);
+        
+        // 恢复 tab 专属 ID 与属性
+        frame.id = `iframe-${tabId}`;
+        frame.inert = false;
+        frame.removeAttribute('aria-hidden');
+        frame.removeAttribute('data-prewarmed');
+        return frame;
+      },
+
+      // 预热指定页面 (支持 idle 空闲排队 与 high 意图悬停插队)
+      prewarm(url, priority = 'idle') {
+        const safeUrl = normalizeLocalPageUrl(url);
+        if (!safeUrl) return;
+        
+        // 如果池中已有、正在预热、或者已有已打开标签页，则跳过
+        if (this.pool.has(safeUrl) || this.inFlight.has(safeUrl)) return;
+        if (tabs.some(t => t.url === safeUrl)) return;
+
+        if (priority === 'high') {
+          // 意图/悬停触发：插队到队列最前端并立即执行
+          this.pendingQueue = this.pendingQueue.filter(item => item.url !== safeUrl);
+          this.pendingQueue.unshift({ url: safeUrl, priority: 'high' });
+          this.processNext(true);
         } else {
-          // 对于外部直接 JS 调用的跳转, 记录历史指针并使用原生跳转
-          const tab = tabDataMap.get(activeTabId);
-          if (tab) tab.historyIndex++;
-          
-          const activeFrame = iframeMap.get(activeTabId);
-          if (activeFrame && activeFrame.contentWindow) {
-            activeFrame.contentWindow.location.href = url; // 极速原生跳转
+          // 普通空闲预热
+          if (!this.pendingQueue.some(item => item.url === safeUrl)) {
+            this.pendingQueue.push({ url: safeUrl, priority: 'idle' });
+            this.schedulePump();
           }
         }
       },
 
-      /**
-       * 「原路返回」接口
-       */
-      back: function() {
-        const tab = tabDataMap.get(activeTabId);
-        if (!tab) return;
-        
-        const activeFrame = iframeMap.get(activeTabId);
-        const win = activeFrame ? activeFrame.contentWindow : null;
+      schedulePump() {
+        if (this.isProcessing || !this.pendingQueue.length || this.idleTimerId !== null) return;
 
-        if (tab.historyIndex > 0) {
-          tab.historyIndex--;
-          if (win && win.history) {
-            try { win.history.back(); return; } catch(_) {}
-          }
-        }
-
-        if (win && win.history && win.history.length > 1) {
-          try {
-            win.history.back();
+        const runPump = (deadline) => {
+          this.idleTimerId = null;
+          if (deadline && typeof deadline.timeRemaining === 'function' && deadline.timeRemaining() < 5) {
+            this.schedulePump();
             return;
-          } catch(_) {}
-        }
+          }
+          this.processNext(false);
+        };
 
-        if (tab.parentId) {
-          const parentExists = tabs.find(t => t.id === tab.parentId);
-          closeTabWithAnim(activeTabId, parentExists ? tab.parentId : null);
+        if (typeof requestIdleCallback === 'function') {
+          this.idleTimerId = requestIdleCallback(runPump, { timeout: 1200 });
+        } else {
+          this.idleTimerId = setTimeout(() => runPump(null), 300);
+        }
+      },
+
+      processNext(immediate = false) {
+        if (!this.pendingQueue.length) {
+          this.isProcessing = false;
           return;
         }
 
-        if (tabs.length > 1) {
-          closeTabWithAnim(activeTabId);
+        this.isProcessing = true;
+        const nextItem = this.pendingQueue.shift();
+        const safeUrl = nextItem.url;
+
+        // 双重校验：避免重复
+        if (this.pool.has(safeUrl) || this.inFlight.has(safeUrl) || tabs.some(t => t.url === safeUrl)) {
+          this.isProcessing = false;
+          this.schedulePump();
+          return;
+        }
+
+        this.inFlight.add(safeUrl);
+
+        const iframe = document.createElement('iframe');
+        const prewarmId = 'prewarm-' + Math.random().toString(36).slice(2, 8);
+        iframe.id = `iframe-${prewarmId}`;
+        iframe.className = 'content-frame';
+        iframe.src = safeUrl;
+        iframe.referrerPolicy = 'no-referrer';
+        iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-modals allow-downloads allow-popups allow-popups-to-escape-sandbox');
+        iframe.setAttribute('allow', "clipboard-read 'self'; clipboard-write 'self'");
+        iframe.setAttribute('aria-hidden', 'true');
+        iframe.setAttribute('data-prewarmed', 'true');
+        iframe.inert = true;
+        iframe.style.display = 'none';
+
+        let prewarmFinalized = false;
+        const onPrewarmReady = () => {
+          if (prewarmFinalized) return;
+          prewarmFinalized = true;
+          this.inFlight.delete(safeUrl);
+          try {
+            const doc = iframe.contentDocument || (iframe.contentWindow ? iframe.contentWindow.document : null);
+            if (doc && !doc.__alphaInstalled) {
+              doc.__alphaInstalled = true;
+              applyThrottleToIframe(iframe, currentThrottleState);
+              injectGlobalRuntime(doc, iframe);
+            }
+            // 预热完毕立即下发 AlphaSleep，冻结子页面的动效与定时器
+            if (iframe.contentWindow) {
+              iframe.contentWindow.dispatchEvent(new CustomEvent('AlphaSleep'));
+            }
+          } catch (_) {}
+
+          this.pool.set(safeUrl, iframe);
+          this.isProcessing = false;
+          
+          // 留出 350ms 的喘息周期，给浏览器释放垃圾回收并让出渲染主线程
+          setTimeout(() => {
+            this.schedulePump();
+          }, 350);
+        };
+
+        // 绑定高频探测与 load 兜底
+        watchFrameReady(prewarmId, iframe, onPrewarmReady);
+        iframe.addEventListener('load', () => {
+          cancelFrameReadyProbe(prewarmId);
+          onPrewarmReady();
+        }, { once: true });
+
+        iframeContainer.appendChild(iframe);
+        if (iframe.contentWindow) knownFrameSources.add(iframe.contentWindow);
+      },
+
+      // 启动全量后台错峰空闲预热
+      startIdlePrewarm() {
+        if (this.started) return;
+        this.started = true;
+        for (const target of this.CORE_TARGETS) {
+          this.prewarm(target, 'idle');
         }
       }
     };
 
-    function createNewTab(url, fallbackTitle = "加载中...") {
-      const tabId = 'tab-' + Date.now();
+    // ================= ① 开放式自定义路由与【原生物理历史引擎】 =================
+    window.ALPHA = {
+      config: { linkMode: (localStorage.getItem('alpha_open_new_tab') !== 'false') ? 'new' : 'current' },
+      reloadConfig: function() { this.config.linkMode = (localStorage.getItem('alpha_open_new_tab') !== 'false') ? 'new' : 'current'; },
+      
+      // 意图/悬停预热接口（供 Home.html 与导航组件调用）
+      prewarm: function(url) {
+        PrewarmPool.prewarm(url, 'high');
+      },
+      
+      navigate: function(url, mode = 'auto') {
+        const safeUrl = normalizeLocalPageUrl(url);
+        if (!safeUrl) {
+          secureOpenExternal(url);
+          return false;
+        }
+        const openNewTab = localStorage.getItem('alpha_open_new_tab') !== 'false';
+        const finalMode = !openNewTab ? 'current' : ((mode === 'auto') ? this.config.linkMode : mode);
+        if (finalMode === 'new') {
+          requestAnimationFrame(() => createNewTab(safeUrl, "加载中..."));
+        } else {
+          // 当前标签页内导航：记录虚拟历史记录并跳转
+          const tab = tabDataMap.get(activeTabId);
+          if (tab) {
+            tab.url = safeUrl;
+            if (tab.history[tab.historyIndex] !== safeUrl) {
+              tab.history = tab.history.slice(0, tab.historyIndex + 1);
+              tab.history.push(safeUrl);
+              tab.historyIndex = tab.history.length - 1;
+            }
+          }
+          
+          const activeFrame = iframeMap.get(activeTabId);
+          if (activeFrame && activeFrame.contentWindow) {
+            activeFrame.contentWindow.location.href = safeUrl;
+          }
+        }
+        return true;
+      },
+
+      /**
+       * 「原路返回」接口：基于独立标签虚拟历史与父级血缘溯源，彻底隔离 iframe 跨页历史干扰
+       */
+      back: function() {
+        const currentTabId = activeTabId;
+        const tab = tabDataMap.get(currentTabId);
+        if (!tab) return;
+        
+        const activeFrame = iframeMap.get(currentTabId);
+        const win = activeFrame ? activeFrame.contentWindow : null;
+
+        // 1. 如果当前标签有独立的内页历史记录, 则在当前标签内后退
+        if (tab.historyIndex > 0) {
+          tab.historyIndex--;
+          const prevUrl = tab.history[tab.historyIndex];
+          tab.url = prevUrl;
+          if (win && win.location) {
+            try {
+              win.location.replace(prevUrl);
+              return;
+            } catch (_) {
+              win.location.href = prevUrl;
+              return;
+            }
+          }
+        }
+
+        // 2. 如果当前标签处于首层, 且由其他标签派生 (parentId)
+        if (tab.parentId) {
+          const parentTab = tabs.find(t => t.id === tab.parentId);
+          if (parentTab) {
+            // 父标签页仍存在，平滑切回父标签页并关闭当前标签
+            closeTabWithAnim(currentTabId, parentTab.id);
+            return;
+          } else {
+            // 父标签页已被关闭，根据保存的血缘来源重新生成父页面
+            const targetUrl = tab.parentUrl || 'Home.html';
+            const targetTitle = tab.parentTitle || '主页';
+            const recreatedTabId = createNewTab(targetUrl, targetTitle, null);
+            closeTabWithAnim(currentTabId, recreatedTabId);
+            return;
+          }
+        }
+
+        // 3. 如果当前有多个标签页, 关闭当前标签页
+        if (tabs.length > 1) {
+          closeTabWithAnim(currentTabId);
+          return;
+        }
+
+        // 4. 单标签页模式兜底（例如单页模式下的设置页或账户页无前置历史时）
+        const currentUrl = (tab.url || '').toLowerCase();
+        if (currentUrl.includes('account.html')) {
+          const fallback = tab.parentUrl || 'settings.html';
+          tab.url = fallback;
+          tab.history = [fallback];
+          tab.historyIndex = 0;
+          if (win && win.location) {
+            try { win.location.replace(fallback); } catch (_) { win.location.href = fallback; }
+          }
+        } else if (currentUrl.includes('settings.html')) {
+          const fallback = tab.parentUrl || 'Home.html';
+          tab.url = fallback;
+          tab.history = [fallback];
+          tab.historyIndex = 0;
+          if (win && win.location) {
+            try { win.location.replace(fallback); } catch (_) { win.location.href = fallback; }
+          }
+        }
+      }
+    };
+
+    function createNewTab(url, fallbackTitle = "加载中...", parentId = undefined, parentUrl = undefined, parentTitle = undefined) {
+      const safeUrl = normalizeLocalPageUrl(url);
+      if (!safeUrl) {
+        secureOpenExternal(url);
+        return null;
+      }
+      const openNewTab = localStorage.getItem('alpha_open_new_tab') !== 'false';
+      if (!openNewTab && tabs.length > 0) {
+        const tab = tabDataMap.get(activeTabId);
+        if (tab) {
+          tab.url = safeUrl;
+          if (tab.history[tab.historyIndex] !== safeUrl) {
+            tab.history = tab.history.slice(0, tab.historyIndex + 1);
+            tab.history.push(safeUrl);
+            tab.historyIndex = tab.history.length - 1;
+          }
+        }
+        const activeFrame = iframeMap.get(activeTabId);
+        if (activeFrame && activeFrame.contentWindow) {
+          activeFrame.contentWindow.location.href = safeUrl;
+        }
+        return activeTabId;
+      }
+
+      const tabId = 'tab-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6);
       
       const activeIndex = tabs.findIndex(t => t.id === activeTabId);
       const insertIndex = activeIndex !== -1 ? activeIndex + 1 : tabs.length;
       
+      const parentTab = activeTabId ? tabDataMap.get(activeTabId) : null;
+      const effectiveParentId = parentId !== undefined ? parentId : activeTabId;
+      const effectiveParentUrl = parentUrl !== undefined ? parentUrl : (parentTab ? (parentTab.url || 'Home.html') : 'Home.html');
+      const effectiveParentTitle = parentTitle !== undefined ? parentTitle : (parentTab ? (parentTab.title || '主页') : '主页');
+
       // 为每个标签初始化独立的虚拟历史记录与血缘绑定
       const tabInfo = {
           id: tabId,
-          url: url,
+          url: safeUrl,
           title: fallbackTitle,
-          history: [url],
+          history: [safeUrl],
           historyIndex: 0,
-          parentId: activeTabId
+          parentId: effectiveParentId,
+          parentUrl: effectiveParentUrl,
+          parentTitle: effectiveParentTitle
       };
       tabs.splice(insertIndex, 0, tabInfo);
       tabDataMap.set(tabId, tabInfo); 
 
-      const iframe = document.createElement('iframe');
-      iframe.id = `iframe-${tabId}`;
-      iframe.className = 'content-frame';
-      iframe.src = url;
+      // 在插入新标签 DOM、触发布局读取前先确定压缩/固定状态，
+      // 防止加号先按旧布局渲染一帧，再被推向右侧。
+      updateTabWidths();
+
+      // 检查预热池中是否已有预热好的 DOM 实例 (0ms DOM 构建与编译延迟)
+      const prewarmedFrame = PrewarmPool.acquire(safeUrl, tabId);
+      const isPrewarmed = !!prewarmedFrame;
+      const iframe = prewarmedFrame || document.createElement('iframe');
+
+      if (!isPrewarmed) {
+        iframe.id = `iframe-${tabId}`;
+        iframe.className = 'content-frame';
+        iframe.src = safeUrl;
+        iframe.referrerPolicy = 'no-referrer';
+        iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-modals allow-downloads allow-popups allow-popups-to-escape-sandbox');
+        iframe.setAttribute('allow', "clipboard-read 'self'; clipboard-write 'self'");
+      }
       iframeMap.set(tabId, iframe); 
+
+      // 如果来自预热池，优先直接读取已解析完毕的 document.title
+      let resolvedTitle = fallbackTitle;
+      if (isPrewarmed) {
+        try {
+          const doc = iframe.contentDocument || (iframe.contentWindow ? iframe.contentWindow.document : null);
+          if (doc && doc.title && doc.title.trim()) {
+            resolvedTitle = doc.title.trim();
+            tabInfo.title = resolvedTitle;
+          }
+        } catch (_) {}
+      }
 
       // 放弃等待极其缓慢的原生 load 事件（会被字体/图片等静态资源严重阻塞）。
       // 采用高频智能探测, 一旦子页面的 DOM 树解析完毕 (interactive), 立刻进行标题读取与事件注入
       const initAlphaChild = () => {
-        if (window.electronAPI && window.electronAPI.splashReady) { window.electronAPI.splashReady(); }
+        if (!splashReadyNotified && window.electronAPI && window.electronAPI.splashReady) {
+          try {
+            window.electronAPI.splashReady();
+            splashReadyNotified = true;
+          } catch (_) {}
+        }
         try {
           const doc = iframe.contentDocument || (iframe.contentWindow ? iframe.contentWindow.document : null);
-          if (!doc || doc.__alphaInstalled) return; // 拦截重复执行
+          if (!doc || doc.__alphaInstalled) {
+            if (doc && doc.title) updateTabTitle(tabId, doc.title);
+            if (iframe.contentWindow && tabId === activeTabId) {
+              try { iframe.contentWindow.dispatchEvent(new CustomEvent('AlphaWake')); } catch (_) {}
+            }
+            return; // 拦截重复执行
+          }
           doc.__alphaInstalled = true; // 标记已安装
+
+          applyThrottleToIframe(iframe, currentThrottleState);
           
           if (doc && doc.title) updateTabTitle(tabId, doc.title);
+
+          // 同步当前标签页的真实 URL 与独立虚拟历史栈
+          const currentUrl = getIframePageRelativeUrl(iframe) || safeUrl;
+          const lowerUrl = (currentUrl || '').toLowerCase();
+          if (!lowerUrl.includes('home.html') && !lowerUrl.includes('focus.html')) {
+            iframe.style.removeProperty('background-image');
+            iframe.style.removeProperty('background-position');
+            iframe.style.removeProperty('background-size');
+            iframe.style.removeProperty('background-repeat');
+          }
+          const tab = tabDataMap.get(tabId);
+          if (tab && currentUrl) {
+            tab.url = currentUrl;
+            if (tab.history[tab.historyIndex] !== currentUrl) {
+              if (tab.historyIndex > 0 && tab.history[tab.historyIndex - 1] === currentUrl) {
+                tab.historyIndex--;
+              } else if (tab.historyIndex < tab.history.length - 1 && tab.history[tab.historyIndex + 1] === currentUrl) {
+                tab.historyIndex++;
+              } else {
+                tab.history = tab.history.slice(0, tab.historyIndex + 1);
+                tab.history.push(currentUrl);
+                tab.historyIndex = tab.history.length - 1;
+              }
+            }
+            // 同步更新以该标签为父标签的子标签 parent 信息
+            for (const t of tabDataMap.values()) {
+              if (t.parentId === tabId) {
+                t.parentUrl = tab.url;
+                t.parentTitle = tab.title;
+              }
+            }
+          }
         
-          // 事件捕获放行机制（保持原有逻辑不变）
+          // 事件捕获放行机制
           doc.addEventListener('click', (e) => {
             let target = e.target;
             while (target && target !== doc) {
               const onclickAttr = target.getAttribute('onclick');
-              if (onclickAttr && onclickAttr.includes('ALPHA.back')) {
+              if (onclickAttr && (onclickAttr.includes('ALPHA.back') || onclickAttr.includes('goBack'))) {
                  return; 
               }
 
               if (target.tagName && target.tagName.toLowerCase() === 'a') {
                 const href = target.getAttribute('href');
-                if (!href || href.startsWith('javascript:') || href.startsWith('#')) return;
+                if (!href || href.startsWith('#')) return;
+                if (/^javascript:/i.test(href)) {
+                  e.preventDefault();
+                  e.stopImmediatePropagation();
+                  return;
+                }
+                const safeHref = normalizeLocalPageUrl(href);
+                if (!safeHref) {
+                  e.preventDefault();
+                  e.stopImmediatePropagation();
+                  secureOpenExternal(href);
+                  return;
+                }
                 
                 const targetAttr = target.getAttribute('target');
                 const customMode = target.getAttribute('data-nav-mode'); 
@@ -510,15 +2405,13 @@
                 else if (targetAttr === '_blank') mode = 'new';
                 else if (targetAttr === '_self') mode = 'current';
                 
-                const finalMode = (mode === 'auto') ? window.ALPHA.config.linkMode : mode;
+                const openNewTab = localStorage.getItem('alpha_open_new_tab') !== 'false';
+                const finalMode = !openNewTab ? 'current' : ((mode === 'auto') ? window.ALPHA.config.linkMode : mode);
 
                 if (finalMode === 'new') {
                   e.preventDefault(); 
                   e.stopImmediatePropagation(); 
-                  window.ALPHA.navigate(href, 'new');
-                } else {
-                  const tab = tabDataMap.get(activeTabId);
-                  if (tab) tab.historyIndex++;
+                  window.ALPHA.navigate(safeHref, 'new');
                 }
                 return;
               }
@@ -526,16 +2419,21 @@
               if (onclickAttr && (onclickAttr.includes('location.href') || onclickAttr.includes('location='))) {
                 const match = onclickAttr.match(/['"]([^'"]+\.html.*?)['"]/);
                 if (match && match[1]) {
-                  const customMode = target.getAttribute('data-nav-mode') || 'auto';
-                  const finalMode = (customMode === 'auto') ? window.ALPHA.config.linkMode : customMode;
-
-                  if (finalMode === 'new') {
+                  const safeHref = normalizeLocalPageUrl(match[1]);
+                  if (!safeHref) {
                     e.preventDefault();
                     e.stopImmediatePropagation();
-                    window.ALPHA.navigate(match[1], 'new');
-                  } else {
-                    const tab = tabDataMap.get(activeTabId);
-                    if (tab) tab.historyIndex++;
+                    secureOpenExternal(match[1]);
+                    return;
+                  }
+                  const customMode = target.getAttribute('data-nav-mode') || 'auto';
+                  const openNewTab = localStorage.getItem('alpha_open_new_tab') !== 'false';
+                  const finalMode = !openNewTab ? 'current' : ((customMode === 'auto') ? window.ALPHA.config.linkMode : customMode);
+
+                  if (finalMode === 'new') {
+                    e.preventDefault(); 
+                    e.stopImmediatePropagation(); 
+                    window.ALPHA.navigate(safeHref, 'new');
                   }
                   return;
                 }
@@ -545,77 +2443,76 @@
           }, true);
           
           injectGlobalRuntime(doc, iframe);
-          if (tabId === activeTabId && iframe.contentWindow) {
-              try { iframe.contentWindow.dispatchEvent(new CustomEvent('AlphaWake')); } catch(_) {}
+          if (iframe.contentWindow) {
+              try {
+                iframe.contentWindow.dispatchEvent(new CustomEvent(tabId === activeTabId ? 'AlphaWake' : 'AlphaSleep'));
+              } catch(_) {}
           }
         } catch (_) {}
       };
 
-      // 1. 高频轮询 readyState: 完美解决 iframe 初始化阶段 DOM 频繁被替换导致的事件丢失问题。
-      let pollCount = 0;
-      const readyTimer = setInterval(() => {
-        try {
-            const doc = iframe.contentDocument || (iframe.contentWindow ? iframe.contentWindow.document : null);
-            // 只要跳过了初始的 about:blank, 且 DOM 处于 interactive（可交互）或 complete, 立即劫持
-            if (doc && doc.readyState !== 'loading' && doc.URL !== 'about:blank') {
-                clearInterval(readyTimer);
-                initAlphaChild();
-            } else if (++pollCount > 500) {
-                // 增加 10s 超时保护, 避免无响应页面导致定时器永久泄漏
-                clearInterval(readyTimer);
-            }
-        } catch (e) {
-            // 遇到跨域安全限制等异常时, 直接清理定时器
-            clearInterval(readyTimer); 
-        }
-      }, 20); // 降频至 20ms, 降低 CPU 空转负担
+      if (!isPrewarmed) {
+        // 1. 共享式 readyState 探测：保留 interactive 阶段的快速初始化，
+        // 但所有标签仅使用一个自适应计时器。
+        watchFrameReady(tabId, iframe, initAlphaChild);
 
-      // 2. 兜底策略: 保留 load 事件, 防止遇到极其畸形的页面没有触发 interactive 状态
-      iframe.addEventListener('load', () => {
-          clearInterval(readyTimer);
+        // 2. 兜底策略: 保留 load 事件, 防止遇到极其畸形的页面没有触发 interactive 状态
+        iframe.addEventListener('load', () => {
+          cancelFrameReadyProbe(tabId);
           initAlphaChild();
-      });
+        });
 
-      iframeContainer.appendChild(iframe);
+        iframeContainer.appendChild(iframe);
+        if (iframe.contentWindow) knownFrameSources.add(iframe.contentWindow);
+      } else {
+        // 预热实例已经在 DOM 容器中，立刻完成初始化同步
+        initAlphaChild();
+      }
 
       const tabEl = document.createElement('div');
       tabEl.className = `tab inactive entering`;
       tabEl.setAttribute('data-id', tabId);
       tabElementMap.set(tabId, tabEl); 
-      tabEl.onclick = () => switchTab(tabId);
+      tabEl.onclick = () => {
+        if (performance.now() < suppressTabClickUntil) return;
+        switchTab(tabId);
+      };
+      installTabDrag(tabEl);
 
       const titleEl = document.createElement('div');
       titleEl.className = 'tab-title';
-      titleEl.textContent = fallbackTitle;
+      titleEl.textContent = resolvedTitle;
 
       const closeBtn = document.createElement('div');
       closeBtn.className = 'tab-close';
-      closeBtn.innerHTML = '<svg width="9" height="9" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M2 2L8 8M8 2L2 8"/></svg>';
+      closeBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="pointer-events: none; display: block;"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>';
       closeBtn.onclick = (e) => { e.stopPropagation(); closeTabWithAnim(tabId); };
 
       tabEl.appendChild(titleEl);
       tabEl.appendChild(closeBtn);
       
-      const activeTabEl = activeTabId ? document.querySelector(`.tab[data-id="${activeTabId}"]`) : null;
+      const activeTabEl = activeTabId ? tabElementMap.get(activeTabId) : null;
       if (activeTabEl && activeTabEl.nextSibling) {
         tabsContainer.insertBefore(tabEl, activeTabEl.nextSibling);
       } else {
         tabsContainer.appendChild(tabEl);
       }
 
-      switchTab(tabId);
-      updateTabWidths();
+      // 新建标签继续沿用原有首次入场逻辑；只有已存在的标签之间切换时，
+      // 才使用统一的 wrapper 快照动画。
+      switchTab(tabId, { isNewTab: true });
 
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           tabEl.classList.remove('entering');
           // 拔除进入动画的瞬间, 立刻启动 400ms 的视觉追踪引擎
           // 它会以 60FPS 的频率死死咬住正在膨胀的标签页边缘
-          ensureTabVisible(tabEl, Date.now());
+          trackTabVisibility(tabEl);
         });
       });
 
       requestOverlayUpdate();
+      return tabId;
     }
 
     function isHomeTab(tabId) {
@@ -635,7 +2532,44 @@
       return url.toLowerCase().includes('home');
     }
 
-    function switchTab(tabId) {
+    let tabSnapshotTransitionGeneration = 0;
+    let pendingSnapshotTabId = null;
+    let tabLiveFallbackCleanupTimer = null;
+
+    function getTabSwitchDirection(fromTabId, toTabId) {
+      const prevIndex = tabs.findIndex(t => t.id === fromTabId);
+      const newIndex = tabs.findIndex(t => t.id === toTabId);
+      return (prevIndex !== -1 && newIndex !== -1 && newIndex < prevIndex) ? 'left' : 'right';
+    }
+
+    function notifyFrameSleep(frame) {
+      try {
+        if (frame && frame.contentWindow) frame.contentWindow.dispatchEvent(new CustomEvent('AlphaSleep'));
+      } catch (_) {}
+    }
+
+    function notifyFrameWake(frame, detail = {}) {
+      try {
+        if (frame && frame.contentWindow) {
+          frame.contentWindow.dispatchEvent(new CustomEvent('AlphaWake', { detail }));
+        }
+      } catch (_) {}
+    }
+
+    function runLiveTabSwitchFallback(tabId) {
+      const root = document.documentElement;
+      if (tabLiveFallbackCleanupTimer !== null) {
+        clearTimeout(tabLiveFallbackCleanupTimer);
+      }
+      root.classList.add('alpha-tab-live-fallback-running');
+      commitTabSwitch(tabId, 'live');
+      tabLiveFallbackCleanupTimer = setTimeout(() => {
+        root.classList.remove('alpha-tab-live-fallback-running');
+        tabLiveFallbackCleanupTimer = null;
+      }, FRAME_TRANSITION_TIMEOUT + 40);
+    }
+
+    function commitTabSwitch(tabId, transitionMode = 'default') {
       // 已是当前标签: 只需确保可见
       if (activeTabId === tabId && activeTabElCache && activeTabElCache.getAttribute('data-id') === tabId) {
         ensureTabVisible(activeTabElCache);
@@ -646,15 +2580,55 @@
       const prevTabEl = activeTabElCache;
       const prevFrame = activeFrameCache;
 
+      // 减弱动态效果开启时：下方页面瞬切，完全砍掉切换页面的过渡动画
+      const isReduceMotion = (typeof localStorage !== 'undefined' && localStorage.getItem('alpha_reduce_motion') === 'true');
+      if (isReduceMotion) {
+        activeTabId = tabId;
+        if (prevTabEl) {
+          prevTabEl.classList.remove('active');
+          prevTabEl.classList.add('inactive');
+        }
+        if (prevFrame) {
+          cancelFrameActivation(prevFrame);
+          cancelFrameExit(prevFrame);
+          prevFrame.className = 'content-frame';
+          prevFrame.style.opacity = '';
+          prevFrame.style.display = 'none';
+          prevFrame.inert = true;
+          prevFrame.setAttribute('aria-hidden', 'true');
+          notifyFrameSleep(prevFrame);
+        }
+        const newTabEl = tabElementMap.get(tabId);
+        const newFrame = iframeMap.get(tabId);
+        if (newTabEl) {
+          newTabEl.classList.remove('inactive');
+          newTabEl.classList.add('active');
+        }
+        if (newFrame) {
+          cancelFrameExit(newFrame);
+          cancelFrameActivation(newFrame);
+          newFrame.style.display = 'block';
+          newFrame.inert = false;
+          newFrame.removeAttribute('aria-hidden');
+          newFrame.className = 'content-frame active';
+          newFrame.style.opacity = '1';
+          notifyFrameWake(newFrame, { isInstant: true });
+        }
+        activeTabElCache = newTabEl || null;
+        activeFrameCache = newFrame || null;
+        if (newTabEl) ensureTabVisible(newTabEl);
+        return;
+      }
+
       // 智能计算多标签页切换的相对方向（判定向左还是向右漫游）
-      const prevIndex = tabs.findIndex(t => t.id === activeTabId);
-      const newIndex = tabs.findIndex(t => t.id === tabId);
-      const direction = (prevIndex !== -1 && newIndex !== -1) ? (newIndex > prevIndex ? 'right' : 'left') : 'right';
+      const direction = getTabSwitchDirection(activeTabId, tabId);
 
       // 更新全局状态
       activeTabId = tabId;
 
       const isHomeTransition = isHomeTab(prevTabId) || isHomeTab(tabId);
+      const useLiveDirectionalTransition = transitionMode === 'live' ||
+        (transitionMode === 'default' && isHomeTransition);
 
       // 1. 将旧活动标签设为 inactive
       if (prevTabEl) {
@@ -664,19 +2638,24 @@
 
       // 2. 将旧 iframe 卸载激活态, 并赋予符合方向感的退场动效
       if (prevFrame) {
-        if (isHomeTransition) {
+        cancelFrameActivation(prevFrame);
+        if (transitionMode === 'snapshot') {
+          cancelFrameExit(prevFrame);
+          prevFrame.className = 'content-frame';
+          prevFrame.style.opacity = '';
+          prevFrame.style.display = 'none';
+          prevFrame.inert = true;
+          prevFrame.setAttribute('aria-hidden', 'true');
+          notifyFrameSleep(prevFrame);
+        } else if (useLiveDirectionalTransition) {
           prevFrame.className = 'content-frame ' + (direction === 'right' ? 'exit-left' : 'exit-right');
         } else {
           prevFrame.className = 'content-frame stationary';
           prevFrame.style.opacity = '0';
         }
-        // 动画结束后隐藏以释放合成层, 并【立刻休眠】后台页面, 停止毛玻璃 GPU 渲染
-        const onTransitionEnd = () => {
-            prevFrame.className = 'content-frame';
-            prevFrame.style.opacity = '';
-            try { if (prevFrame.contentWindow) prevFrame.contentWindow.dispatchEvent(new CustomEvent('AlphaSleep')); } catch(_) {}
-        };
-        prevFrame.addEventListener('transitionend', onTransitionEnd, { once: true });
+        // 动画结束后隐藏并休眠。每个 iframe 同时只保留一个可取消的退场任务，
+        // 避免快速往返切换时累积 transitionend 与兜底计时器。
+        if (transitionMode !== 'snapshot') scheduleFrameExit(prevFrame, prevTabId);
       }
 
       // 3. 找到新活动标签和 iframe
@@ -691,18 +2670,25 @@
 
       // 5. 显示新 iframe, 并施加方向感视差进场动画
       if (newFrame) {
+          cancelFrameExit(newFrame);
+          cancelFrameActivation(newFrame);
+          newFrame.style.display = 'block';
+          newFrame.inert = false;
+          newFrame.removeAttribute('aria-hidden');
           newFrame.classList.remove('exit-left', 'exit-right', 'active', 'enter-left', 'enter-right', 'stationary');
           newFrame.style.opacity = '';
-          if (isHomeTransition) {
+          if (transitionMode === 'snapshot') {
+            // 新页面保持静止，供 Chromium 获取稳定的最后一帧快照；真正页面在
+            // 快照动画结束后再唤醒，避免内嵌动画与 wrapper 动画叠加。
+            newFrame.classList.add('active');
+          } else if (useLiveDirectionalTransition) {
             newFrame.classList.add(direction === 'right' ? 'enter-right' : 'enter-left');
           } else {
             newFrame.classList.add('stationary');
           }
-          requestAnimationFrame(() => {
-              newFrame.classList.add('active');
-              // 唤醒新页面的动画与 JS 轮询
-              try { if (newFrame.contentWindow) newFrame.contentWindow.dispatchEvent(new CustomEvent('AlphaWake', { detail: { isHomeTransition } })); } catch(_) {}
-          });
+          if (transitionMode !== 'snapshot') {
+            scheduleFrameActivation(newFrame, tabId, useLiveDirectionalTransition);
+          }
       }
 
       // 6. 更新缓存
@@ -714,8 +2700,97 @@
           ensureTabVisible(newTabEl);
       }
     }
+
+    function switchTab(tabId, options = undefined) {
+      if (!tabDataMap.has(tabId) || !iframeMap.has(tabId)) return;
+
+      // 已是当前标签（或快照正在切向该标签）时不重启动画。
+      if ((activeTabId === tabId && activeTabElCache && activeTabElCache.getAttribute('data-id') === tabId) ||
+          pendingSnapshotTabId === tabId) {
+        const currentTabEl = tabElementMap.get(tabId) || activeTabElCache;
+        if (currentTabEl) ensureTabVisible(currentTabEl);
+        return;
+      }
+
+      // 减弱动态效果开启时：瞬切
+      const isReduceMotion = (typeof localStorage !== 'undefined' && localStorage.getItem('alpha_reduce_motion') === 'true');
+      if (isReduceMotion) {
+        commitTabSwitch(tabId, 'instant');
+        return;
+      }
+
+      const isNewTab = !!(options && options.isNewTab);
+      const hasExistingPair = !isNewTab && !!activeTabId &&
+        iframeMap.has(activeTabId) && iframeMap.has(tabId);
+
+      // 旧版 Chromium 不支持原生快照时仍统一使用 wrapper 的方向动画；
+      // 支持时，模糊只计算临时快照，不触碰真实 iframe 的逐帧栅格化。
+      if (!hasExistingPair || !SUPPORTS_TAB_SNAPSHOT_TRANSITION) {
+        if (hasExistingPair) runLiveTabSwitchFallback(tabId);
+        else commitTabSwitch(tabId, 'default');
+        return;
+      }
+
+      const direction = getTabSwitchDirection(activeTabId, tabId);
+      const root = document.documentElement;
+      const generation = ++tabSnapshotTransitionGeneration;
+      pendingSnapshotTabId = tabId;
+
+      root.classList.remove('alpha-tab-switch-left', 'alpha-tab-switch-right');
+      root.classList.add('alpha-tab-snapshot-running', `alpha-tab-switch-${direction}`);
+
+      let transition;
+      try {
+        transition = document.startViewTransition(() => {
+          // 标签可能在旧画面快照完成前被关闭；此时安全保留当前页面。
+          if (!tabDataMap.has(tabId) || !iframeMap.has(tabId)) return;
+          commitTabSwitch(tabId, 'snapshot');
+        });
+      } catch (_) {
+        if (generation === tabSnapshotTransitionGeneration) {
+          pendingSnapshotTabId = null;
+          root.classList.remove('alpha-tab-snapshot-running', 'alpha-tab-switch-left', 'alpha-tab-switch-right');
+        }
+        runLiveTabSwitchFallback(tabId);
+        return;
+      }
+
+      Promise.resolve(transition.finished).catch(() => {}).then(() => {
+        // 只有当前标签在快照完全退场后才恢复其内部动画；快速连续切换时，
+        // 被跳过的中间标签会继续休眠，不产生后台动画负载。
+        if (activeTabId === tabId) {
+          notifyFrameWake(iframeMap.get(tabId), {
+            isHomeTransition: isHomeTab(tabId),
+            isWrapperSnapshotTransition: true
+          });
+        }
+
+        if (generation === tabSnapshotTransitionGeneration) {
+          pendingSnapshotTabId = null;
+          root.classList.remove('alpha-tab-snapshot-running', 'alpha-tab-switch-left', 'alpha-tab-switch-right');
+        }
+      });
+    }
+
+    function disposeTabIframe(tabId, iframe) {
+      cancelFrameReadyProbe(tabId);
+      cancelFrameActivation(iframe);
+      cancelFrameExit(iframe);
+      if (iframe.contentWindow) knownFrameSources.delete(iframe.contentWindow);
+      try {
+        const frameDoc = iframe.contentDocument;
+        if (frameDoc) cleanupTooltipTree(frameDoc);
+      } catch (_) {}
+      try {
+        iframe.removeAttribute('src');
+        iframe.src = 'about:blank';
+      } catch (_) {}
+      iframe.remove();
+      iframeMap.delete(tabId);
+    }
     
     function closeTabWithAnim(tabId, targetTabId = null) {
+      if (tabCloseTimers.has(tabId)) return;
       const tabEl = tabElementMap.get(tabId);
       if (!tabEl) {
         closeTab(tabId);
@@ -750,22 +2825,29 @@
 
       // 触发收缩及视觉退场类
       tabEl.classList.add('closing'); 
+      cancelFrameReadyProbe(tabId);
+
+      const pendingTitleTimer = titleUpdateTimers.get(tabId);
+      if (pendingTitleTimer !== undefined) {
+        clearTimeout(pendingTitleTimer);
+        titleUpdateTimers.delete(tabId);
+      }
+      titleUpdateGenerations.delete(tabId);
+      if (trackedVisibleTabId === tabId && tabVisibilityRafId !== null) {
+        cancelAnimationFrame(tabVisibilityRafId);
+        tabVisibilityRafId = null;
+        trackedVisibleTabId = null;
+      }
 
       // 将沉重的 DOM/Iframe 物理销毁剥离到 400ms 动画完全结束后异步处理, 保障前台动画帧率
-      setTimeout(() => {
+      const closeTimer = setTimeout(() => {
+        tabCloseTimers.delete(tabId);
         tabDataMap.delete(tabId);
         const iframe = iframeMap.get(tabId);
 
         if (iframe) {
           if (iframe === activeFrameCache) activeFrameCache = null;
-          iframe.onload = null;
-          
-          try {
-            iframe.removeAttribute('src');
-            iframe.src = 'about:blank'; 
-          } catch(_) {}
-          iframe.remove();
-          iframeMap.delete(tabId);
+          disposeTabIframe(tabId, iframe);
         }
 
         if (tabEl) {
@@ -774,14 +2856,20 @@
         }
         requestOverlayUpdate();
       }, 400);
+      tabCloseTimers.set(tabId, closeTimer);
     }
 
     // 兜底保留原物理 closeTab 函数, 以防 Electron 内部上游生命周期或特殊边界调用断裂
-    function closeTab(tabId) {
+    function closeTab(tabId, deferLayout = false) {
+      const pendingCloseTimer = tabCloseTimers.get(tabId);
+      if (pendingCloseTimer !== undefined) {
+        clearTimeout(pendingCloseTimer);
+        tabCloseTimers.delete(tabId);
+      }
       const index = tabs.findIndex(t => t.id === tabId);
       if (index !== -1) tabs.splice(index, 1);
       tabDataMap.delete(tabId);
-      updateTabWidths();
+      if (!deferLayout) updateTabWidths();
       
       if (activeTabId === tabId) {
         if (tabs.length === 0) createNewTab('Home.html', '主页');
@@ -790,9 +2878,18 @@
       
       const iframe = iframeMap.get(tabId);
       if (iframe) { 
-        try { iframe.removeAttribute('src'); iframe.src = 'about:blank'; } catch(_) {}
-        iframe.remove(); 
-        iframeMap.delete(tabId); 
+        disposeTabIframe(tabId, iframe);
+      }
+      const pendingTitleTimer = titleUpdateTimers.get(tabId);
+      if (pendingTitleTimer !== undefined) {
+        clearTimeout(pendingTitleTimer);
+        titleUpdateTimers.delete(tabId);
+      }
+      titleUpdateGenerations.delete(tabId);
+      if (trackedVisibleTabId === tabId && tabVisibilityRafId !== null) {
+        cancelAnimationFrame(tabVisibilityRafId);
+        tabVisibilityRafId = null;
+        trackedVisibleTabId = null;
       }
       const tabEl = tabElementMap.get(tabId);
       if (tabEl) { tabEl.remove(); tabElementMap.delete(tabId); }
@@ -807,6 +2904,9 @@
       const context = getTextWidth.context || (getTextWidth.context = canvas.getContext("2d"));
       context.font = font;
       const w = context.measureText(text).width;
+      if (titleWidthCache.size >= 256) {
+        titleWidthCache.delete(titleWidthCache.keys().next().value);
+      }
       titleWidthCache.set(key, w);
       return w;
     }
@@ -814,22 +2914,37 @@
       const tab = tabDataMap.get(tabId);
       if (!tab) return;
       if (tab.title === newTitle) return; 
+
+      const pendingTimer = titleUpdateTimers.get(tabId);
+      if (pendingTimer !== undefined) {
+        clearTimeout(pendingTimer);
+        titleUpdateTimers.delete(tabId);
+      }
+      const generation = (titleUpdateGenerations.get(tabId) || 0) + 1;
+      titleUpdateGenerations.set(tabId, generation);
       
       const oldTitle = tab.title;
       tab.title = newTitle;
+      
+      for (const t of tabDataMap.values()) {
+        if (t.parentId === tabId) {
+          t.parentTitle = newTitle;
+        }
+      }
       
       const tabEl = tabElementMap.get(tabId);
       if (!tabEl) return;
       const titleEl = tabEl.querySelector('.tab-title');
       if (!titleEl) return;
+      const displayedTitle = titleEl.textContent || oldTitle;
 
       // 加入 OPPO Sans, 使底层文本测算更加精准
       const fontStyle = "700 13px 'OPPO Sans 4.0', -apple-system, BlinkMacSystemFont, sans-serif";
-      const oldWidth = getTextWidth(oldTitle, fontStyle);
+      const oldWidth = getTextWidth(displayedTitle, fontStyle);
       const newWidth = getTextWidth(newTitle, fontStyle);
 
       // 如果是新建标签页的初次更名, 硬切文字并拉伸, 跳过淡出动画
-      if (oldTitle === "加载中...") {
+      if (displayedTitle === "加载中...") {
         titleEl.textContent = newTitle;
         if (newWidth > oldWidth && oldWidth < 135) {
           titleEl.style.transition = 'max-width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)';
@@ -843,7 +2958,9 @@
       titleEl.style.transition = 'opacity 0.15s ease';
       titleEl.style.opacity = '0';
 
-      setTimeout(() => {
+      const titleTimer = setTimeout(() => {
+        titleUpdateTimers.delete(tabId);
+        if (!titleEl.isConnected || !tabDataMap.has(tabId) || titleUpdateGenerations.get(tabId) !== generation) return;
         titleEl.textContent = newTitle;
         if (newWidth > oldWidth && oldWidth < 135) {
           titleEl.style.transition = 'opacity 0.15s ease, max-width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)';
@@ -853,9 +2970,12 @@
         }
 
         requestAnimationFrame(() => {
-            titleEl.style.opacity = '1';
+            if (titleEl.isConnected && titleUpdateGenerations.get(tabId) === generation) {
+              titleEl.style.opacity = '1';
+            }
         });
       }, 150);
+      titleUpdateTimers.set(tabId, titleTimer);
 
       requestOverlayUpdate();
     }
@@ -869,53 +2989,78 @@
       const hasLeft = scrollLeft > 2;
       const hasRight = maxScroll - scrollLeft > 2;
 
-      tabsWrapper.className = 'tabs-wrapper';
-      if (hasLeft && hasRight) tabsWrapper.classList.add('mask-both');
-      else if (hasLeft) tabsWrapper.classList.add('mask-left');
-      else if (hasRight) tabsWrapper.classList.add('mask-right');
-      else tabsWrapper.classList.add('mask-none');
+      let maskClass = 'mask-none';
+      if (hasLeft && hasRight) maskClass = 'mask-both';
+      else if (hasLeft) maskClass = 'mask-left';
+      else if (hasRight) maskClass = 'mask-right';
+      if (maskClass === lastOverlayMaskClass) return;
+
+      lastOverlayMaskClass = maskClass;
+      tabsWrapper.className = `tabs-wrapper ${maskClass}`;
     }
     
+    function updateTitleBarDragState() {
+      if (!titleBarElement) return;
+      const isSingleTab = tabs.length <= 1;
+      const isSinglePage = titleBarElement.classList.contains('single-page-mode');
+      titleBarElement.classList.toggle('single-tab-mode', isSingleTab || isSinglePage);
+    }
+
     function updateTabWidths() {
+      updateTitleBarDragState();
       const count = tabs.length;
-      if (!count) return;
+      if (!count) {
+        if (titleBarElement && lastSaturatedState !== false) {
+          titleBarElement.classList.remove('tabs-saturated');
+        }
+        lastSaturatedState = false;
+        if (lastWrapperWidthValue !== '0px') {
+          lastWrapperWidthValue = '0px';
+          document.documentElement.style.setProperty('--alpha-tabs-wrapper-width', '0px');
+        }
+        return;
+      }
 
-      // 使用系统级别的 window.innerWidth 作为计算基准, 
-      // 彻底打破以往依赖 flex 容器自身宽度所导致的「无限伸缩计算死循环」。
       const currentWinWidth = window.innerWidth;
-
-      // 如果数量和窗口宽度均未变化, 跳过计算, 节约性能
-      if (cachedTabCount === count && lastContainerWidth === currentWinWidth) return;
-      cachedTabCount = count;
-      lastContainerWidth = currentWinWidth;
 
       const GAP = 6;
       const MIN = 120;
       const MAX = 240;
-      
-      // 精确计算水平方向的固定物理像素占用: 
-      // 1. 左侧控件占用: 12(padding-left) + 18(app-icon) + 14(margin-right) = 44px
-      // 2. 右侧控件占用: 192(padding-right安全区) + 32(add-tab-btn) + 8(margin-left) = 232px
-      // 3. 滑动容器内边距: 4 * 2 (tabs-container padding) = 8px
-      // 固定空间总计: 284px
       const RESERVED_SPACE = 284;
       
-      // 计算出属于标签卡真正的「绝对可用最大空间」
       const availableSpace = currentWinWidth - RESERVED_SPACE;
       const totalGaps = GAP * (count - 1);
-      
-      // 完美钳制在 [120, 240] 区间内
       const width = Math.max(MIN, Math.min(MAX, (availableSpace - totalGaps) / count));
-      
-      currentTabWidth = width; // 缓存宽度供动画帧无损读取
-      document.documentElement.style.setProperty('--alpha-tab-width', width + 'px');
+
+      const isSaturated = width < MAX - 0.5;
+      if (titleBarElement && lastSaturatedState !== isSaturated) {
+        titleBarElement.classList.toggle('tabs-saturated', isSaturated);
+      }
+      lastSaturatedState = isSaturated;
+
+      // 核心计算：未饱和时按标签目标总宽设定，饱和时平滑锁定最大可用宽度（包含28px阴影缓冲区）
+      const wrapperWidthValue = isSaturated
+        ? 'calc(100vw - 256px)'
+        : `${Math.round(count * width + totalGaps + 28)}px`;
+
+      if (lastWrapperWidthValue !== wrapperWidthValue) {
+        lastWrapperWidthValue = wrapperWidthValue;
+        document.documentElement.style.setProperty('--alpha-tabs-wrapper-width', wrapperWidthValue);
+      }
+
+      if (Math.abs(currentTabWidth - width) > 0.01) {
+        currentTabWidth = width;
+        document.documentElement.style.setProperty('--alpha-tab-width', width + 'px');
+      }
     }
 
     let scrollOverlayPending = false;
+    let scrollOverlayRafId = null;
     function requestOverlayUpdate() {
       if (!scrollOverlayPending) {
         scrollOverlayPending = true;
-        requestAnimationFrame(() => {
+        scrollOverlayRafId = requestAnimationFrame(() => {
+          scrollOverlayRafId = null;
           updateScrollOverlays();
           scrollOverlayPending = false;
         });
@@ -936,20 +3081,45 @@
     resizeObserver.observe(tabsContainer);
 
     window.__cleanupWrapper = function() {
-        if (resizeObserver) {
-            resizeObserver.disconnect();
+        resizeObserver.disconnect();
+        cleanupTooltipTree(document);
+        if (frameReadyTimer !== null) {
+          clearTimeout(frameReadyTimer);
+          frameReadyTimer = null;
+          frameReadyTimerDueAt = 0;
         }
+        frameReadyProbes.clear();
+        for (const timerId of titleUpdateTimers.values()) clearTimeout(timerId);
+        titleUpdateTimers.clear();
+        titleUpdateGenerations.clear();
+        for (const timerId of tabCloseTimers.values()) clearTimeout(timerId);
+        tabCloseTimers.clear();
+        for (const frame of iframeMap.values()) {
+          cancelFrameActivation(frame);
+          cancelFrameExit(frame);
+        }
+        if (tabVisibilityRafId !== null) cancelAnimationFrame(tabVisibilityRafId);
+        if (tabDragMoveRaf !== null) cancelAnimationFrame(tabDragMoveRaf);
+        if (scrollOverlayRafId !== null) cancelAnimationFrame(scrollOverlayRafId);
+        if (windowResizeRafId !== null) cancelAnimationFrame(windowResizeRafId);
     };
+    window.addEventListener('pagehide', window.__cleanupWrapper, { once: true });
 
-    // 窗口 resize 仍保留, 作为兜底（兼容极端情况）
+    // 窗口 resize 合并到下一帧；拖动窗口尺寸时每帧最多计算和写入一次。
+    let windowResizeRafId = null;
     window.addEventListener('resize', () => {
-      updateTabWidths();
-      requestOverlayUpdate();
+      if (windowResizeRafId !== null) return;
+      windowResizeRafId = requestAnimationFrame(() => {
+        windowResizeRafId = null;
+        updateTabWidths();
+        requestOverlayUpdate();
+      });
     }, { passive: true });
 
     const tooltipEl = document.getElementById('alphaTooltip');
     let tooltipWidth = 0, tooltipHeight = 0;
     let lastMouseX = 0, lastMouseY = 0;
+    let tooltipSourceDoc = document;
     let tooltipRafId = null;
 
     function measureTooltip() {
@@ -957,31 +3127,229 @@
       tooltipHeight = tooltipEl.offsetHeight;
     }
 
-    // 核心位移计算: 由于在 wrapper 中, 需区分来源是原生容器还是 iframe 内部
-    function updateTooltipPosition(x, y, offsetX = 0, offsetY = 0) {
+    // 把任意层级同源 iframe 内的 client 坐标逐层折算到 wrapper。
+    // 同时考虑 iframe 在页面过渡中可能存在的 CSS scale。
+    function translateTooltipPointToWrapper(sourceDoc, x, y) {
+      let currentDoc = sourceDoc;
+      let translatedX = x;
+      let translatedY = y;
+      const visited = new Set();
+
+      try {
+        while (currentDoc && currentDoc !== document) {
+          if (visited.has(currentDoc)) return null;
+          visited.add(currentDoc);
+
+          const childWindow = currentDoc.defaultView;
+          const frame = childWindow && childWindow.frameElement;
+          if (!frame || !frame.ownerDocument) return null;
+
+          const rect = frame.getBoundingClientRect();
+          const layoutWidth = frame.offsetWidth || rect.width || 1;
+          const layoutHeight = frame.offsetHeight || rect.height || 1;
+          const scaleX = rect.width / layoutWidth || 1;
+          const scaleY = rect.height / layoutHeight || 1;
+
+          translatedX = rect.left + (frame.clientLeft + translatedX) * scaleX;
+          translatedY = rect.top + (frame.clientTop + translatedY) * scaleY;
+          currentDoc = frame.ownerDocument;
+        }
+      } catch (_) {
+        // 浏览器同源策略不允许访问时立即停止，不进行任何降权。
+        return null;
+      }
+
+      return currentDoc === document ? { x: translatedX, y: translatedY } : null;
+    }
+
+    // 核心位移计算：Tooltip 始终渲染在 wrapper，以避免被子页 overflow 裁切。
+    function updateTooltipPosition(x, y, sourceDoc = document) {
       const gapX = 14; const gapY = 18;
-      // 将 iframe 的内部坐标系完美换算为主窗口坐标系
-      let tx = x + gapX + offsetX;
-      let ty = y + gapY + offsetY;
+      const point = translateTooltipPointToWrapper(sourceDoc, x, y);
+      if (!point) {
+        hideTooltip();
+        return;
+      }
+      let tx = point.x + gapX;
+      let ty = point.y + gapY;
 
       // 边缘碰撞防御 (使用缓存的物理尺寸避免强制重排)
-      if (tx + tooltipWidth > window.innerWidth) tx = x + offsetX - tooltipWidth - 8;
-      if (ty + tooltipHeight > window.innerHeight) ty = y + offsetY - tooltipHeight - 8;
+      if (tx + tooltipWidth > window.innerWidth - 8) tx = point.x - tooltipWidth - 8;
+      if (ty + tooltipHeight > window.innerHeight - 8) ty = point.y - tooltipHeight - 8;
 
-      // 使用 translate 触发合成层硬件加速
-      tooltipEl.style.transform = `translate(${tx}px, ${ty}px)`;
+      tx = Math.max(8, tx);
+      ty = Math.max(8, ty);
+
+      // 定位与入场 transform 分离，避免 Tooltip 从上一次位置（或左上角）滑过来
+      tooltipEl.style.left = `${tx}px`;
+      tooltipEl.style.top = `${ty}px`;
+    }
+
+    function getEffectiveBackgroundColor(el) {
+      while (el && el.nodeType === 1) {
+        const win = el.ownerDocument && el.ownerDocument.defaultView;
+        if (win) {
+          const bg = win.getComputedStyle(el).backgroundColor;
+          if (bg && bg !== 'transparent') {
+            const match = bg.match(/rgba?\(\s*\d+,\s*\d+,\s*\d+(?:,\s*([\d.]+))?\s*\)/);
+            if (match) {
+              const alpha = match[1] !== undefined ? parseFloat(match[1]) : 1.0;
+              if (alpha > 0.05) {
+                return bg;
+              }
+            }
+          }
+        }
+        el = el.parentElement;
+      }
+      const isSystemDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      return isSystemDark ? 'rgb(24, 24, 28)' : 'rgb(255, 255, 255)';
+    }
+
+    function isDarkColor(colorStr) {
+      const match = colorStr.match(/rgba?\(\s*(\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\s*\)/);
+      if (match) {
+        const r = parseInt(match[1], 10);
+        const g = parseInt(match[2], 10);
+        const b = parseInt(match[3], 10);
+        const a = match[4] !== undefined ? parseFloat(match[4]) : 1.0;
+
+        const rEff = r * a + 255 * (1 - a);
+        const gEff = g * a + 255 * (1 - a);
+        const bEff = b * a + 255 * (1 - a);
+
+        const luma = 0.2126 * rEff + 0.7152 * gEff + 0.0722 * bEff;
+        return luma < 85;
+      }
+      return false;
     }
 
     let currentTooltipText = '';
     let tooltipShowTimer = null;
+    let tooltipHoverToken = 0;
 
-    // 将引擎封装, 支持双向绑定 (Wrapper自身 + 内部各 iframe)
-    function bindAlphaTooltipEngine(targetDoc, iframeNode = null) {
+    function resetTooltipAppearance() {
+      tooltipEl.classList.remove('dark-mode', 'light-mode');
+    }
+
+    function hideTooltip() {
+      tooltipHoverToken++;
+      if (tooltipShowTimer) {
+        clearTimeout(tooltipShowTimer);
+        tooltipShowTimer = null;
+      }
+      tooltipEl.classList.remove('visible');
+      currentTooltipText = '';
+      tooltipSourceDoc = document;
+      if (tooltipRafId) {
+        cancelAnimationFrame(tooltipRafId);
+        tooltipRafId = null;
+      }
+    }
+    window.hideAlphaTooltip = hideTooltip;
+
+    const tooltipObservedDocuments = new WeakMap();
+    const tooltipObservedFrames = new WeakMap();
+
+    // 除了浏览器的同源策略，再限定为应用目录中的 HTML
+    // about:blank/srcdoc 仅在它们的父文档已被信任时允许，不放宽 CSP 或 sandbox
+    function isTrustedTooltipDocument(targetDoc) {
+      if (targetDoc === document) return true;
+      try {
+        if (!targetDoc || !targetDoc.defaultView) return false;
+        const rawUrl = targetDoc.URL;
+        
+        // 如果子页面处于刚初始化的空白页状态，通过其宿主 iframe 元素的 ownerDocument 追溯安全性
+        if (rawUrl === 'about:blank' || rawUrl === 'about:srcdoc' || rawUrl === '') {
+          const parentFrame = targetDoc.defaultView.frameElement;
+          return !!parentFrame && isTrustedTooltipDocument(parentFrame.ownerDocument);
+        }
+
+        const resolved = new URL(rawUrl);
+        const path = decodeURIComponent(resolved.pathname);
+        const sameContainer = resolved.protocol === APP_BASE_URL.protocol &&
+          (APP_BASE_URL.protocol === 'file:' || resolved.origin === APP_BASE_URL.origin) &&
+          path.startsWith(APP_BASE_PATH);
+        return sameContainer && /\.html$/i.test(path);
+      } catch (_) {
+        return false;
+      }
+    }
+
+    function installNestedTooltipFrame(frame) {
+      if (!frame || tooltipObservedFrames.has(frame)) return;
+
+      const installFrameDocument = () => {
+        try {
+          const nestedDoc = frame.contentDocument;
+          if (!nestedDoc || !isTrustedTooltipDocument(nestedDoc)) return;
+          bindAlphaTooltipTree(nestedDoc);
+        } catch (_) {
+          // 跨域/隔离 iframe 由浏览器原生 Tooltip 处理，不尝试绕过边界。
+        }
+      };
+
+      tooltipObservedFrames.set(frame, installFrameDocument);
+      frame.addEventListener('load', installFrameDocument);
+      installFrameDocument();
+    }
+
+    function cleanupTooltipTree(targetDoc) {
+      if (!targetDoc) return;
+      try {
+        for (const frame of targetDoc.querySelectorAll('iframe')) {
+          const loadHandler = tooltipObservedFrames.get(frame);
+          if (loadHandler) {
+            frame.removeEventListener('load', loadHandler);
+            tooltipObservedFrames.delete(frame);
+          }
+          try {
+            if (frame.contentDocument) cleanupTooltipTree(frame.contentDocument);
+          } catch (_) {}
+        }
+      } catch (_) {}
+
+      const nestedFrameLoadHandler = tooltipObservedDocuments.get(targetDoc);
+      if (nestedFrameLoadHandler) {
+        targetDoc.removeEventListener('load', nestedFrameLoadHandler, true);
+        tooltipObservedDocuments.delete(targetDoc);
+      }
+      if (tooltipSourceDoc === targetDoc) hideTooltip();
+    }
+
+    function observeNestedTooltipFrames(targetDoc) {
+      if (tooltipObservedDocuments.has(targetDoc)) return;
+
+      // load 事件可在捕获阶段识别动态加入的 iframe。相比观察整棵 DOM 的
+      // MutationObserver，它不会因列表渲染、计时器或动画频繁改 DOM 而唤醒。
+      const nestedFrameLoadHandler = (event) => {
+        const frame = event.target;
+        if (frame && frame.nodeType === 1 && frame.tagName === 'IFRAME') {
+          installNestedTooltipFrame(frame);
+        }
+      };
+      targetDoc.addEventListener('load', nestedFrameLoadHandler, true);
+      tooltipObservedDocuments.set(targetDoc, nestedFrameLoadHandler);
+      targetDoc.querySelectorAll('iframe').forEach(installNestedTooltipFrame);
+    }
+
+    function bindAlphaTooltipTree(targetDoc) {
+      if (!isTrustedTooltipDocument(targetDoc)) return;
+      bindAlphaTooltipEngine(targetDoc);
+      observeNestedTooltipFrames(targetDoc);
+    }
+
+    // 将引擎封装，每个可安全访问的 document 只绑定一次。
+    function bindAlphaTooltipEngine(targetDoc) {
       if (targetDoc.__tooltipInstalled) return; // 防重复绑定
       targetDoc.__tooltipInstalled = true;   
 
-      targetDoc.addEventListener('mouseover', (e) => {
-        const target = e.target.closest('[title], [data-tooltip]');
+    targetDoc.addEventListener('mouseover', (e) => {
+        lastMouseX = e.clientX; lastMouseY = e.clientY;
+        
+        // 核心修复：解除严格的跨窗口原型链校验，改用通用的 nodeType 与属性探测
+        if (!e.target || e.target.nodeType !== 1) return;
+        const target = e.target.closest ? e.target.closest('[title], [data-tooltip]') : null;
         if (!target) return;
 
         // 劫持原生 title 防止系统默认白框干扰
@@ -990,21 +3358,33 @@
           target.removeAttribute('title');
         }
 
-        const tipText = target.getAttribute('data-tooltip');
+        // textContent 防止 HTML 注入；限长避免子页用超大属性值拖慢主 UI。
+        const tipText = (target.getAttribute('data-tooltip') || '').slice(0, 512);
         if (tipText) {
           // 加入 350ms 的延迟, 防止鼠标横扫右上角时触发「幽灵矩形闪烁」
           if (tooltipShowTimer) clearTimeout(tooltipShowTimer);
+          const hoverToken = ++tooltipHoverToken;
           tooltipShowTimer = setTimeout(() => {
+            tooltipShowTimer = null;
+            // 延迟期间若已经离开或进入了另一个控件，丢弃旧结果，避免旧的深色状态覆盖新提示。
+            if (hoverToken !== tooltipHoverToken || !target.matches(':hover')) return;
+
             if (tipText !== currentTooltipText) {
               tooltipEl.textContent = tipText;
               currentTooltipText = tipText;
               measureTooltip();
             }
-            tooltipEl.classList.add('visible');
 
-            const parentOffsetX = iframeNode ? iframeNode.getBoundingClientRect().left : 0;
-            const parentOffsetY = iframeNode ? iframeNode.getBoundingClientRect().top : 0;
-            updateTooltipPosition(lastMouseX, lastMouseY, parentOffsetX, parentOffsetY);
+            const bg = getEffectiveBackgroundColor(target);
+            // 每次显示都从默认状态重新计算，保证 dark -> light 可以可靠恢复。
+            resetTooltipAppearance();
+            const isDark = isDarkColor(bg);
+            tooltipEl.classList.toggle('dark-mode', isDark);
+            tooltipEl.classList.toggle('light-mode', !isDark);
+
+            tooltipSourceDoc = targetDoc;
+            updateTooltipPosition(lastMouseX, lastMouseY, targetDoc);
+            tooltipEl.classList.add('visible');
           }, 350); 
         }
       }, { passive: true });
@@ -1014,33 +3394,25 @@
         if (tooltipEl.classList.contains('visible') && !tooltipRafId) {
           // rAF 节流防抖, 保障 120Hz 刷新率下的绝对丝滑
           tooltipRafId = requestAnimationFrame(() => {
-            const parentOffsetX = iframeNode ? iframeNode.getBoundingClientRect().left : 0;
-            const parentOffsetY = iframeNode ? iframeNode.getBoundingClientRect().top : 0;
-            updateTooltipPosition(lastMouseX, lastMouseY, parentOffsetX, parentOffsetY);
+            updateTooltipPosition(lastMouseX, lastMouseY, tooltipSourceDoc);
             tooltipRafId = null;
           });
         }
       }, { passive: true });
 
       targetDoc.addEventListener('mouseout', (e) => {
-        if (e.target.closest('[data-tooltip]')) {
-          if (tooltipShowTimer) { clearTimeout(tooltipShowTimer); tooltipShowTimer = null; }
-          tooltipEl.classList.remove('visible');
-          if (tooltipRafId) { cancelAnimationFrame(tooltipRafId); tooltipRafId = null; }
+        if (e.target instanceof targetDoc.defaultView.Element && e.target.closest('[data-tooltip]')) {
+          hideTooltip();
         }
       }, { passive: true });
 
       // 一旦鼠标离开文档范围（比如去了原生按键区）, 斩断 Tooltip
       targetDoc.addEventListener('mouseleave', () => {
-        if (tooltipShowTimer) { clearTimeout(tooltipShowTimer); tooltipShowTimer = null; }
-        tooltipEl.classList.remove('visible');
-        if (tooltipRafId) { cancelAnimationFrame(tooltipRafId); tooltipRafId = null; }
+        hideTooltip();
       }, { passive: true });
 
       targetDoc.addEventListener('mousedown', () => {
-        if (tooltipShowTimer) { clearTimeout(tooltipShowTimer); tooltipShowTimer = null; }
-        tooltipEl.classList.remove('visible');
-        if (tooltipRafId) { cancelAnimationFrame(tooltipRafId); tooltipRafId = null; }
+        hideTooltip();
       }, { passive: true });
     }
 
@@ -1061,38 +3433,72 @@
         `;
         doc.documentElement.appendChild(style);
 
-        // 注入生命周期脚本
-        const script = doc.createElement('script');
-        script.textContent = `
-            (() => {
-                if (window.__alphaLifecycleInstalled) return;
-                window.__alphaLifecycleInstalled = true;
+        // 直接在同源子窗口安装生命周期，无需注入可执行字符串。
+        const childWindow = doc.defaultView;
+        if (!childWindow || childWindow.__alphaLifecycleInstalled) return;
+        childWindow.__alphaLifecycleInstalled = true;
+        childWindow.AlphaLifecycle = {
+          onSleep: [],
+          onWake: [],
+          addSleep(fn) { if (typeof fn === 'function') this.onSleep.push(fn); },
+          addWake(fn) { if (typeof fn === 'function') this.onWake.push(fn); }
+        };
 
-                window.AlphaLifecycle = {
-                    onSleep: [],
-                    onWake: [],
-                    addSleep: function(fn) { this.onSleep.push(fn); },
-                    addWake: function(fn) { this.onWake.push(fn); }
-                };
+        childWindow.addEventListener('AlphaSleep', () => {
+          doc.documentElement.classList.add('alpha-sleep');
+          childWindow.AlphaLifecycle.onSleep.forEach(fn => { try { fn(); } catch (_) {} });
+        });
 
-                window.addEventListener('AlphaSleep', () => {
-                    document.documentElement.classList.add('alpha-sleep');
-                    window.AlphaLifecycle.onSleep.forEach(function(fn) { try { fn(); } catch(e) {} });
-                });
-
-                window.addEventListener('AlphaWake', () => {
-                    document.documentElement.classList.remove('alpha-sleep');
-                    window.AlphaLifecycle.onWake.forEach(function(fn) { try { fn(); } catch(e) {} });
-                });
-            })();
-        `;
-        doc.documentElement.appendChild(script);
+        childWindow.addEventListener('AlphaWake', () => {
+          doc.documentElement.classList.remove('alpha-sleep');
+          childWindow.AlphaLifecycle.onWake.forEach(fn => { try { fn(); } catch (_) {} });
+        });
     }
     // 保留原入口函数名, 避免破坏上游对于 iframe load 的回调逻辑
     function injectGlobalRuntime(doc, iframeNode) {
-      bindAlphaTooltipEngine(doc, iframeNode);
+      if (!doc || !doc.documentElement) {
+        if (iframeNode) {
+          iframeNode.addEventListener('load', () => injectGlobalRuntime(iframeNode.contentDocument, iframeNode), { once: true });
+        }
+        return;
+      }
+
+      bindAlphaTooltipTree(doc);
       injectLifecycle(doc);
+      if (window.AlphaReduceMotion) {
+        window.AlphaReduceMotion.init(doc);
+      }
+      if (window.AlphaLiquidGlass) {
+        window.AlphaLiquidGlass.init(doc);
+      }
+      doc.addEventListener('pointerdown', () => {
+        if (typeof toggleMenu === 'function') toggleMenu(false);
+      }, true);
+      doc.addEventListener('pointerup', () => {
+        if (window.AlphaLiquidGlass && typeof window.AlphaLiquidGlass.releaseAll === 'function') {
+          window.AlphaLiquidGlass.releaseAll();
+        }
+      }, { passive: true });
+      doc.addEventListener('pointercancel', () => {
+        if (window.AlphaLiquidGlass && typeof window.AlphaLiquidGlass.releaseAll === 'function') {
+          window.AlphaLiquidGlass.releaseAll();
+        }
+      }, { passive: true });
+      doc.addEventListener('keydown', (e) => {
+        if (e.key === 'F11' || e.keyCode === 122 || e.code === 'F11') {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      }, true);
     }
+
+    // 全局禁止 F11 全屏
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'F11' || e.keyCode === 122 || e.code === 'F11') {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    }, true);
 
     // ======= 单实例 & 自定义协议唤醒处理引擎 =======
     const KNOWN_PAGES = {
@@ -1136,7 +3542,40 @@
     }
 
     function handleInstanceData(data) {
-      if (!data) return;
+      if (!data || typeof data !== 'object') return;
+
+      // ======= TDA 文件关联处理 =======
+      if (typeof data.tdaFile === 'string' && data.tdaFile.length <= 4096) {
+        const accountPage = KNOWN_PAGES['account.html'];
+        const existingTab = tabs.find(t => t.url && t.url.toLowerCase().includes(accountPage.url.toLowerCase()));
+        if (existingTab) {
+          switchTab(existingTab.id);
+        } else {
+          createNewTab(accountPage.url, accountPage.title);
+        }
+
+        if (window.electronAPI && window.electronAPI.readTdaFile) {
+          window.electronAPI.readTdaFile(data.tdaFile).then((result) => {
+            if (result && result.success && typeof result.content === 'string' && result.content.length <= 5 * 1024 * 1024) {
+              const sendToAccount = () => {
+                const accountTab = tabs.find(t => t.url && t.url.toLowerCase().includes('account.html'));
+                if (accountTab) {
+                  const frame = iframeMap.get(accountTab.id);
+                  if (frame && frame.contentWindow) {
+                    frame.contentWindow.postMessage({ type: 'tda-file-content', content: result.content }, '*');
+                    return true;
+                  }
+                }
+                return false;
+              };
+              if (!sendToAccount()) {
+                setTimeout(() => { if (!sendToAccount()) setTimeout(sendToAccount, 1500); }, 800);
+              }
+            }
+          }).catch(() => {});
+        }
+        return;
+      }
 
       let pageTarget = null;
       if (data.url) {
@@ -1158,11 +3597,13 @@
         }
       }
 
-      window.dispatchEvent(new CustomEvent('second-instance-data', { detail: data }));
+      // 仅转发已经解析并允许的页面，不把命令行、文件路径等敏感输入广播给子页面。
+      const safeInstanceData = pageTarget ? { url: pageTarget.url } : {};
+      window.dispatchEvent(new CustomEvent('second-instance-data', { detail: safeInstanceData }));
       const activeFrame = iframeMap.get(activeTabId);
       if (activeFrame && activeFrame.contentWindow) {
         try {
-          activeFrame.contentWindow.postMessage({ type: 'second-instance-data', data }, '*');
+          activeFrame.contentWindow.postMessage({ type: 'second-instance-data', data: safeInstanceData }, '*');
         } catch(_) {}
       }
     }
@@ -1175,29 +3616,156 @@
       }
       if (window.electronAPI.getInitialInstanceData) {
         window.electronAPI.getInitialInstanceData().then((initialData) => {
-          if (initialData && initialData.url) {
+          if (initialData && (initialData.url || initialData.tdaFile)) {
             handleInstanceData(initialData);
           }
         }).catch(() => {});
       }
+      if (typeof window.electronAPI.onPerformanceThrottleChanged === 'function') {
+        window.electronAPI.onPerformanceThrottleChanged((throttleData) => {
+          syncThrottleStateToAllFrames(throttleData);
+        });
+      }
+      if (typeof window.electronAPI.getPerformanceThrottleState === 'function') {
+        window.electronAPI.getPerformanceThrottleState().then((throttleData) => {
+          if (throttleData) syncThrottleStateToAllFrames(throttleData);
+        }).catch(() => {});
+      }
     }
 
+    // ======= 超链接新标签页/单页模式动态行为引擎 =======
+    // 设置页消息和 storage 事件可能携带 boolean 或字符串；统一为 boolean，
+    // 并忽略同一状态的重复通知，避免标题栏动画被反复重启而抖动。
+    let appliedOpenNewTab = null;
+    function normalizeOpenNewTab(value) {
+      return value !== false && value !== 'false' && value !== 0 && value !== '0';
+    }
+
+    function applyNavBehavior(openNewTab) {
+      openNewTab = normalizeOpenNewTab(openNewTab);
+      if (appliedOpenNewTab === openNewTab) return;
+      appliedOpenNewTab = openNewTab;
+
+      const titleBar = document.getElementById('title-bar');
+      const titleText = document.getElementById('titleText');
+      const tabsWrapper = document.getElementById('tabsWrapper');
+      const addTabBtn = document.getElementById('addTabBtn');
+
+      window.ALPHA.config.linkMode = openNewTab ? 'new' : 'current';
+      if (titleBar) titleBar.classList.toggle('single-page-mode', !openNewTab);
+      updateTitleBarDragState();
+
+      if (!openNewTab) {
+        if (tabs.length > 1) {
+          const tabsToClose = tabs.filter(t => t.id !== activeTabId).map(t => t.id);
+          tabsToClose.forEach(id => closeTab(id, true));
+          updateTabWidths();
+        }
+
+        if (window.electronAPI && typeof window.electronAPI.setBackgroundMaterial === 'function') {
+          window.electronAPI.setBackgroundMaterial('mica');
+        }
+      } else {
+        updateTabWidths();
+        requestOverlayUpdate();
+
+        if (window.electronAPI && typeof window.electronAPI.setBackgroundMaterial === 'function') {
+          window.electronAPI.setBackgroundMaterial('tabbed');
+        }
+      }
+    }
+
+    function isKnownFrameSource(source) {
+      return !!source && knownFrameSources.has(source);
+    }
+
+    window.addEventListener('message', (e) => {
+      if (!isKnownFrameSource(e.source) || !e.data || typeof e.data !== 'object') return;
+
+      // 将子标签发出的配置变更广播给所有其他标签页
+      for (const frame of iframeMap.values()) {
+        try {
+          if (frame.contentWindow && frame.contentWindow !== e.source) {
+            frame.contentWindow.postMessage(e.data, '*');
+          }
+        } catch (_) {}
+      }
+
+      if (e.data && e.data.type === 'alpha_open_new_tab') {
+        applyNavBehavior(e.data.value);
+      }
+      if (e.data && e.data.type === 'alpha_auto_start') {
+        if (typeof e.data.value === 'boolean' && window.electronAPI && window.electronAPI.setAutoStart) {
+          window.electronAPI.setAutoStart(e.data.value);
+        }
+      }
+      if (e.data && e.data.type === 'alpha_exit_on_close') {
+        if (typeof e.data.value === 'boolean' && window.electronAPI && window.electronAPI.setCloseToTray) {
+          window.electronAPI.setCloseToTray(!e.data.value);
+        }
+      }
+    });
+
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'alpha_open_new_tab') {
+        applyNavBehavior(e.newValue);
+      }
+    });
+
+    // 初始化时同步设置给主进程
+    if (window.electronAPI && window.electronAPI.setCloseToTray) {
+      const exitOnClose = localStorage.getItem('alpha_exit_on_close') !== 'false'; // default true
+      window.electronAPI.setCloseToTray(!exitOnClose);
+    }
+    if (window.electronAPI && window.electronAPI.getAutoStart) {
+      window.electronAPI.getAutoStart().then((enabled) => {
+        localStorage.setItem('alpha_auto_start', !!enabled);
+      });
+    }
+    if (window.electronAPI && window.electronAPI.onAutoStartChanged) {
+      window.electronAPI.onAutoStartChanged((enabled) => {
+        localStorage.setItem('alpha_auto_start', !!enabled);
+        for (const frame of iframeMap.values()) {
+          try {
+            if (frame.contentWindow) {
+              frame.contentWindow.postMessage({ type: 'alpha_auto_start', value: !!enabled }, '*');
+            }
+          } catch (_) {}
+        }
+      });
+    }
+
+    // ======= 原生窗口控件深浅色自适应联动 =======
+    const darkThemeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    function syncNativeTitleBarTheme(isDark) {
+      if (typeof isDark !== 'boolean') {
+        isDark = darkThemeMediaQuery.matches;
+      }
+      if (window.electronAPI && typeof window.electronAPI.setTitleBarOverlay === 'function') {
+        window.electronAPI.setTitleBarOverlay({
+          color: 'rgba(0, 0, 0, 0)',
+          symbolColor: isDark ? '#f3f3f3' : '#0f172a',
+          height: 44
+        });
+      }
+    }
+    darkThemeMediaQuery.addEventListener('change', (e) => syncNativeTitleBarTheme(e.matches));
+    if (window.electronAPI && typeof window.electronAPI.onNativeThemeUpdated === 'function') {
+      window.electronAPI.onNativeThemeUpdated((data) => {
+        syncNativeTitleBarTheme(data?.shouldUseDarkColors);
+      });
+    }
+    syncNativeTitleBarTheme();
+
     // 为 wrapper 本身也注入追踪引擎
-    bindAlphaTooltipEngine(document);
+    bindAlphaTooltipTree(document);
 
     window.addEventListener('DOMContentLoaded', () => {
-      // 1. 初始时刻: 先把真实的主界面标题栏和下方容器隐藏（高阶水下形态: 透明、下沉、高模糊）
+      const openNewTab = localStorage.getItem('alpha_open_new_tab');
+      applyNavBehavior(openNewTab);
+
       const titleBar = document.getElementById('title-bar');
       const iframeContainer = document.getElementById('iframe-container');
-      
-      titleBar.style.opacity = '0';
-      titleBar.style.transform = 'translateY(-20px)';
-      titleBar.style.transition = 'opacity 1.2s cubic-bezier(0.16, 1, 0.3, 1), transform 1.2s cubic-bezier(0.16, 1, 0.3, 1)';
-      
-      iframeContainer.style.opacity = '0';
-      iframeContainer.style.transform = 'translateY(45px) scale(0.96)';
-      iframeContainer.style.filter = 'blur(16px)';
-      iframeContainer.style.transition = 'opacity 1.5s cubic-bezier(0.16, 1, 0.3, 1), transform 1.5s cubic-bezier(0.16, 1, 0.3, 1), filter 1.5s cubic-bezier(0.16, 1, 0.3, 1)';
 
       createNewTab('Home.html', '主页');
       if (tabsContainer) {
@@ -1205,30 +3773,234 @@
       }
       requestOverlayUpdate();
 
-      // 2. 预留 1.8 秒, 确保在加载飞快的情况下, 用户依然能欣赏到 Logo 的光影交错
+      // 预留 1.8 秒, 确保在加载飞快的情况下, 用户依然能欣赏到 Logo 的光影交错
       setTimeout(() => {
           const splashFrame = document.getElementById('splashFrame');
           if(splashFrame) {
               // 给启动屏发送退场指令（Logo 开始像水一样晕染溶解并向下沉没）
-              splashFrame.contentWindow.postMessage('start-exit', '*');
+              try {
+                splashFrame.contentWindow.postMessage('start-exit', '*');
+              } catch (_) {}
               
               // 同时, 主界面伴随弹性阻尼动画「浮出水面」
-              titleBar.style.opacity = '1';
-              titleBar.style.transform = 'translateY(0)';
-              
-              iframeContainer.style.opacity = '1';
-              iframeContainer.style.transform = 'translateY(0) scale(1)';
-              iframeContainer.style.filter = 'blur(0px)'; // 从高模糊平滑恢复到清澈形态
+              if (titleBar) {
+                titleBar.style.opacity = '1';
+                titleBar.style.transform = 'translateY(0)';
+              }
+
+              if (iframeContainer) {
+                iframeContainer.classList.remove('entering');
+              }
 
               // 在内部 Logo 逐渐沉淀的过程中, 让整个启动页 iframe 进行平滑淡出, 以完美透出浮现完毕的主界面
               setTimeout(() => {
-                  splashFrame.style.opacity = '0';
-                  // 给 1.0s 的优雅退场时间, 动画彻底完结后销毁 iframe 释放内存
-                  setTimeout(() => splashFrame.remove(), 1000);
+                  if (splashFrame) {
+                    splashFrame.style.opacity = '0';
+                    splashFrame.style.pointerEvents = 'none';
+                    // 给 1.0s 的优雅退场时间, 动画彻底完结后销毁 iframe 释放内存
+                    setTimeout(() => {
+                      if (splashFrame && splashFrame.parentNode) {
+                        splashFrame.remove();
+                      }
+                    }, 1000);
+                  }
               }, 400); // 400ms 后启动 iframe 整体淡出, 与内部沉淀动画形成华丽的重叠视差
           }
       }, 1800);
+
+      // 开屏动画退场与首屏渲染完全稳定后，启动后台智能错峰空闲预热
+      setTimeout(() => {
+        PrewarmPool.startIdlePrewarm();
+      }, 2600);
     });
+    const menu = document.getElementById('controlsMenu');
+    const appIconBtn = document.getElementById('appIconBtn');
+    const menuBackdrop = document.getElementById('menuBackdrop');
+    const settingsBtn = document.getElementById('settingsBtn');
+
+    addTabBtn?.addEventListener('click', () => window.ALPHA.navigate('Home.html', 'new'));
+    settingsBtn?.addEventListener('click', () => window.ALPHA.navigate('settings.html', 'new'));
+    appIconBtn?.addEventListener('error', () => { appIconBtn.style.opacity = '0'; }, { once: true });
+    menu?.addEventListener('click', (event) => {
+      const item = event.target.closest('[data-action]');
+      if (item && menu.contains(item)) executeAction(item.dataset.action);
+    });
+
+    let isWindowMaximizedState = false;
+
+    function updateMaximizeMenuItem(isMaximized) {
+        isWindowMaximizedState = !!isMaximized;
+        const iconContainer = document.getElementById('menuIconMaximize');
+        const labelSpan = document.getElementById('menuLabelMaximize');
+        const maximizeItem = document.getElementById('menuItemMaximize');
+
+        if (isWindowMaximizedState) {
+            if (labelSpan) labelSpan.textContent = '还原';
+            if (maximizeItem) maximizeItem.dataset.action = '还原';
+            if (iconContainer) {
+                iconContainer.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="4 14 10 14 10 20"></polyline>
+                        <polyline points="20 10 14 10 14 4"></polyline>
+                        <line x1="14" y1="10" x2="21" y2="3"></line>
+                        <line x1="3" y1="21" x2="10" y2="14"></line>
+                    </svg>
+                `;
+            }
+        } else {
+            if (labelSpan) labelSpan.textContent = '最大化';
+            if (maximizeItem) maximizeItem.dataset.action = '最大化';
+            if (iconContainer) {
+                iconContainer.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M8 3H5a2 2 0 0 0-2 2v3"></path>
+                        <path d="M21 8V5a2 2 0 0 0-2-2h-3"></path>
+                        <path d="M3 16v3a2 2 0 0 0 2 2h3"></path>
+                        <path d="M16 21h3a2 2 0 0 0 2-2v-3"></path>
+                    </svg>
+                `;
+            }
+        }
+    }
+
+    function checkAndUpdateMaximizeState() {
+        if (window.electronAPI && typeof window.electronAPI.isMaximized === 'function') {
+            window.electronAPI.isMaximized().then((maximized) => {
+                updateMaximizeMenuItem(maximized);
+            }).catch(() => {});
+        }
+    }
+
+    let _isControlsMenuClosing = false;
+
+    function toggleMenu(show) {
+        if (!menu) return;
+        const willShow = (show !== undefined) ? show : !menu.classList.contains('show');
+        if (willShow) {
+            _isControlsMenuClosing = false;
+            checkAndUpdateMaximizeState();
+            if (appIconBtn) {
+                const rect = appIconBtn.getBoundingClientRect();
+                menu.style.left = `${rect.left}px`;
+                menu.style.top = `${rect.bottom + 12}px`;
+            }
+            menu.classList.remove('hiding');
+            menu.classList.remove('show');
+            void menu.offsetWidth; // 触发回流重排，重置进场动画基准
+            requestAnimationFrame(() => {
+                menu.classList.add('show');
+            });
+            if (menuBackdrop) menuBackdrop.classList.add('show');
+        } else {
+            if (_isControlsMenuClosing || !menu.classList.contains('show')) return;
+            _isControlsMenuClosing = true;
+            menu.classList.remove('show');
+            menu.classList.add('hiding');
+            if (menuBackdrop) menuBackdrop.classList.remove('show');
+            setTimeout(() => {
+                menu.classList.remove('hiding');
+                _isControlsMenuClosing = false;
+            }, 90);
+        }
+    }
+
+    let _lastIconClickTime = 0;
+
+    if (appIconBtn) {
+      const handleAppIconClick = (e) => {
+          e.stopPropagation();
+          const now = Date.now();
+          if (now - _lastIconClickTime > 0 && now - _lastIconClickTime < 400) {
+              // 400ms 内连续点击两次：判定为双击，直接退出
+              _lastIconClickTime = 0;
+              toggleMenu(false);
+              executeAction('退出');
+              return;
+          }
+          _lastIconClickTime = now;
+          toggleMenu();
+      };
+
+      appIconBtn.addEventListener('click', handleAppIconClick);
+      appIconBtn.addEventListener('dblclick', (e) => {
+          e.stopPropagation();
+          _lastIconClickTime = 0;
+          toggleMenu(false);
+          executeAction('退出');
+      });
+    }
+
+    if (menuBackdrop) {
+      const handleBackdropClose = (e) => {
+          if (appIconBtn) {
+              const rect = appIconBtn.getBoundingClientRect();
+              if (e.clientX >= rect.left && e.clientX <= rect.right &&
+                  e.clientY >= rect.top && e.clientY <= rect.bottom) {
+                  return;
+              }
+          }
+          e.stopPropagation();
+          toggleMenu(false);
+      };
+      menuBackdrop.addEventListener('pointerdown', handleBackdropClose);
+      menuBackdrop.addEventListener('mousedown', handleBackdropClose);
+      menuBackdrop.addEventListener('click', handleBackdropClose);
+    }
+
+    // 全局捕获指针按下事件，点击空白或外部元素时关闭菜单
+    document.addEventListener('pointerdown', (e) => {
+        if (menu && menu.classList.contains('show')) {
+            if (!menu.contains(e.target) && (!appIconBtn || !appIconBtn.contains(e.target))) {
+                toggleMenu(false);
+            }
+        }
+    }, true);
+    document.addEventListener('mousedown', (e) => {
+        if (menu && menu.classList.contains('show')) {
+            if (!menu.contains(e.target) && (!appIconBtn || !appIconBtn.contains(e.target))) {
+                toggleMenu(false);
+            }
+        }
+    }, true);
+
+    window.addEventListener('blur', () => {
+        toggleMenu(false);
+    });
+
+    function executeAction(actionName) {
+        console.log("执行动作:", actionName);
+        toggleMenu(false);
+        setTimeout(() => {
+            if (actionName === '退出') {
+                if (window.electronAPI && typeof window.electronAPI.close === 'function') {
+                    window.electronAPI.close();
+                } else if (window.electronAPI && typeof window.electronAPI.closeWindow === 'function') {
+                    window.electronAPI.closeWindow();
+                } else {
+                    try { window.close(); } catch(_) {}
+                }
+            } else if (actionName === '最大化' || actionName === '还原') {
+                if (window.electronAPI && typeof window.electronAPI.maximize === 'function') {
+                    window.electronAPI.maximize();
+                } else if (window.electronAPI && typeof window.electronAPI.maximizeWindow === 'function') {
+                    window.electronAPI.maximizeWindow();
+                }
+            } else if (actionName === '最小化') {
+                if (window.electronAPI && typeof window.electronAPI.minimize === 'function') {
+                    window.electronAPI.minimize();
+                } else if (window.electronAPI && typeof window.electronAPI.minimizeWindow === 'function') {
+                    window.electronAPI.minimizeWindow();
+                }
+            }
+        }, 60);
+    }
+
+    if (window.electronAPI && typeof window.electronAPI.onMaximizeChanged === 'function') {
+        window.electronAPI.onMaximizeChanged((isMaximized) => {
+            updateMaximizeMenuItem(isMaximized);
+        });
+    }
+    checkAndUpdateMaximizeState();
   </script>
 </body>
 </html>
