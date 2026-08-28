@@ -17,6 +17,7 @@
 
 </script>
 
+<link rel="preload" href="./fonts/OPPO Sans 4.0.ttf" as="font" type="font/truetype" crossorigin>
 <link rel="icon" href="Icon.ico" type="image/x-icon">
 <link rel="stylesheet" href="./assets/flatpickr.min.css">
 <script src="./assets/liquid-glass.js"></script>
@@ -38,7 +39,7 @@
   font-family: 'OPPO Sans 4.0'; 
   src: url('./fonts/OPPO Sans 4.0.ttf') format('truetype'); 
   font-weight: 1 999; 
-  font-display: swap;
+  font-display: block;
 }
 /* ===========================
    1. Design Tokens & Global
@@ -86,6 +87,8 @@
     margin: 0; padding: 0; box-sizing: border-box;
     font-family: 'OPPO Sans 4.0', -apple-system, BlinkMacSystemFont, "Segoe UI Variable", "SF Pro Display", "PingFang SC", "Microsoft YaHei", sans-serif;
     -webkit-tap-highlight-color: transparent; outline: none !important;
+    user-select: none;
+    -webkit-user-select: none;
 }
 
 html { scroll-behavior: smooth; }
@@ -103,6 +106,23 @@ body { min-height: 100vh;
     box-sizing: border-box;
     overflow-x: hidden;
     scrollbar-width: none; -ms-overflow-style: none;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+/* 文本输入框与“实时进度”核心数据模块开放选中与复制 */
+input,
+textarea,
+[contenteditable="true"],
+select,
+.selectable,
+.user-selectable,
+#progressFeedbackPanel .progress-value,
+#progressFeedbackPanel .progress-subtext,
+#progressFeedbackPanel .progress-value *,
+#progressFeedbackPanel .progress-subtext * {
+    user-select: text !important;
+    -webkit-user-select: text !important;
 }
 
 *, *::before, *::after {
@@ -136,12 +156,12 @@ body { min-height: 100vh;
 
 
 /* ================== 环境光合成优化版 ==================
-   柔焦渐变保持在静态子层, 只有外层负责 transform / opacity
-   这样浏览器可以复用已光栅化的模糊纹理, 避免每帧重新计算大型 blur */
+   柔焦纹理、滤镜和 transform 合并在同一 stage，避免父子各占一个合成层。 */
 .ambient-motion-stage {
     position: absolute;
     pointer-events: none;
-    will-change: transform, opacity;
+    /* 每个光团现在同时承载纹理、模糊和位移动画，只需一个合成层。 */
+    will-change: transform;
     transform: translate3d(0, 0, 0);
     backface-visibility: hidden;
 }
@@ -149,27 +169,9 @@ body { min-height: 100vh;
 .stage-sunbeam {
     top: -10%; right: -5%; width: 35vw; height: 80vh;
     transform-origin: top right;
-    animation: sunbeam-pulse 12s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.stage-orb-1 {
-    top: -15%; right: -15%; width: 68vw; height: 58vw;
-    animation: orb-drift-1 18s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.stage-orb-2 {
-    bottom: -20%; left: -20%; width: 76vw; height: 64vw;
-    animation: orb-drift-2 22s infinite alternate-reverse cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.stage-orb-3 {
-    top: 20%; left: 30%; width: 58vw; height: 48vw;
-    animation: orb-drift-3 20s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.sunbeam {
-    position: absolute; inset: 0;
-    /* 暖色明暗波带 */
+    animation: none;
+    will-change: transform, opacity;
+    /* 暖色明暗波带。纹理直接画在动画层上，避免额外的滤镜子合成层。 */
     background:
         radial-gradient(ellipse 102% 17% at 82% 10%, rgba(255, 245, 210, 0.32) 0 17%, rgba(255, 245, 210, 0.07) 43%, transparent 70%),
         radial-gradient(ellipse 94% 16% at 69% 27%, rgba(255, 235, 190, 0.05) 0 15%, rgba(255, 235, 190, 0.25) 33%, rgba(255, 235, 190, 0.05) 53%, transparent 73%),
@@ -178,16 +180,49 @@ body { min-height: 100vh;
         radial-gradient(ellipse 104% 19% at 86% 77%, rgba(255, 245, 210, 0.22) 0 17%, rgba(255, 245, 210, 0.05) 44%, transparent 74%);
     filter: blur(16px);
 }
-.orb { 
-    position: absolute;
-    inset: 0;
+
+.stage-orb-1 {
+    top: -15%; right: -15%; width: 68vw; height: 58vw;
+    animation: none;
+}
+
+.stage-orb-2 {
+    bottom: -20%; left: -20%; width: 76vw; height: 64vw;
+    animation: none;
+}
+
+.stage-orb-3 {
+    top: 20%; left: 30%; width: 58vw; height: 48vw;
+    animation: none;
+}
+
+body.enable-bg-motion .stage-sunbeam,
+html.enable-bg-motion .stage-sunbeam {
+    animation: sunbeam-pulse 12s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
+}
+body.enable-bg-motion .stage-orb-1,
+html.enable-bg-motion .stage-orb-1 {
+    animation: orb-drift-1 18s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
+}
+body.enable-bg-motion .stage-orb-2,
+html.enable-bg-motion .stage-orb-2 {
+    animation: orb-drift-2 22s infinite alternate-reverse cubic-bezier(0.4, 0, 0.2, 1);
+}
+body.enable-bg-motion .stage-orb-3,
+html.enable-bg-motion .stage-orb-3 {
+    animation: orb-drift-3 20s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.stage-orb-1,
+.stage-orb-2,
+.stage-orb-3 {
     border-radius: 46% 54% 52% 48% / 42% 48% 52% 58%;
-    /* 适度收窄模糊, 让波带可被隐约察觉, 但仍保持烟雾般柔软 */
     filter: blur(17px);
     opacity: 0.84;
 }
-/* 每个光团只重复自己的原色；五条主波带与一层薄雾底光交错 */
-.orb-1 { background:
+
+/* 每个光团仍保留原来的五条波带与薄雾底光。 */
+.stage-orb-1 { background:
     radial-gradient(ellipse 104% 17% at 72% 12%, rgba(157, 210, 255, 0.40) 0 16%, rgba(157, 210, 255, 0.07) 43%, transparent 69%),
     radial-gradient(ellipse 92% 16% at 50% 30%, rgba(157, 210, 255, 0.05) 0 14%, rgba(157, 210, 255, 0.34) 32%, rgba(157, 210, 255, 0.05) 53%, transparent 72%),
     radial-gradient(ellipse 108% 18% at 74% 47%, rgba(157, 210, 255, 0.35) 0 16%, rgba(157, 210, 255, 0.06) 43%, transparent 71%),
@@ -195,7 +230,7 @@ body { min-height: 100vh;
     radial-gradient(ellipse 102% 18% at 69% 81%, rgba(157, 210, 255, 0.31) 0 16%, rgba(157, 210, 255, 0.05) 44%, transparent 72%),
     radial-gradient(ellipse at 59% 48%, rgba(157, 210, 255, 0.10) 0%, transparent 82%);
     }
-.orb-2 { background:
+.stage-orb-2 { background:
     radial-gradient(ellipse 106% 17% at 31% 12%, rgba(220, 210, 255, 0.36) 0 16%, rgba(220, 210, 255, 0.06) 43%, transparent 70%),
     radial-gradient(ellipse 94% 16% at 57% 30%, rgba(220, 210, 255, 0.04) 0 14%, rgba(220, 210, 255, 0.32) 32%, rgba(220, 210, 255, 0.05) 53%, transparent 72%),
     radial-gradient(ellipse 110% 18% at 35% 47%, rgba(220, 210, 255, 0.32) 0 16%, rgba(220, 210, 255, 0.05) 43%, transparent 71%),
@@ -203,7 +238,7 @@ body { min-height: 100vh;
     radial-gradient(ellipse 104% 18% at 38% 81%, rgba(220, 210, 255, 0.28) 0 16%, rgba(220, 210, 255, 0.05) 44%, transparent 72%),
     radial-gradient(ellipse at 46% 50%, rgba(220, 210, 255, 0.10) 0%, transparent 83%);
     }
-.orb-3 { background:
+.stage-orb-3 { background:
     radial-gradient(ellipse 102% 17% at 65% 12%, rgba(255, 230, 190, 0.35) 0 16%, rgba(255, 230, 190, 0.06) 43%, transparent 69%),
     radial-gradient(ellipse 92% 16% at 42% 30%, rgba(255, 230, 190, 0.04) 0 14%, rgba(255, 230, 190, 0.30) 32%, rgba(255, 230, 190, 0.04) 53%, transparent 72%),
     radial-gradient(ellipse 108% 18% at 68% 47%, rgba(255, 230, 190, 0.30) 0 16%, rgba(255, 230, 190, 0.05) 43%, transparent 71%),
@@ -211,6 +246,12 @@ body { min-height: 100vh;
     radial-gradient(ellipse 102% 18% at 66% 81%, rgba(255, 230, 190, 0.27) 0 16%, rgba(255, 230, 190, 0.05) 44%, transparent 72%),
     radial-gradient(ellipse at 53% 49%, rgba(255, 230, 190, 0.09) 0%, transparent 82%);
     }
+
+/* 保留旧 DOM 以兼容既有结构，但不再为它们建立额外绘制／合成层。 */
+.sunbeam,
+.orb {
+    display: none !important;
+}
 
 /* 错落有致的非线性运动轨迹 (加入了 translate3d 强制触发 GPU 渲染防静止) */
 @keyframes orb-drift-1 {
@@ -1017,12 +1058,11 @@ button:disabled, button.disabled {
     cursor: grab;
     user-select: none;
     transform-origin: center center;
-    /* Keep one compositor layer and one immutable border geometry in every
-       interaction state. This prevents the card contents from being
-       re-rasterized against a different half-pixel origin on hover/press. */
+    /* 静止时不再为每张卡片永久占用独立 GPU 纹理；hover／拖拽选择器会在
+       交互期间临时申请合成层，动画结束后即可由 Chromium 回收。 */
     box-sizing: border-box;
-    transform: translate3d(0, 0, 0);
-    will-change: transform, box-shadow;
+    transform: none;
+    will-change: auto;
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
 }
@@ -2958,88 +2998,14 @@ input:not(:checked) + .alpha-switch::after {
 }
 
 /* ================== 全局页面切换动效 (Page Transitions) ================== */
-@keyframes alphaPageIn {
-    0% { opacity: 0; filter: blur(40px); transform: scale(0.98); }
-    100% { opacity: 1; filter: blur(0px); transform: scale(1); }
-}
-
 @keyframes alphaPageOut {
     0% { opacity: 1; filter: blur(0px); transform: scale(1); }
     100% { opacity: 0; filter: blur(40px); transform: scale(0.98); }
 }
 
-@keyframes pageInFromHome {
-    0% { opacity: 0; filter: blur(40px); transform: translateX(80px); }
-    100% { opacity: 1; filter: blur(0px); transform: translateX(0); }
-}
-
 @keyframes pageOutToHome {
     0% { opacity: 1; filter: blur(0px); transform: translateX(0); }
     100% { opacity: 0; filter: blur(40px); transform: translateX(80px); }
-}
-
-/* 进场动画 */
-.page-anim-target,
-.sidebar,
-.panel,
-.main,
-#setupPanel,
-#hubPanel,
-.glass-resizer-bar {
-    animation: alphaPageIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) backwards;
-}
-
-/* ================== 全局页面切换动效 (Page Transitions) ================== */
-@keyframes alphaSidebarIn {
-    0% { opacity: 0; filter: blur(40px); transform: scale(0.94); }
-    100% { opacity: 1; filter: blur(0px); transform: scale(1); }
-}
-
-@keyframes alphaMainIn {
-    0% { opacity: 0; filter: blur(40px); transform: scale(0.98); }
-    100% { opacity: 1; filter: blur(0px); transform: scale(1); }
-}
-
-@keyframes pageSidebarInFromHome {
-    0% { opacity: 0; filter: blur(22px); transform: translateX(90px) scale(0.95); }
-    100% { opacity: 1; filter: blur(0px); transform: translateX(0) scale(1); }
-}
-
-@keyframes pageMainInFromHome {
-    0% { opacity: 0; filter: blur(40px); transform: translateX(70px) scale(0.98); }
-    100% { opacity: 1; filter: blur(0px); transform: translateX(0) scale(1); }
-}
-
-/* 主页进入 (From Home) 错峰落差进场 - 光学等量视觉补偿 */
-html[data-nav-engine="home"] .sidebar,
-html[data-nav-engine="home"] #setupPanel {
-    animation: pageSidebarInFromHome 0.65s cubic-bezier(0.16, 1, 0.3, 1) 0s backwards !important;
-}
-
-html[data-nav-engine="home"] .glass-resizer-bar {
-    animation: pageMainInFromHome 0.65s cubic-bezier(0.16, 1, 0.3, 1) 0.05s backwards !important;
-}
-
-html[data-nav-engine="home"] .main,
-html[data-nav-engine="home"] #hubPanel,
-html[data-nav-engine="home"] #timerPanel {
-    animation: pageMainInFromHome 0.65s cubic-bezier(0.16, 1, 0.3, 1) 0.1s backwards !important;
-}
-
-/* 套件内切页 (Intra-Suite) 缩放模糊进场 - 针对侧边栏/主面板比例等量调优 */
-html[data-nav-engine="intra"] .sidebar,
-html[data-nav-engine="intra"] #setupPanel {
-    animation: alphaSidebarIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0s backwards !important;
-}
-
-html[data-nav-engine="intra"] .glass-resizer-bar {
-    animation: alphaMainIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.02s backwards !important;
-}
-
-html[data-nav-engine="intra"] .main,
-html[data-nav-engine="intra"] #hubPanel,
-html[data-nav-engine="intra"] #timerPanel {
-    animation: alphaMainIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.04s backwards !important;
 }
 
 
@@ -3457,13 +3423,7 @@ html[data-nav-engine="intra"] #timerPanel {
 /* ===========================
    全局页面判定切页动效 (Dynamic Page Transitions)
 =========================== */
-.page-anim-target.page-in-from-home {
-    animation: pageInFromHome 0.6s cubic-bezier(0.22, 1, 0.36, 1) backwards;
-}
 
-.page-anim-target.alpha-page-in {
-    animation: alphaPageIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) backwards;
-}
 
 .page-anim-target.page-transition-leave {
     animation: alphaPageOut 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards !important;
@@ -3599,8 +3559,13 @@ body.is-zoom-scaling *::after {
 body.is-zoom-scaling .ambient-motion-stage {
     animation-play-state: paused !important;
 }
-body.is-zoom-scaling .sunbeam { filter: blur(4px) !important; will-change: auto !important; }
-body.is-zoom-scaling .orb { filter: blur(4px) !important; will-change: auto !important; }
+body.is-zoom-scaling .stage-sunbeam,
+body.is-zoom-scaling .stage-orb-1,
+body.is-zoom-scaling .stage-orb-2,
+body.is-zoom-scaling .stage-orb-3 {
+    filter: blur(4px) !important;
+    will-change: auto !important;
+}
 body.is-zoom-scaling .sidebar,
 body.is-zoom-scaling .panel,
 body.is-zoom-scaling .task-card,
@@ -4101,6 +4066,177 @@ button:focus-visible,
     will-change: transform, opacity, filter, box-shadow;
 }
 </style>
+<style id="taskhub-tag-overlap-fusion-v4">
+/* TaskHub-local tag dissolution. The shared liquid engine still supplies the
+   long-distance bridge; this layer only replaces the visible stacked seam
+   after two subject / priority surfaces physically overlap. */
+.subject-item > span {
+    --taskhub-fusion-color: rgba(255, 255, 255, 0.48);
+}
+.subject-item:not(.priority-item) input:checked + span {
+    --taskhub-fusion-color: rgba(199, 231, 255, 0.72);
+}
+.priority-item input[value="High"]:checked + .priority-choice {
+    --taskhub-fusion-color: rgba(255, 220, 220, 0.74);
+}
+.priority-item input[value="Medium"]:checked + .priority-choice {
+    --taskhub-fusion-color: rgba(255, 243, 204, 0.74);
+}
+.priority-item input[value="Low"]:checked + .priority-choice {
+    --taskhub-fusion-color: rgba(218, 244, 227, 0.74);
+}
+
+/* TaskHub's late performance-consolidation style forces every subject surface
+   to will-change:auto!important. During LiquidGlass drag that makes Chromium
+   repeatedly rasterize the glyphs at changing sub-pixel coordinates. Restore
+   TaskTimer's stable compositor behavior only for the editable subject and
+   priority tags; unrelated TaskHub controls keep the consolidation policy. */
+#subjectBox > .subject-item:not(.priority-item) > span,
+.subject-box > .subject-item.priority-item > .priority-choice {
+    will-change: transform, box-shadow !important;
+}
+
+/* Match TaskTimer's stable text model: text/icon nodes live directly inside
+   the liquid surface and share its one compositor transform. No independent
+   inverse-transform layer is created, so hover/drag/check/release cannot leave
+   the glyphs at a different vertical position from their button. */
+.taskhub-tag-text { font: inherit; color: inherit; }
+
+/* Only the edge facing the overlapping peer is dissolved. Other sides retain
+   their original glass outline, so the pair reads as one liquid volume rather
+   than two borderless pills. */
+.subject-item > span.taskhub-overlap-left   { border-left-color: transparent !important; }
+.subject-item > span.taskhub-overlap-right  { border-right-color: transparent !important; }
+.subject-item > span.taskhub-overlap-top    { border-top-color: transparent !important; }
+.subject-item > span.taskhub-overlap-bottom { border-bottom-color: transparent !important; }
+
+.subject-box {
+    position: relative;
+    isolation: isolate;
+    overflow: visible;
+}
+.subject-box > .subject-item,
+.subject-box > input {
+    position: relative;
+    z-index: 2;
+}
+
+/* During physical overlap the two original glass shells become transparent;
+   their stable text/icon layers remain above one shared SVG liquid surface. */
+.subject-item > span.taskhub-union-member {
+    background: transparent !important;
+    background-color: transparent !important;
+    /* Keep the exact 2/1/1/1px shell metrics while hiding its paint. Setting
+       border: 0 changes the border-box measured on the next animation frame,
+       which made the generated union visibly contract during contact. */
+    border-style: solid !important;
+    border-width: 2px 1px 1px 1px !important;
+    border-color: transparent !important;
+    outline: none !important;
+    box-shadow: none !important;
+    filter: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+/* Checked-state border declarations have greater selector specificity than the
+   generic union member rule. When at least one member is selected, suppress
+   both source rims explicitly and let the SVG draw exactly one combined rim.
+   Widths stay untouched, preserving the original border-box dimensions. */
+.subject-item > input + span.taskhub-selected-union-member,
+.subject-item > input:checked + span.taskhub-selected-union-member,
+.priority-item > input:checked + .priority-choice.taskhub-selected-union-member {
+    border-style: solid !important;
+    border-width: 2px 1px 1px 1px !important;
+    border-color: transparent !important;
+}
+.subject-item > span.taskhub-selected-union-member::before,
+.subject-item > span.taskhub-selected-union-member::after {
+    content: none !important;
+    display: none !important;
+    opacity: 0 !important;
+    background: none !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    filter: none !important;
+    -webkit-mask: none !important;
+    mask: none !important;
+}
+/* Ordinary selected tags retain their ::after surface light. Hide it only
+   while that exact tag is being dragged; a physical union also hides both
+   source pseudo layers because the SVG paints the combined silhouette. */
+.subject-item > input:checked + span.taskhub-drag-no-top-light::after,
+.subject-item > span.taskhub-union-member::before,
+.subject-item > span.taskhub-union-member::after {
+    content: none !important;
+    display: none !important;
+    opacity: 0 !important;
+    background: none !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    filter: none !important;
+    -webkit-mask: none !important;
+    mask: none !important;
+}
+
+/* The original selected top inset is also suppressed only during the active
+   drag. Removing this temporary class restores the page's native highlight. */
+.subject-item:not(.priority-item) > input:checked + span.taskhub-drag-no-top-light {
+    box-shadow:
+        0 8px 20px rgba(157, 210, 255, 0.20),
+        inset 0 -1px 3px rgba(157, 210, 255, 0.12) !important;
+}
+.priority-item > input[value="High"]:checked + .priority-choice.taskhub-drag-no-top-light {
+    box-shadow:
+        0 8px 20px rgba(255, 150, 150, 0.15),
+        inset 0 -1px 3px rgba(255, 150, 150, 0.08) !important;
+}
+.priority-item > input[value="Medium"]:checked + .priority-choice.taskhub-drag-no-top-light {
+    box-shadow:
+        0 8px 20px rgba(245, 158, 11, 0.06),
+        inset 0 -1px 3px rgba(245, 158, 11, 0.045) !important;
+}
+.priority-item > input[value="Low"]:checked + .priority-choice.taskhub-drag-no-top-light {
+    box-shadow:
+        0 8px 20px rgba(16, 185, 129, 0.10),
+        inset 0 -1px 3px rgba(16, 185, 129, 0.075) !important;
+}
+
+
+/* The shared JS bridge is useful before contact. Once TaskHub's local union is
+   active, suppress the overlapping tag bridge so no extra oval is stacked on
+   top of the reference-like silhouette. */
+.__lq-fusion-bridge.__lq-fusion-tag-pair.__lq-fusion-overlap {
+    opacity: 0 !important;
+}
+.__lq-fusion-bridge.__lq-fusion-tag-pair.taskhub-union-suppressed {
+    opacity: 0 !important;
+    visibility: hidden !important;
+}
+
+.taskhub-tag-union-surface {
+    position: absolute;
+    left: -9999px;
+    top: -9999px;
+    z-index: 1;
+    display: block;
+    overflow: visible;
+    pointer-events: none;
+    opacity: 0;
+    /* Do not backdrop-filter the root SVG: that samples its rectangular
+       viewport and can expose a clipped rectangular shadow/glass patch. */
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    /* Both shadows are cast from the final masked union alpha, so the two
+       controls share one ambient shadow instead of losing depth at contact. */
+    filter:
+        drop-shadow(0 15px 38px rgba(15, 23, 42, .125))
+        drop-shadow(0 4px 10px rgba(15, 23, 42, .085));
+    transition: opacity 95ms ease-out;
+    will-change: left, top, width, height, opacity;
+    contain: layout style;
+}
+.taskhub-tag-union-surface.is-visible { transition-duration: 48ms; }
+</style>
 </head>
 <body>
 <script>
@@ -4150,20 +4286,20 @@ button:focus-visible,
                     cloneStages[idx].style.left = cs.left;
                     cloneStages[idx].style.transform = cs.transform;
                     cloneStages[idx].style.opacity = cs.opacity;
+                    cloneStages[idx].style.background = cs.background;
+                    cloneStages[idx].style.filter = cs.filter;
+                    cloneStages[idx].style.borderRadius = cs.borderRadius;
                     cloneStages[idx].style.animation = 'none';
                     cloneStages[idx].style.visibility = 'visible';
                 }
             });
 
-            // Inline the computed styles of child elements (gradients, filters, opacity)
+            // 旧子节点只作结构兼容；纹理已经合并到 stage，快照中也不再重复绘制。
             var origChildren = bgEl.querySelectorAll('.orb, .sunbeam');
             var cloneChildren = clone.querySelectorAll('.orb, .sunbeam');
             origChildren.forEach(function(origChild, idx) {
                 if (cloneChildren[idx]) {
-                    var cs = window.getComputedStyle(origChild);
-                    cloneChildren[idx].style.background = cs.background;
-                    cloneChildren[idx].style.filter = cs.filter;
-                    cloneChildren[idx].style.opacity = cs.opacity;
+                    cloneChildren[idx].style.display = 'none';
                 }
             });
 
@@ -4173,7 +4309,7 @@ button:focus-visible,
                 '<style>' +
                   '.alpha-ambient-bg { position: absolute; inset: 0; background-color: #f4f8fc; opacity: 0.97; overflow: hidden; }' +
                   '.ambient-motion-stage { position: absolute; pointer-events: none; }' +
-                  '.orb, .sunbeam { position: absolute; inset: 0; }' +
+                  '.orb, .sunbeam { display: none; }' +
                 '</style>' +
               '</defs>' +
               '<foreignObject width="100%" height="100%">' +
@@ -4316,9 +4452,9 @@ button:focus-visible,
                 <div class="field full-width">
                     <label>重要级</label>
                     <div class="subject-box">
-                        <label class="subject-item priority-item"><input type="radio" name="priority" value="High"><span class="priority-choice"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-zap priority-high" aria-hidden="true"><path d="M4 14a1 1 0 0 1-.78-1.63l9-11A.5.5 0 0 1 13 1.7l-1.76 6.32A1 1 0 0 0 12.2 9.3h7.6a1 1 0 0 1 .78 1.63l-9 11a.5.5 0 0 1-.87-.33l1.76-6.32A1 1 0 0 0 11.5 14z"/></svg>高</span></label>
-                        <label class="subject-item priority-item"><input type="radio" name="priority" value="Medium"><span class="priority-choice"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-send-horizontal priority-medium" aria-hidden="true"><path d="m3 3 3 9-3 9 19-9Z"/><path d="M6 12h16"/></svg>中</span></label>
-                        <label class="subject-item priority-item"><input type="radio" name="priority" value="Low"><span class="priority-choice"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-dashed priority-low" aria-hidden="true"><path d="M12 2a10 10 0 0 1 10 10" stroke-dasharray="4 4"/><path d="M12 22a10 10 0 0 1-10-10" stroke-dasharray="4 4"/><path d="M12 2a10 10 0 0 0-10 10" stroke-dasharray="4 4"/><path d="M12 22a10 10 0 0 0 10-10" stroke-dasharray="4 4"/></svg>低</span></label>
+                        <label class="subject-item priority-item"><input type="radio" name="priority" value="High"><span class="priority-choice"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-zap priority-high" aria-hidden="true"><path d="M4 14a1 1 0 0 1-.78-1.63l9-11A.5.5 0 0 1 13 1.7l-1.76 6.32A1 1 0 0 0 12.2 9.3h7.6a1 1 0 0 1 .78 1.63l-9 11a.5.5 0 0 1-.87-.33l1.76-6.32A1 1 0 0 0 11.5 14z"/></svg><b class="taskhub-tag-text">高</b></span></label>
+                        <label class="subject-item priority-item"><input type="radio" name="priority" value="Medium"><span class="priority-choice"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-send-horizontal priority-medium" aria-hidden="true"><path d="m3 3 3 9-3 9 19-9Z"/><path d="M6 12h16"/></svg><b class="taskhub-tag-text">中</b></span></label>
+                        <label class="subject-item priority-item"><input type="radio" name="priority" value="Low"><span class="priority-choice"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-dashed priority-low" aria-hidden="true"><path d="M12 2a10 10 0 0 1 10 10" stroke-dasharray="4 4"/><path d="M12 22a10 10 0 0 1-10-10" stroke-dasharray="4 4"/><path d="M12 2a10 10 0 0 0-10 10" stroke-dasharray="4 4"/><path d="M12 22a10 10 0 0 0 10-10" stroke-dasharray="4 4"/></svg><b class="taskhub-tag-text">低</b></span></label>
                     </div>
                 </div>
 
@@ -4476,6 +4612,99 @@ button:focus-visible,
        03. Vendor External Scripts
        ====================================================================== -->
     <script src="./assets/flatpickr.min.js"></script>
+
+<style id="taskhub-performance-consolidation-v3">
+/*
+ * TaskHub 合成层收敛：这些组件位于已经进行 40px 毛玻璃采样的父面板内部。
+ * 子组件继续保留原有透明渐变、边框、内高光和阴影，只取消视觉上几乎重复的
+ * 第二次背景采样，从而避免每张任务卡／每个小按钮都建立独立滤镜表面。
+ */
+.sidebar .clock-container,
+.sidebar .hand,
+.sidebar .logo-icon-box,
+.panel .task-card,
+.panel .hub-card-wrap:hover > .task-card,
+.panel .hub-card-wrap:active > .task-card,
+.panel .hub-card-wrap:active:not(:has(button:active, input:not([type="checkbox"]):active, textarea:active, label:active, .strike-container:active)) > .task-card,
+.panel .progress-item,
+.panel .progress-item:hover,
+.panel .subject-item span,
+.panel .form-collapse-btn,
+.panel .list-trigger-container,
+.panel .view-toggle,
+.panel .glass-icon-btn,
+.alpha-modal-overlay .glass-icon-btn,
+.alpha-modal-overlay .pop-list-item,
+.dynamic-switcher-track .mini-app-icon {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+/* 静止／隐藏元素不永久预约 GPU 图层；交互期间再短暂提升。 */
+.task-card,
+.progress-item,
+.subject-item span,
+.picker-icon,
+.glass-icon-btn,
+.logo-icon-box,
+.task-checkbox-wrap,
+.icon-panel-wrap,
+.hub-time-node,
+.sphere-modal,
+.sphere-modal .modal-content,
+.alpha-modal-overlay,
+.alpha-modal-overlay .modal-inner,
+.app-switcher-overlay,
+.dynamic-switcher-track,
+.nav-click-catcher {
+    will-change: auto !important;
+}
+
+.hub-card-wrap:hover > .task-card,
+.hub-card-wrap:active > .task-card,
+.task-card.drop-bounce,
+.task-drag-avatar .task-card,
+.progress-item:hover {
+    will-change: transform !important;
+}
+
+.hub-time-node.clock-enter,
+.hub-time-node.clock-exit,
+.icon-panel-wrap.show,
+.sphere-modal:not(.hidden),
+.sphere-modal:not(.hidden) .modal-content,
+.alpha-modal-overlay.open,
+.alpha-modal-overlay.open .modal-inner,
+.app-switcher-overlay.open,
+.dynamic-switcher-track.open,
+body.alpha-menu-open .nav-click-catcher {
+    will-change: transform, opacity !important;
+}
+
+/* 全屏遮罩用固定模糊 + 整体淡入表达景深，避免逐帧重采样整个视口。 */
+.sphere-modal {
+    transition: opacity 0.3s var(--ease), visibility 0s 0s !important;
+}
+.sphere-modal.hidden {
+    backdrop-filter: blur(12px) saturate(140%) !important;
+    -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+    transition: opacity 0.3s var(--ease), visibility 0s 0.3s !important;
+}
+.alpha-modal-overlay {
+    transition: opacity 0.3s var(--ease), visibility 0s 0.3s !important;
+}
+.alpha-modal-overlay.open {
+    transition: opacity 0.3s var(--ease), visibility 0s 0s !important;
+}
+
+/* 用户停止操作或 iframe 休眠时冻结纯装饰循环；再次交互立即无缝续播。 */
+body.pause-bg-motion .progress-bar::after,
+html.pause-bg-motion .progress-bar::after,
+html.taskhub-page-hidden .progress-bar::after,
+body.scrolling .progress-bar::after {
+    animation-play-state: paused !important;
+}
+</style>
 
     <!-- ======================================================================
        04. TaskHub Master Application Script Engine
@@ -5193,7 +5422,7 @@ function runYellowBackgroundContactUpdate() {
     if (!yellowContactState.yellowElements) {
         yellowContactState.yellowElements = Array.from(
             document.querySelectorAll(
-                '.alpha-ambient-bg .sunbeam, .alpha-ambient-bg .orb-3'
+                '.alpha-ambient-bg .stage-sunbeam, .alpha-ambient-bg .stage-orb-3'
             )
         );
     }
@@ -6029,32 +6258,77 @@ document.addEventListener('change', function(e) {
     }
 });
 
-// 1. 核心高度计算器 (支持 0 毫秒无缝衔接 macOS 阻尼动画)
+// ================== 智能文本框伸缩 (离屏精准镜像计算引擎) ==================
+let mirrorTextarea = null;
+function getMirrorTextarea() {
+    if (!mirrorTextarea || !document.body.contains(mirrorTextarea)) {
+        mirrorTextarea = document.createElement('textarea');
+        mirrorTextarea.setAttribute('tabindex', '-1');
+        mirrorTextarea.setAttribute('aria-hidden', 'true');
+        mirrorTextarea.style.cssText = `
+            position: absolute !important;
+            top: 0 !important;
+            left: -9999px !important;
+            visibility: hidden !important;
+            pointer-events: none !important;
+            overflow: hidden !important;
+            height: 0 !important;
+            min-height: 0 !important;
+            max-height: none !important;
+            transform: none !important;
+            transition: none !important;
+            animation: none !important;
+            box-sizing: border-box !important;
+        `;
+        document.body.appendChild(mirrorTextarea);
+    }
+    return mirrorTextarea;
+}
+
+function calculateTextareaTargetHeight(el) {
+    if (!el) return 0;
+    const mirror = getMirrorTextarea();
+    const cs = window.getComputedStyle(el);
+
+    mirror.style.boxSizing = cs.boxSizing;
+    mirror.style.width = cs.width;
+    mirror.style.paddingTop = cs.paddingTop;
+    mirror.style.paddingRight = cs.paddingRight;
+    mirror.style.paddingBottom = cs.paddingBottom;
+    mirror.style.paddingLeft = cs.paddingLeft;
+    mirror.style.borderTopWidth = cs.borderTopWidth;
+    mirror.style.borderRightWidth = cs.borderRightWidth;
+    mirror.style.borderBottomWidth = cs.borderBottomWidth;
+    mirror.style.borderLeftWidth = cs.borderLeftWidth;
+    mirror.style.borderStyle = cs.borderStyle;
+
+    mirror.style.fontFamily = cs.fontFamily;
+    mirror.style.fontSize = cs.fontSize;
+    mirror.style.fontWeight = cs.fontWeight;
+    mirror.style.fontStyle = cs.fontStyle;
+    mirror.style.letterSpacing = cs.letterSpacing;
+    mirror.style.lineHeight = cs.lineHeight;
+    mirror.style.textTransform = cs.textTransform;
+    mirror.style.textIndent = cs.textIndent;
+    mirror.style.wordBreak = cs.wordBreak;
+    mirror.style.overflowWrap = cs.overflowWrap;
+    mirror.style.whiteSpace = 'pre-wrap';
+
+    mirror.value = el.value || '';
+    mirror.style.height = '0px';
+
+    const borderTop = parseFloat(cs.borderTopWidth) || 0;
+    const borderBottom = parseFloat(cs.borderBottomWidth) || 0;
+    const borderSize = (cs.boxSizing === 'border-box') ? (borderTop + borderBottom) : 0;
+
+    return mirror.scrollHeight + borderSize;
+}
+
+// 1. 核心高度计算器 (消除强制重排与过渡锁死，支持双向弹性伸缩)
 function adjustTextareaHeight(el) {
-    if (el.dataset.userResized === 'true') return;
-    
-    // 获取边框厚度用于补偿
-    const borderSize = el.offsetHeight - el.clientHeight;
-    
-    // 记住当前的像素高度
-    const currentHeight = el.style.height || window.getComputedStyle(el).height;
-
-    // 暂时剥夺动画权限, 并设为 auto 逼出文字的真实物理高度
-    el.style.transition = 'none';
-    el.style.height = 'auto';
-    
-    // 计算最终目标高度
-    let targetHeight = el.scrollHeight + borderSize;
-    
-    // 保底高度同步提升至 126px
-    if (targetHeight < 126) targetHeight = 126;
-
-    // 瞬间恢复原高度, 并强迫浏览器执行「重新排版 (Reflow)」
-    el.style.height = currentHeight;
-    void el.offsetHeight; 
-
-    // 重新开启丝滑过渡, 并推向新高度
-    el.style.transition = '';
+    if (!el || el.dataset.userResized === 'true') return;
+    const minHeight = el.id === 'taskRemark' ? 126 : 52;
+    const targetHeight = Math.max(minHeight, calculateTextareaTargetHeight(el));
     el.style.height = targetHeight + 'px';
 }
 
@@ -9296,10 +9570,10 @@ switcherOverlay.addEventListener('click', closeAppSwitcher);
                     }
                 });
 
-                switcherOverlay.style.transition = 'background 0.5s ease, backdrop-filter 0.5s ease';
+                /* 全屏景深由已有的固定 blur 伪层随 overlay 一起淡入；不再逐帧
+                   改变整个视口的 backdrop-filter。视觉层次不变，GPU 只合成透明度。 */
+                switcherOverlay.style.transition = 'background 0.5s ease, opacity 0.5s ease';
                 switcherOverlay.style.background = 'rgba(246, 248, 250, 0.92)';
-                switcherOverlay.style.backdropFilter = 'blur(40px) saturate(100%)';
-                switcherOverlay.style.webkitBackdropFilter = 'blur(40px) saturate(100%)';
 
                 const animTargets = document.querySelectorAll('.sidebar, .panel, .main, #setupPanel, #hubPanel, .glass-resizer-bar, .page-anim-target');
 
@@ -9420,6 +9694,26 @@ switcherOverlay.addEventListener('click', closeAppSwitcher);
     let isIdle = false;
     let idleTimer = null;
     const IDLE_TIMEOUT_MS = 2500;
+    let lastActivityAt = performance.now();
+
+    /* pointermove 可能每秒触发上百次。保持单个定时器，在到期时根据最后活动
+       时间补足剩余等待，避免持续 clearTimeout / setTimeout 造成主线程抖动。 */
+    function scheduleIdleCheck(delay = IDLE_TIMEOUT_MS) {
+        if (idleTimer || isSleeping) return;
+        idleTimer = setTimeout(() => {
+            idleTimer = null;
+            if (isSleeping) return;
+
+            const remaining = IDLE_TIMEOUT_MS - (performance.now() - lastActivityAt);
+            if (remaining > 0) {
+                scheduleIdleCheck(remaining);
+                return;
+            }
+
+            isIdle = true;
+            applyVisualFreeze(true);
+        }, delay);
+    }
 
     function applyVisualFreeze(freeze) {
         const docEl = document.documentElement;
@@ -9427,28 +9721,26 @@ switcherOverlay.addEventListener('click', closeAppSwitcher);
         if (!docEl) return;
         if (freeze) {
             docEl.classList.add('pause-bg-motion', 'pause-clock-breath');
-            if (bodyEl) bodyEl.classList.add('pause-bg-motion', 'pause-clock-breath');
-        } else if (!isSleeping) {
+            if (bodyEl) bodyEl.classList.add('pause-bg-motion', 'pause-clock-breath', 'is-idle');
+        } else {
             docEl.classList.remove('pause-bg-motion', 'pause-clock-breath');
-            if (bodyEl) bodyEl.classList.remove('pause-bg-motion', 'pause-clock-breath');
+            if (bodyEl) bodyEl.classList.remove('pause-bg-motion', 'pause-clock-breath', 'is-idle');
         }
     }
 
     function onUserActive() {
         if (isSleeping) return;
+        lastActivityAt = performance.now();
         if (isIdle) {
             isIdle = false;
             applyVisualFreeze(false);
         }
-        if (idleTimer) clearTimeout(idleTimer);
-        idleTimer = setTimeout(() => {
-            isIdle = true;
-            applyVisualFreeze(true);
-        }, IDLE_TIMEOUT_MS);
+        scheduleIdleCheck();
     }
 
     function onSleep() {
         isSleeping = true;
+        document.documentElement.classList.add('alpha-sleep');
         if (idleTimer) {
             clearTimeout(idleTimer);
             idleTimer = null;
@@ -9457,6 +9749,9 @@ switcherOverlay.addEventListener('click', closeAppSwitcher);
         try {
             if (window.AlphaCardGlow && typeof window.AlphaCardGlow.sleep === 'function') {
                 window.AlphaCardGlow.sleep(document);
+            }
+            if (window.AlphaInputGlow && typeof window.AlphaInputGlow.sleep === 'function') {
+                window.AlphaInputGlow.sleep(document);
             }
             if (window.AlphaLiquidGlass && typeof window.AlphaLiquidGlass.releaseAll === 'function') {
                 window.AlphaLiquidGlass.releaseAll();
@@ -9467,13 +9762,18 @@ switcherOverlay.addEventListener('click', closeAppSwitcher);
     function onWake() {
         isSleeping = false;
         isIdle = false;
+        lastActivityAt = performance.now();
+        document.documentElement.classList.remove('alpha-sleep');
         applyVisualFreeze(false);
         try {
             if (window.AlphaCardGlow && typeof window.AlphaCardGlow.wake === 'function') {
                 window.AlphaCardGlow.wake(document);
             }
+            if (window.AlphaInputGlow && typeof window.AlphaInputGlow.wake === 'function') {
+                window.AlphaInputGlow.wake(document);
+            }
         } catch (_) {}
-        onUserActive();
+        scheduleIdleCheck();
     }
 
     const activityEvents = ['pointermove', 'pointerdown', 'keydown', 'scroll', 'wheel', 'touchstart'];
@@ -9483,12 +9783,15 @@ switcherOverlay.addEventListener('click', closeAppSwitcher);
 
     window.addEventListener('AlphaSleep', onSleep);
     window.addEventListener('AlphaWake', onWake);
+    window.addEventListener('focus', onUserActive);
     window.addEventListener('blur', () => {
-        if (idleTimer) clearTimeout(idleTimer);
+        if (idleTimer) {
+            clearTimeout(idleTimer);
+            idleTimer = null;
+        }
         isIdle = true;
         applyVisualFreeze(true);
     });
-    window.addEventListener('focus', onUserActive);
     document.addEventListener('visibilitychange', () => {
         if (document.hidden) onSleep();
         else onWake();
@@ -9513,6 +9816,533 @@ switcherOverlay.addEventListener('click', closeAppSwitcher);
     if (api && typeof api.getPerformanceThrottleState === 'function') {
         api.getPerformanceThrottleState().then(applyThrottle).catch(() => {});
     }
+
+    function applyBgMotionSetting(enabled) {
+        const isEnabled = (typeof enabled === 'boolean') ? enabled : (localStorage.getItem('alpha_bg_motion') === 'true');
+        const docEl = document.documentElement;
+        const bodyEl = document.body;
+        if (docEl) docEl.classList.toggle('enable-bg-motion', isEnabled);
+        if (bodyEl) bodyEl.classList.toggle('enable-bg-motion', isEnabled);
+    }
+    applyBgMotionSetting();
+    window.addEventListener('message', (e) => {
+        if (e.data && e.data.type === 'alpha_bg_motion') {
+            applyBgMotionSetting(!!e.data.value);
+        }
+    });
+    window.addEventListener('storage', (e) => {
+        if (e.key === 'alpha_bg_motion') {
+            applyBgMotionSetting(e.newValue === 'true');
+        }
+    });
+})();
+</script>
+<script id="taskhub-tag-overlap-controller-v4">
+(function initTaskHubTagOverlapFusion() {
+    'use strict';
+
+    const EDGE_CLASSES = [
+        'taskhub-overlap-left',
+        'taskhub-overlap-right',
+        'taskhub-overlap-top',
+        'taskhub-overlap-bottom'
+    ];
+    const tracked = new Map();
+    let hoverSurface = null;
+    let activeSurface = null;
+    let activePointerId = null;
+    let pointerIsDown = false;
+    let pointerStartX = 0;
+    let pointerStartY = 0;
+    let dragLightSuppressed = false;
+    let currentPeer = null;
+    let currentGroup = null;
+    let frameId = 0;
+
+    const SVG_NS = 'http://www.w3.org/2000/svg';
+    const svgElement = name => document.createElementNS(SVG_NS, name);
+    const union = svgElement('svg');
+    union.classList.add('taskhub-tag-union-surface');
+    union.setAttribute('aria-hidden', 'true');
+
+    const defs = svgElement('defs');
+    const materialGradient = svgElement('linearGradient');
+    materialGradient.id = 'taskhubTagUnionMaterialV4';
+    materialGradient.setAttribute('gradientUnits', 'userSpaceOnUse');
+    const materialStops = [0, 0.42, 0.58, 1].map(offset => {
+        const stop = svgElement('stop');
+        stop.setAttribute('offset', String(offset));
+        materialGradient.appendChild(stop);
+        return stop;
+    });
+    const unionMask = svgElement('mask');
+    unionMask.id = 'taskhubTagUnionMaskV4';
+    unionMask.setAttribute('maskUnits', 'userSpaceOnUse');
+    unionMask.setAttribute('maskContentUnits', 'userSpaceOnUse');
+    unionMask.style.maskType = 'luminance';
+    const maskPath = svgElement('path');
+    maskPath.setAttribute('fill', 'white');
+    maskPath.setAttribute('fill-rule', 'nonzero');
+    const notchNegative = svgElement('circle');
+    const notchPositive = svgElement('circle');
+    notchNegative.setAttribute('fill', 'black');
+    notchPositive.setAttribute('fill', 'black');
+    unionMask.append(maskPath, notchNegative, notchPositive);
+
+    /* Build the rim from the alpha of the already-masked combined silhouette.
+       Eroding that alpha creates one continuous inner outline, with no seam
+       around either original pill and with both liquid notches included. */
+    const outlineFilter = svgElement('filter');
+    outlineFilter.id = 'taskhubTagUnionOutlineV4';
+    outlineFilter.setAttribute('color-interpolation-filters', 'sRGB');
+    const outlineErode = svgElement('feMorphology');
+    outlineErode.setAttribute('in', 'SourceAlpha');
+    outlineErode.setAttribute('operator', 'erode');
+    outlineErode.setAttribute('radius', '0.82');
+    outlineErode.setAttribute('result', 'taskhubUnionInner');
+    const outlineEdge = svgElement('feComposite');
+    outlineEdge.setAttribute('in', 'SourceAlpha');
+    outlineEdge.setAttribute('in2', 'taskhubUnionInner');
+    outlineEdge.setAttribute('operator', 'out');
+    outlineEdge.setAttribute('result', 'taskhubUnionEdge');
+    const outlineFlood = svgElement('feFlood');
+    outlineFlood.setAttribute('flood-color', 'rgb(255,255,255)');
+    outlineFlood.setAttribute('flood-opacity', '0.70');
+    outlineFlood.setAttribute('result', 'taskhubUnionRimColor');
+    const outlinePaint = svgElement('feComposite');
+    outlinePaint.setAttribute('in', 'taskhubUnionRimColor');
+    outlinePaint.setAttribute('in2', 'taskhubUnionEdge');
+    outlinePaint.setAttribute('operator', 'in');
+    outlineFilter.append(outlineErode, outlineEdge, outlineFlood, outlinePaint);
+
+    defs.append(materialGradient, unionMask, outlineFilter);
+
+    const materialGroup = svgElement('g');
+    materialGroup.setAttribute('fill', 'url(#taskhubTagUnionMaterialV4)');
+    materialGroup.setAttribute('mask', 'url(#taskhubTagUnionMaskV4)');
+    const materialPath = svgElement('path');
+    materialPath.setAttribute('fill-rule', 'nonzero');
+    materialGroup.append(materialPath);
+    /* Keep the material unfiltered: its separate outline is generated from the
+       final union alpha rather than from either original tag. */
+    materialGroup.style.filter = 'none';
+
+    const outlineGroup = svgElement('g');
+    outlineGroup.setAttribute('filter', 'url(#taskhubTagUnionOutlineV4)');
+    outlineGroup.setAttribute('pointer-events', 'none');
+    const outlineMaskedGroup = svgElement('g');
+    outlineMaskedGroup.setAttribute('mask', 'url(#taskhubTagUnionMaskV4)');
+    const outlineSource = svgElement('path');
+    outlineSource.setAttribute('fill', 'white');
+    outlineSource.setAttribute('fill-rule', 'nonzero');
+    outlineMaskedGroup.append(outlineSource);
+    outlineGroup.append(outlineMaskedGroup);
+
+    union.append(defs, materialGroup, outlineGroup);
+
+    function surfaceFrom(target) {
+        if (!(target instanceof Element)) return null;
+        const item = target.closest('.subject-item');
+        if (!item || !item.parentElement?.classList.contains('subject-box')) return null;
+        return item.querySelector(':scope > span');
+    }
+
+    function clearEdge(surface) {
+        if (surface) surface.classList.remove(
+            ...EDGE_CLASSES,
+            'taskhub-union-member',
+            'taskhub-selected-union-member'
+        );
+    }
+
+    function markFacingEdges(a, b, ux, uy, useUnifiedSelectedOutline) {
+        clearEdge(a);
+        clearEdge(b);
+        a.classList.add('taskhub-union-member');
+        b.classList.add('taskhub-union-member');
+        if (useUnifiedSelectedOutline) {
+            a.classList.add('taskhub-selected-union-member');
+            b.classList.add('taskhub-selected-union-member');
+        }
+        if (Math.abs(ux) >= Math.abs(uy)) {
+            a.classList.add(ux >= 0 ? 'taskhub-overlap-right' : 'taskhub-overlap-left');
+            b.classList.add(ux >= 0 ? 'taskhub-overlap-left' : 'taskhub-overlap-right');
+        } else {
+            a.classList.add(uy >= 0 ? 'taskhub-overlap-bottom' : 'taskhub-overlap-top');
+            b.classList.add(uy >= 0 ? 'taskhub-overlap-top' : 'taskhub-overlap-bottom');
+        }
+    }
+
+    function fusionColor(surface) {
+        const value = getComputedStyle(surface).getPropertyValue('--taskhub-fusion-color').trim();
+        return value || 'rgba(255,255,255,.38)';
+    }
+
+    function suppressSharedTagBridge(suppress) {
+        document.querySelectorAll('.__lq-fusion-bridge.__lq-fusion-tag-pair').forEach(bridge => {
+            bridge.classList.toggle('taskhub-union-suppressed', suppress);
+        });
+    }
+
+    function isSelectedSurface(surface) {
+        const input = surface?.parentElement?.querySelector(':scope > input');
+        return Boolean(input && input.checked);
+    }
+
+    function colorWithAlpha(color, alpha) {
+        const match = String(color).match(/rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)(?:\s*[,/]\s*([\d.]+))?\s*\)/i);
+        return match
+            ? `rgba(${match[1]}, ${match[2]}, ${match[3]}, ${alpha})`
+            : color;
+    }
+
+    function setStopColor(stop, color) {
+        const match = String(color).match(/rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)(?:\s*[,/]\s*([\d.]+))?\s*\)/i);
+        if (match) {
+            stop.style.stopColor = `rgb(${match[1]}, ${match[2]}, ${match[3]})`;
+            stop.style.stopOpacity = match[4] === undefined ? '1' : match[4];
+        } else {
+            stop.style.stopColor = color;
+            stop.style.stopOpacity = '1';
+        }
+    }
+
+    function roundedRectPath(rect, originX, originY, radius) {
+        const x = rect.left - originX;
+        const y = rect.top - originY;
+        const w = rect.width;
+        const h = rect.height;
+        const r = Math.max(0, Math.min(radius, w * 0.5, h * 0.5));
+        return [
+            `M ${(x + r).toFixed(2)} ${y.toFixed(2)}`,
+            `H ${(x + w - r).toFixed(2)}`,
+            `Q ${(x + w).toFixed(2)} ${y.toFixed(2)} ${(x + w).toFixed(2)} ${(y + r).toFixed(2)}`,
+            `V ${(y + h - r).toFixed(2)}`,
+            `Q ${(x + w).toFixed(2)} ${(y + h).toFixed(2)} ${(x + w - r).toFixed(2)} ${(y + h).toFixed(2)}`,
+            `H ${(x + r).toFixed(2)}`,
+            `Q ${x.toFixed(2)} ${(y + h).toFixed(2)} ${x.toFixed(2)} ${(y + h - r).toFixed(2)}`,
+            `V ${(y + r).toFixed(2)}`,
+            `Q ${x.toFixed(2)} ${y.toFixed(2)} ${(x + r).toFixed(2)} ${y.toFixed(2)}`,
+            'Z'
+        ].join(' ');
+    }
+
+    function boundaryDistance(rect, ux, uy) {
+        const tx = Math.abs(ux) > 0.0001 ? rect.width * 0.5 / Math.abs(ux) : Infinity;
+        const ty = Math.abs(uy) > 0.0001 ? rect.height * 0.5 / Math.abs(uy) : Infinity;
+        return Math.min(tx, ty);
+    }
+
+    function buildUnionNeck(a, best, originX, originY, minEdge, eased) {
+        const tA = boundaryDistance(a, best.ux, best.uy);
+        const tB = boundaryDistance(best.b, best.ux, best.uy);
+        const centerDistance = Math.hypot(best.bcx - (a.left + a.width * 0.5), best.bcy - (a.top + a.height * 0.5));
+        const axialOverlap = Math.max(0, tA + tB - centerDistance);
+        const visibleIntersection = Math.min(best.intersectionWidth, best.intersectionHeight);
+        const joinDepth = Math.max(axialOverlap, visibleIntersection * 0.72);
+        const extension = joinDepth + 2.5;
+        const acx = a.left + a.width * 0.5;
+        const acy = a.top + a.height * 0.5;
+        const edgeAX = acx + best.ux * tA;
+        const edgeAY = acy + best.uy * tA;
+        const edgeBX = best.bcx - best.ux * tB;
+        const edgeBY = best.bcy - best.uy * tB;
+        const start = { x: edgeAX - best.ux * extension, y: edgeAY - best.uy * extension };
+        const end = { x: edgeBX + best.ux * extension, y: edgeBY + best.uy * extension };
+        let dx = end.x - start.x;
+        let dy = end.y - start.y;
+        let length = Math.hypot(dx, dy);
+        if (length < 1) {
+            end.x = start.x + best.ux;
+            end.y = start.y + best.uy;
+            dx = end.x - start.x;
+            dy = end.y - start.y;
+            length = Math.hypot(dx, dy);
+        }
+        const sux = dx / length;
+        const suy = dy / length;
+        const nx = -suy;
+        const ny = sux;
+        const contactHalf = minEdge * (0.30 + eased * 0.14);
+        const waistHalf = contactHalf * (0.72 + eased * 0.20);
+        const mid = { x: (start.x + end.x) * 0.5, y: (start.y + end.y) * 0.5 };
+        const shoulder = length * 0.22;
+        const waistControl = length * 0.15;
+        const point = (p, normal, axis) => ({
+            x: p.x + nx * normal + sux * axis - originX,
+            y: p.y + ny * normal + suy * axis - originY
+        });
+        const f = p => p.x.toFixed(2) + ' ' + p.y.toFixed(2);
+        const topA = point(start, -contactHalf, 0);
+        const topB = point(end, -contactHalf, 0);
+        const bottomB = point(end, contactHalf, 0);
+        const bottomA = point(start, contactHalf, 0);
+        const topMid = point(mid, -waistHalf, 0);
+        const bottomMid = point(mid, waistHalf, 0);
+        return [
+            'M ' + f(topA),
+            'C ' + f(point(start, -contactHalf, shoulder)) + ' ' + f(point(mid, -waistHalf, -waistControl)) + ' ' + f(topMid),
+            'C ' + f(point(mid, -waistHalf, waistControl)) + ' ' + f(point(end, -contactHalf, -shoulder)) + ' ' + f(topB),
+            'L ' + f(bottomB),
+            'C ' + f(point(end, contactHalf, -shoulder)) + ' ' + f(point(mid, waistHalf, waistControl)) + ' ' + f(bottomMid),
+            'C ' + f(point(mid, waistHalf, -waistControl)) + ' ' + f(point(start, contactHalf, shoulder)) + ' ' + f(bottomA),
+            'Z'
+        ].join(' ');
+    }
+
+    function hideLens() {
+        union.classList.remove('is-visible');
+        union.style.opacity = '0';
+        suppressSharedTagBridge(false);
+        if (currentGroup) currentGroup.classList.remove('taskhub-union-active');
+        clearEdge(activeSurface);
+        clearEdge(currentPeer);
+        currentPeer = null;
+        currentGroup = null;
+    }
+
+    function updateLens(surface) {
+        const item = surface?.closest('.subject-item');
+        const group = item?.parentElement;
+        if (!group?.classList.contains('subject-box')) {
+            hideLens();
+            return false;
+        }
+
+        const a = surface.getBoundingClientRect();
+        if (!a.width || !a.height) {
+            hideLens();
+            return false;
+        }
+        const acx = a.left + a.width * 0.5;
+        const acy = a.top + a.height * 0.5;
+        let best = null;
+
+        group.querySelectorAll(':scope > .subject-item > span').forEach(candidate => {
+            if (candidate === surface) return;
+            const b = candidate.getBoundingClientRect();
+            if (!b.width || !b.height) return;
+            const bcx = b.left + b.width * 0.5;
+            const bcy = b.top + b.height * 0.5;
+            const intersectionWidth = Math.min(a.right, b.right) - Math.max(a.left, b.left);
+            const intersectionHeight = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+            if (intersectionWidth <= 0.35 || intersectionHeight <= 0.35) return;
+            const dx = bcx - acx;
+            const dy = bcy - acy;
+            const distance = Math.hypot(dx, dy);
+            if (distance < 0.01) return;
+            const ux = dx / distance;
+            const uy = dy / distance;
+            const halfA = Math.abs(ux) * a.width * 0.5 + Math.abs(uy) * a.height * 0.5;
+            const halfB = Math.abs(ux) * b.width * 0.5 + Math.abs(uy) * b.height * 0.5;
+            const overlap = halfA + halfB - distance;
+            if (overlap <= 0.35) return;
+            if (!best || overlap > best.overlap) {
+                best = { candidate, b, bcx, bcy, ux, uy, halfA, halfB, overlap, intersectionWidth, intersectionHeight };
+            }
+        });
+
+        if (!best) {
+            hideLens();
+            return false;
+        }
+
+        if (currentPeer && currentPeer !== best.candidate) clearEdge(currentPeer);
+        currentPeer = best.candidate;
+        const minEdge = Math.min(a.width, a.height, best.b.width, best.b.height);
+        const normalized = Math.max(0, Math.min(1, best.overlap / Math.max(4, minEdge * 0.56)));
+        const eased = normalized * normalized * (3 - 2 * normalized);
+        const groupRect = group.getBoundingClientRect();
+        /* Reserve enough real SVG viewport for both drop shadows. `overflow`
+           alone is not reliable for filtered root SVGs in Electron/Chromium. */
+        const padding = 112;
+        const originX = Math.min(a.left, best.b.left) - padding;
+        const originY = Math.min(a.top, best.b.top) - padding;
+        const maxX = Math.max(a.right, best.b.right) + padding;
+        const maxY = Math.max(a.bottom, best.b.bottom) + padding;
+        const svgWidth = Math.max(1, maxX - originX);
+        const svgHeight = Math.max(1, maxY - originY);
+        const radiusA = Math.min(a.height * 0.5, parseFloat(getComputedStyle(surface).borderTopLeftRadius) || a.height * 0.5);
+        const radiusB = Math.min(best.b.height * 0.5, parseFloat(getComputedStyle(best.candidate).borderTopLeftRadius) || best.b.height * 0.5);
+        const neckPath = buildUnionNeck(a, best, originX, originY, minEdge, eased);
+        const mixStart = 43 - eased * 17;
+        const mixEnd = 57 + eased * 17;
+        let colorA = fusionColor(surface);
+        let colorB = fusionColor(best.candidate);
+        const selectedA = isSelectedSurface(surface);
+        const selectedB = isSelectedSurface(best.candidate);
+        const hasSelectedMember = selectedA || selectedB;
+        if (hasSelectedMember) {
+            /* Selection belongs to the merged liquid volume, not to one half.
+               Use the selected member's hue across all four gradient stops and
+               keep it deliberately pale so text/icon contrast remains intact. */
+            const selectedColor = colorWithAlpha(selectedA ? colorA : colorB, 0.34);
+            colorA = selectedColor;
+            colorB = selectedColor;
+        }
+
+        if (union.parentNode !== group) group.insertBefore(union, group.firstChild);
+        currentGroup = group;
+        group.classList.add('taskhub-union-active');
+        suppressSharedTagBridge(true);
+        markFacingEdges(surface, best.candidate, best.ux, best.uy, hasSelectedMember);
+        union.style.left = (originX - groupRect.left).toFixed(2) + 'px';
+        union.style.top = (originY - groupRect.top).toFixed(2) + 'px';
+        union.style.width = svgWidth.toFixed(2) + 'px';
+        union.style.height = svgHeight.toFixed(2) + 'px';
+        union.setAttribute('width', svgWidth.toFixed(2));
+        union.setAttribute('height', svgHeight.toFixed(2));
+        union.setAttribute('viewBox', '0 0 ' + svgWidth.toFixed(2) + ' ' + svgHeight.toFixed(2));
+
+        const unionPathData = [
+            roundedRectPath(a, originX, originY, radiusA),
+            roundedRectPath(best.b, originX, originY, radiusB),
+            neckPath
+        ].join(' ');
+        materialPath.setAttribute('d', unionPathData);
+        maskPath.setAttribute('d', unionPathData);
+        outlineSource.setAttribute('d', unionPathData);
+        unionMask.setAttribute('x', '0');
+        unionMask.setAttribute('y', '0');
+        unionMask.setAttribute('width', svgWidth.toFixed(2));
+        unionMask.setAttribute('height', svgHeight.toFixed(2));
+
+        /* Reference-like concave cusps: carve two shallow circular bites from
+           the shared outline along the normal of the joining axis. They get
+           slightly shallower as penetration grows, so deep overlap approaches
+           one continuous capsule instead of retaining a rigid hourglass. */
+        const normalX = -best.uy;
+        const normalY = best.ux;
+        const jointX = (Math.max(a.left, best.b.left) + Math.min(a.right, best.b.right)) * 0.5;
+        const jointY = (Math.max(a.top, best.b.top) + Math.min(a.bottom, best.b.bottom)) * 0.5;
+        const notchRadius = minEdge * (0.22 - eased * 0.05);
+        const notchOffset = minEdge * 0.5 + notchRadius * 0.36;
+        const setNotch = (node, direction) => {
+            node.setAttribute('cx', (jointX + normalX * notchOffset * direction - originX).toFixed(2));
+            node.setAttribute('cy', (jointY + normalY * notchOffset * direction - originY).toFixed(2));
+            node.setAttribute('r', notchRadius.toFixed(2));
+        };
+        setNotch(notchNegative, -1);
+        setNotch(notchPositive, 1);
+
+        materialGradient.setAttribute('x1', (acx - originX).toFixed(2));
+        materialGradient.setAttribute('y1', (acy - originY).toFixed(2));
+        materialGradient.setAttribute('x2', (best.bcx - originX).toFixed(2));
+        materialGradient.setAttribute('y2', (best.bcy - originY).toFixed(2));
+        materialStops[0].setAttribute('offset', '0');
+        materialStops[1].setAttribute('offset', (mixStart / 100).toFixed(3));
+        materialStops[2].setAttribute('offset', (mixEnd / 100).toFixed(3));
+        materialStops[3].setAttribute('offset', '1');
+        setStopColor(materialStops[0], colorA);
+        setStopColor(materialStops[1], colorA);
+        setStopColor(materialStops[2], colorB);
+        setStopColor(materialStops[3], colorB);
+        materialGroup.style.filter = 'none';
+        union.classList.toggle('has-selected-member', hasSelectedMember);
+
+        union.style.opacity = (0.86 + eased * 0.14).toFixed(3);
+        union.classList.add('is-visible');
+        return true;
+    }
+
+    function ensureLoop() {
+        if (!frameId) frameId = requestAnimationFrame(runFrame);
+    }
+
+    function runFrame(now) {
+        frameId = 0;
+        tracked.forEach((until, surface) => {
+            if (!surface.isConnected || (until !== Infinity && now >= until)) {
+                clearEdge(surface);
+                tracked.delete(surface);
+                return;
+            }
+        });
+
+        if (activeSurface && tracked.has(activeSurface)) {
+            updateLens(activeSurface);
+        } else {
+            hideLens();
+            activeSurface = null;
+        }
+
+        if (tracked.size || union.classList.contains('is-visible')) ensureLoop();
+    }
+
+    document.addEventListener('pointerover', event => {
+        const surface = surfaceFrom(event.target);
+        if (!surface || (event.relatedTarget instanceof Node && surface.contains(event.relatedTarget))) return;
+        if (hoverSurface && hoverSurface !== surface && hoverSurface !== activeSurface) {
+            tracked.set(hoverSurface, performance.now() + 420);
+        }
+        hoverSurface = surface;
+        tracked.set(surface, Infinity);
+        ensureLoop();
+    }, true);
+
+    document.addEventListener('pointerout', event => {
+        const surface = surfaceFrom(event.target);
+        if (!surface || (event.relatedTarget instanceof Node && surface.contains(event.relatedTarget))) return;
+        if (hoverSurface === surface) hoverSurface = null;
+        if (surface !== activeSurface || !pointerIsDown) {
+            tracked.set(surface, performance.now() + 520);
+        }
+        ensureLoop();
+    }, true);
+
+    document.addEventListener('pointerdown', event => {
+        if (event.button !== undefined && event.button !== 0) return;
+        const surface = surfaceFrom(event.target);
+        if (!surface) return;
+        activeSurface = surface;
+        activePointerId = event.pointerId;
+        pointerIsDown = true;
+        pointerStartX = Number.isFinite(event.clientX) ? event.clientX : 0;
+        pointerStartY = Number.isFinite(event.clientY) ? event.clientY : 0;
+        dragLightSuppressed = false;
+        tracked.set(surface, Infinity);
+        ensureLoop();
+    }, true);
+
+    document.addEventListener('pointermove', event => {
+        if (!pointerIsDown || !activeSurface || dragLightSuppressed) return;
+        if (event.pointerId !== undefined && activePointerId !== null && event.pointerId !== activePointerId) return;
+        const x = Number.isFinite(event.clientX) ? event.clientX : pointerStartX;
+        const y = Number.isFinite(event.clientY) ? event.clientY : pointerStartY;
+        if (Math.hypot(x - pointerStartX, y - pointerStartY) < 2.5) return;
+        dragLightSuppressed = true;
+        activeSurface.classList.add('taskhub-drag-no-top-light');
+    }, true);
+
+    function release(event) {
+        if (!activeSurface) return;
+        if (event?.pointerId !== undefined && activePointerId !== null && event.pointerId !== activePointerId) return;
+        const releasedSurface = activeSurface;
+        pointerIsDown = false;
+        activePointerId = null;
+        releasedSurface.classList.remove('taskhub-drag-no-top-light');
+        dragLightSuppressed = false;
+        /* Keep only the fusion geometry alive for the liquid return tail. Text
+           now follows the surface directly, exactly as in TaskTimer. */
+        tracked.set(releasedSurface, performance.now() + 430);
+        ensureLoop();
+    }
+
+    document.addEventListener('pointerup', release, true);
+    document.addEventListener('pointercancel', release, true);
+    window.addEventListener('blur', () => {
+        pointerIsDown = false;
+        activePointerId = null;
+        dragLightSuppressed = false;
+        tracked.forEach((_, surface) => {
+            surface.classList.remove('taskhub-drag-no-top-light');
+            clearEdge(surface);
+        });
+        tracked.clear();
+        hoverSurface = null;
+        activeSurface = null;
+        hideLens();
+    });
 })();
 </script>
 </body>

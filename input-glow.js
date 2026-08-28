@@ -22,6 +22,7 @@
     '.menu-item',
     '.clock-container',
     '#clockFace',
+    '.tab',
     '[data-input-glow]'
   ];
   const INPUT_SELECTOR = INPUT_SELECTORS.join(', ');
@@ -214,6 +215,50 @@
           background-repeat: no-repeat !important;
         }
 
+        /* 标签页 (.tab) 动态高光配置 - 与原有毛玻璃渐变完美合成，跟随鼠标的高光羽化 */
+        .tab {
+          --ig-x: 50%;
+          --ig-y: 50%;
+          --ig-opacity: 0;
+          --ig-radius: 140px;
+          background-image: radial-gradient(
+            circle var(--ig-radius, 140px) at var(--ig-x, 50%) var(--ig-y, 50%),
+            rgba(255, 255, 255, calc(var(--ig-opacity, 0) * ${CONFIG.specularIntensity})) 0%,
+            rgba(255, 255, 255, calc(var(--ig-opacity, 0) * ${CONFIG.specularIntensity * 0.68})) 20%,
+            rgba(255, 255, 255, calc(var(--ig-opacity, 0) * ${CONFIG.specularIntensity * 0.28})) 48%,
+            rgba(255, 255, 255, calc(var(--ig-opacity, 0) * ${CONFIG.specularIntensity * 0.06})) 72%,
+            transparent 86%
+          ), radial-gradient(ellipse at center, rgba(255, 255, 255, 0.42) 0%, rgba(255, 255, 255, 0.18) 100%) !important;
+          background-repeat: no-repeat !important;
+        }
+        .tab.active {
+          background-image: radial-gradient(
+            circle var(--ig-radius, 140px) at var(--ig-x, 50%) var(--ig-y, 50%),
+            rgba(255, 255, 255, calc(var(--ig-opacity, 0) * ${CONFIG.specularIntensity})) 0%,
+            rgba(255, 255, 255, calc(var(--ig-opacity, 0) * ${CONFIG.specularIntensity * 0.68})) 20%,
+            rgba(255, 255, 255, calc(var(--ig-opacity, 0) * ${CONFIG.specularIntensity * 0.28})) 48%,
+            rgba(255, 255, 255, calc(var(--ig-opacity, 0) * ${CONFIG.specularIntensity * 0.06})) 72%,
+            transparent 86%
+          ), radial-gradient(ellipse at center, rgba(255, 255, 255, 0.75) 0%, rgba(255, 255, 255, 0.45) 100%) !important;
+        }
+        .tab.inactive:hover {
+          background-image: radial-gradient(
+            circle var(--ig-radius, 140px) at var(--ig-x, 50%) var(--ig-y, 50%),
+            rgba(255, 255, 255, calc(var(--ig-opacity, 0) * ${CONFIG.specularIntensity})) 0%,
+            rgba(255, 255, 255, calc(var(--ig-opacity, 0) * ${CONFIG.specularIntensity * 0.68})) 20%,
+            rgba(255, 255, 255, calc(var(--ig-opacity, 0) * ${CONFIG.specularIntensity * 0.28})) 48%,
+            rgba(255, 255, 255, calc(var(--ig-opacity, 0) * ${CONFIG.specularIntensity * 0.06})) 72%,
+            transparent 86%
+          ), radial-gradient(ellipse at center, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0.15) 100%) !important;
+        }
+        /* 拖拽态隐藏高光背景，亮度变化由 wrapper 的 transition 平滑过渡 */
+        .tab.dragging,
+        .tab.active.dragging,
+        .tab.inactive.dragging {
+          background: transparent !important;
+          background-image: none !important;
+        }
+
         /* 深色模式：统一减弱输入框与表单项的高光浓度 */
         @media (prefers-color-scheme: dark) {
           ${INPUT_SELECTOR} {
@@ -305,6 +350,44 @@
                 transparent 88%
               ) !important;
           }
+
+          .tab,
+          .tab.inactive {
+            background-image: radial-gradient(
+              circle var(--ig-radius, 140px) at var(--ig-x, 50%) var(--ig-y, 50%),
+              rgba(255, 255, 255, calc(var(--ig-opacity, 0) * 0.28)) 0%,
+              rgba(255, 255, 255, calc(var(--ig-opacity, 0) * 0.18)) 20%,
+              rgba(255, 255, 255, calc(var(--ig-opacity, 0) * 0.08)) 48%,
+              rgba(255, 255, 255, calc(var(--ig-opacity, 0) * 0.015)) 72%,
+              transparent 86%
+            ), radial-gradient(ellipse at 50% 0%, rgba(26, 30, 42, 0.45) 0%, rgba(12, 14, 20, 0.60) 100%) !important;
+          }
+          .tab.active {
+            background-image: radial-gradient(
+              circle var(--ig-radius, 140px) at var(--ig-x, 50%) var(--ig-y, 50%),
+              rgba(255, 255, 255, calc(var(--ig-opacity, 0) * 0.28)) 0%,
+              rgba(255, 255, 255, calc(var(--ig-opacity, 0) * 0.18)) 20%,
+              rgba(255, 255, 255, calc(var(--ig-opacity, 0) * 0.08)) 48%,
+              rgba(255, 255, 255, calc(var(--ig-opacity, 0) * 0.015)) 72%,
+              transparent 86%
+            ), radial-gradient(ellipse at 50% 0%, rgba(36, 42, 56, 0.75) 0%, rgba(16, 20, 28, 0.90) 100%) !important;
+          }
+          .tab.inactive:hover {
+            background-image: radial-gradient(
+              circle var(--ig-radius, 140px) at var(--ig-x, 50%) var(--ig-y, 50%),
+              rgba(255, 255, 255, calc(var(--ig-opacity, 0) * 0.28)) 0%,
+              rgba(255, 255, 255, calc(var(--ig-opacity, 0) * 0.18)) 20%,
+              rgba(255, 255, 255, calc(var(--ig-opacity, 0) * 0.08)) 48%,
+              rgba(255, 255, 255, calc(var(--ig-opacity, 0) * 0.015)) 72%,
+              transparent 86%
+            ), radial-gradient(ellipse at 50% 0%, rgba(36, 42, 58, 0.60) 0%, rgba(18, 22, 32, 0.72) 100%) !important;
+          }
+          .tab.dragging,
+          .tab.active.dragging,
+          .tab.inactive.dragging {
+            background: transparent !important;
+            background-image: none !important;
+          }
         }
       `;
 
@@ -312,13 +395,8 @@
     }
 
     bindEvents() {
-      this.boundOnSleep = () => {
-        this.isSleeping = true;
-        this.boundOnPointerLeave();
-      };
-      this.boundOnWake = () => {
-        this.isSleeping = false;
-      };
+      this.boundOnSleep = () => this.sleep();
+      this.boundOnWake = () => this.wake();
 
       this.doc.addEventListener('pointermove', this.boundOnPointerMove, { passive: true });
       this.doc.addEventListener('pointerleave', this.boundOnPointerLeave, { passive: true });
@@ -336,8 +414,22 @@
       }
 
       this.doc.addEventListener('visibilitychange', () => {
-        if (this.doc.hidden) this.boundOnPointerLeave();
+        if (this.doc.hidden) this.sleep();
+        else this.wake();
       });
+    }
+
+    sleep() {
+      this.isSleeping = true;
+      if (this.rafId) {
+        cancelAnimationFrame(this.rafId);
+        this.rafId = null;
+      }
+      this.onPointerLeave();
+    }
+
+    wake() {
+      this.isSleeping = false;
     }
 
     getInputTarget(target) {
@@ -352,6 +444,7 @@
     }
 
     onPointerMove(e) {
+      if (this.isSleeping) return;
       if (typeof localStorage !== 'undefined' && localStorage.getItem('alpha_reduce_motion') === 'true') {
         if (this.activeState) {
           this.activeState.targetOpacity = 0;
@@ -371,6 +464,12 @@
         return;
       }
 
+      if (this.activeElement === el && this.lastClientX !== undefined && Math.hypot(e.clientX - this.lastClientX, e.clientY - this.lastClientY) < 1.5) {
+        return;
+      }
+      this.lastClientX = e.clientX;
+      this.lastClientY = e.clientY;
+
       const rect = el.getBoundingClientRect();
       if (rect.width === 0 || rect.height === 0) return;
 
@@ -380,13 +479,16 @@
         const isClock = el.classList.contains('clock-container') || el.id === 'clockFace';
         const isArea = el.tagName === 'TEXTAREA' || el.classList.contains('pop-list-item');
         const isMenuItem = el.classList.contains('menu-item');
+        const isTab = el.classList.contains('tab');
         const radius = isClock
           ? clamp(Math.round(maxDim * 0.75), 170, 230)
-          : (isMenuItem
-            ? clamp(Math.round(maxDim * 0.65), 110, 150)
-            : (isArea
-              ? clamp(Math.round(maxDim * 0.42), 140, CONFIG.maxRadius)
-              : clamp(Math.round(rect.width * 0.38), CONFIG.minRadius, 160)));
+          : (isTab
+            ? clamp(Math.round(rect.width * 0.72), 130, 170)
+            : (isMenuItem
+              ? clamp(Math.round(maxDim * 0.65), 110, 150)
+              : (isArea
+                ? clamp(Math.round(maxDim * 0.42), 140, CONFIG.maxRadius)
+                : clamp(Math.round(rect.width * 0.38), CONFIG.minRadius, 160))));
 
         state = {
           el,
@@ -518,6 +620,28 @@
       this.instances.add(manager);
 
       return manager;
+    },
+
+    sleep(doc) {
+      const targetDoc = doc || (typeof document !== 'undefined' ? document : null);
+      if (targetDoc && targetDoc.__alphaInputGlowManager) {
+        targetDoc.__alphaInputGlowManager.sleep();
+      } else {
+        this.instances.forEach(manager => {
+          try { manager.sleep(); } catch (_) {}
+        });
+      }
+    },
+
+    wake(doc) {
+      const targetDoc = doc || (typeof document !== 'undefined' ? document : null);
+      if (targetDoc && targetDoc.__alphaInputGlowManager) {
+        targetDoc.__alphaInputGlowManager.wake();
+      } else {
+        this.instances.forEach(manager => {
+          try { manager.wake(); } catch (_) {}
+        });
+      }
     }
   };
 

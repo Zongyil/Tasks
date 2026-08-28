@@ -498,6 +498,18 @@
       this.instances.add(manager);
 
       return manager;
+    },
+
+    animate(switchElOrCheckbox, isChecked) {
+      const pair = findSwitchAndCheckbox(switchElOrCheckbox);
+      if (!pair) return;
+      const { switchEl, checkbox } = pair;
+      const checked = (typeof isChecked === 'boolean') ? isChecked : checkbox.checked;
+      const doc = switchEl.ownerDocument || document;
+      const manager = doc.__alphaSwitchDragManager || AlphaSwitchDrag.init(doc);
+      if (manager) {
+        manager.triggerClickAnimation(switchEl, checked);
+      }
     }
   };
 

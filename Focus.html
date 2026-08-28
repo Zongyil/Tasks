@@ -64,6 +64,7 @@ html {
     }
 })();
 </script>
+<link rel="preload" href="./fonts/OPPO Sans 4.0.ttf" as="font" type="font/truetype" crossorigin>
 <link rel="icon" href="Icon.ico" type="image/x-icon">
 <title>专注</title>
 <base href="./">
@@ -919,32 +920,46 @@ if (sessionStorage.getItem('alpha_to_focus') === 'true') {
     document.documentElement.style.removeProperty('background-image');
     document.documentElement.classList.remove('from-home-focus');
 
-    const wallpaperEnter = bgLayer.animate([
-        { filter: 'blur(0px) brightness(1) saturate(1)', transform: 'scale(1)' },
-        { filter: 'blur(50px) brightness(0.35) saturate(1.4)', transform: 'scale(1.1)' }
-    ], {
-        duration: 720,
-        easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
-        fill: 'both'
-    });
-    const contentEnter = mainContainer.animate([
-        { opacity: 0, filter: 'blur(20px)', transform: 'translate3d(0,40px,0) scale(0.96)' },
-        { opacity: 1, filter: 'blur(0px)', transform: 'translate3d(0,0,0) scale(1)' }
-    ], {
-        duration: 720,
-        delay: 60,
-        easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
-        fill: 'both'
-    });
-    entranceAnimations = [wallpaperEnter, contentEnter];
-    Promise.allSettled([wallpaperEnter.finished, contentEnter.finished]).then(() => {
+    const reduceMotionEnter = (() => {
+        try { return localStorage.getItem('alpha_reduce_motion') === 'true'; } catch (_) { return false; }
+    })();
+
+    let wallpaperEnter = null;
+    let contentEnter = null;
+    if (reduceMotionEnter) {
+        /* 减弱动态效果: 壁纸直接呈现最终模糊态, 内容只做一次自上而下的
+           简单覆盖滑动 (手机负一屏式), 无模糊插值 */
+        contentEnter = mainContainer.animate([
+            { transform: 'translate3d(0, -100%, 0)' },
+            { transform: 'translate3d(0, 0, 0)' }
+        ], { duration: 300, easing: 'ease-out', fill: 'both' });
+    } else {
+        wallpaperEnter = bgLayer.animate([
+            { filter: 'blur(0px) brightness(1) saturate(1)', transform: 'scale(1)' },
+            { filter: 'blur(50px) brightness(0.35) saturate(1.4)', transform: 'scale(1.1)' }
+        ], {
+            duration: 720,
+            easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
+            fill: 'both'
+        });
+        contentEnter = mainContainer.animate([
+            { opacity: 0, filter: 'blur(20px)', transform: 'translate3d(0,40px,0) scale(0.96)' },
+            { opacity: 1, filter: 'blur(0px)', transform: 'translate3d(0,0,0) scale(1)' }
+        ], {
+            duration: 720,
+            delay: 60,
+            easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
+            fill: 'both'
+        });
+    }
+    entranceAnimations = [wallpaperEnter, contentEnter].filter(Boolean);
+    Promise.allSettled(entranceAnimations.map(a => a.finished)).then(() => {
         if (entranceAnimations) {
             mainContainer.style.opacity = '1';
             mainContainer.style.transform = 'translate3d(0,0,0) scale(1)';
             mainContainer.style.filter = 'blur(0px)';
             mainContainer.classList.remove('from-home-active');
-            wallpaperEnter.cancel();
-            contentEnter.cancel();
+            entranceAnimations.forEach(a => { try { a.cancel(); } catch (_) {} });
             entranceAnimations = null;
         }
         try { sessionStorage.removeItem('alpha_transition_wallpaper_css'); } catch (_) {}
@@ -963,8 +978,12 @@ if (sessionStorage.getItem('alpha_to_focus') === 'true') {
     let wheelTimeout = 0;
     let animations = [];
     let navigated = false;
+    let reduceSlideActive = false;
 
     const clamp01 = value => Math.max(0, Math.min(1, value));
+    const reduceMotionEnabled = () => {
+        try { return localStorage.getItem('alpha_reduce_motion') === 'true'; } catch (_) { return false; }
+    };
 
     function makeTimeline(el, keyframes) {
         const animation = el.animate(keyframes, {
@@ -988,6 +1007,29 @@ if (sessionStorage.getItem('alpha_to_focus') === 'true') {
             mainContainer.style.removeProperty('transform');
             mainContainer.style.removeProperty('filter');
         }
+
+        /* 减弱动态效果: 简单上滑离场 —— 把清晰的壁纸铺到根节点作为"下方的 Home",
+           整页只做一次 transform 上移, 无模糊插值 */
+        if (reduceMotionEnabled()) {
+            reduceSlideActive = true;
+            try {
+                const bg = getComputedStyle(bgLayer).backgroundImage;
+                document.documentElement.style.backgroundImage = bg;
+                document.documentElement.style.backgroundPosition = 'center';
+                document.documentElement.style.backgroundSize = 'cover';
+                document.documentElement.style.backgroundRepeat = 'no-repeat';
+            } catch (_) {}
+            const slide = document.body.animate([
+                { transform: 'translate3d(0, 0, 0)' },
+                { transform: 'translate3d(0, -100%, 0)' }
+            ], { duration: DURATION, easing: 'linear', fill: 'both' });
+            slide.pause();
+            animations = [slide];
+            targetProgress = renderedProgress = 0;
+            renderProgress(0);
+            return;
+        }
+
         animations = [
             makeTimeline(mainContainer, [
                 { opacity: 1, filter: 'blur(0px)', transform: 'translate3d(0,0,0) scale(1)', offset: 0, easing: 'cubic-bezier(0.4, 0, 0.2, 1)' },
@@ -1062,6 +1104,10 @@ if (sessionStorage.getItem('alpha_to_focus') === 'true') {
         settleRaf = 0;
         animations.forEach(animation => animation.cancel());
         animations = [];
+        if (reduceSlideActive) {
+            reduceSlideActive = false;
+            document.documentElement.style.removeProperty('background-image');
+        }
         targetProgress = renderedProgress = 0;
         state = 'idle';
     }
@@ -1235,7 +1281,7 @@ window.addEventListener('keydown', (e) => {
         if (freeze) {
             docEl.classList.add('pause-bg-motion', 'pause-clock-breath');
             if (bodyEl) bodyEl.classList.add('pause-bg-motion', 'pause-clock-breath');
-        } else if (!isSleeping) {
+        } else {
             docEl.classList.remove('pause-bg-motion', 'pause-clock-breath');
             if (bodyEl) bodyEl.classList.remove('pause-bg-motion', 'pause-clock-breath');
         }
@@ -1246,6 +1292,7 @@ window.addEventListener('keydown', (e) => {
         if (isIdle) {
             isIdle = false;
             applyVisualFreeze(false);
+            if (typeof updateClock === 'function') updateClock();
         }
         if (idleTimer) clearTimeout(idleTimer);
         idleTimer = setTimeout(() => {
@@ -1256,6 +1303,7 @@ window.addEventListener('keydown', (e) => {
 
     function onSleep() {
         isSleeping = true;
+        document.documentElement.classList.add('alpha-sleep');
         if (idleTimer) {
             clearTimeout(idleTimer);
             idleTimer = null;
@@ -1264,6 +1312,9 @@ window.addEventListener('keydown', (e) => {
         try {
             if (window.AlphaCardGlow && typeof window.AlphaCardGlow.sleep === 'function') {
                 window.AlphaCardGlow.sleep(document);
+            }
+            if (window.AlphaInputGlow && typeof window.AlphaInputGlow.sleep === 'function') {
+                window.AlphaInputGlow.sleep(document);
             }
             if (window.AlphaLiquidGlass && typeof window.AlphaLiquidGlass.releaseAll === 'function') {
                 window.AlphaLiquidGlass.releaseAll();
@@ -1274,10 +1325,14 @@ window.addEventListener('keydown', (e) => {
     function onWake() {
         isSleeping = false;
         isIdle = false;
+        document.documentElement.classList.remove('alpha-sleep');
         applyVisualFreeze(false);
         try {
             if (window.AlphaCardGlow && typeof window.AlphaCardGlow.wake === 'function') {
                 window.AlphaCardGlow.wake(document);
+            }
+            if (window.AlphaInputGlow && typeof window.AlphaInputGlow.wake === 'function') {
+                window.AlphaInputGlow.wake(document);
             }
         } catch (_) {}
         if (typeof updateClock === 'function') updateClock();
@@ -1291,12 +1346,15 @@ window.addEventListener('keydown', (e) => {
 
     window.addEventListener('AlphaSleep', onSleep);
     window.addEventListener('AlphaWake', onWake);
+    window.addEventListener('focus', onUserActive);
     window.addEventListener('blur', () => {
-        if (idleTimer) clearTimeout(idleTimer);
+        if (idleTimer) {
+            clearTimeout(idleTimer);
+            idleTimer = null;
+        }
         isIdle = true;
         applyVisualFreeze(true);
     });
-    window.addEventListener('focus', onUserActive);
     document.addEventListener('visibilitychange', () => {
         if (document.hidden) onSleep();
         else onWake();
@@ -1310,6 +1368,7 @@ window.addEventListener('keydown', (e) => {
             applyVisualFreeze(true);
         } else if (!isIdle && !isSleeping) {
             applyVisualFreeze(false);
+            if (typeof updateClock === 'function') updateClock();
         }
     }
 

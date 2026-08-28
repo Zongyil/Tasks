@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
+<link rel="preload" href="./fonts/OPPO Sans 4.0.ttf" as="font" type="font/truetype" crossorigin>
     <meta charset="UTF-8">
     <title>设置</title>
     <script src="./assets/liquid-glass.js"></script>
@@ -10,6 +11,15 @@
     <script src="./assets/scroll-bounce.js"></script>
     <script src="./assets/reduce-motion.js"></script>
     <style>
+@font-face {
+  font-family: 'OPPO Sans 4.0';
+  src: url('local-font://OPPO%20Sans%204.0.ttf') format('truetype'),
+       url('./fonts/OPPO Sans 4.0.ttf') format('truetype');
+  font-weight: 1 999;
+  font-style: normal;
+  font-display: block;
+}
+
         ::selection { background-color: #d4ebff; color: #0f172a; }
         ::-moz-selection { background-color: #9DD2FF; color: #0f172a; }
 
@@ -123,21 +133,38 @@
         .stage-sunbeam {
             top: -10%; right: -5%; width: 35vw; height: 80vh;
             transform-origin: top right;
-            animation: sunbeam-pulse 12s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
+            animation: none;
         }
 
         .stage-orb-1 {
             top: -15%; right: -15%; width: 68vw; height: 58vw;
-            animation: orb-drift-1 18s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
+            animation: none;
         }
 
         .stage-orb-2 {
             bottom: -20%; left: -20%; width: 76vw; height: 64vw;
-            animation: orb-drift-2 22s infinite alternate-reverse cubic-bezier(0.4, 0, 0.2, 1);
+            animation: none;
         }
 
         .stage-orb-3 {
             top: 20%; left: 30%; width: 58vw; height: 48vw;
+            animation: none;
+        }
+
+        body.enable-bg-motion .stage-sunbeam,
+        html.enable-bg-motion .stage-sunbeam {
+            animation: sunbeam-pulse 12s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        body.enable-bg-motion .stage-orb-1,
+        html.enable-bg-motion .stage-orb-1 {
+            animation: orb-drift-1 18s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        body.enable-bg-motion .stage-orb-2,
+        html.enable-bg-motion .stage-orb-2 {
+            animation: orb-drift-2 22s infinite alternate-reverse cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        body.enable-bg-motion .stage-orb-3,
+        html.enable-bg-motion .stage-orb-3 {
             animation: orb-drift-3 20s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
         }
 
@@ -237,7 +264,6 @@
             display: flex;
             flex-direction: column;
             gap: var(--spacing-main);
-            animation: alphaPageIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) backwards;
         }
 
         .panel {
@@ -1484,6 +1510,17 @@ body.is-dark-bg .toast-notification::before,
                         <div class="alpha-switch"></div>
                     </label>
                 </div>
+
+                <div class="setting-item">
+                    <div class="setting-text">
+                        <h3>壁纸位移</h3>
+                        <p id="bgMotionDesc">选择是否为环境背景启用光晕动效</p>
+                    </div>
+                    <label class="switch-wrap">
+                        <input type="checkbox" id="bgMotionToggle">
+                        <div class="alpha-switch"></div>
+                    </label>
+                </div>
             </div>
 
             <h2 class="group-title">启动</h2>
@@ -1815,30 +1852,157 @@ body.is-dark-bg .toast-notification::before,
     }
 
     const reduceMotionToggle = document.getElementById('reduceMotionToggle');
-    if (reduceMotionToggle) {
-        const reduceMotion = localStorage.getItem('alpha_reduce_motion') === 'true'; // 默认关闭
-        reduceMotionToggle.checked = reduceMotion;
-        const descEl = document.getElementById('reduceMotionDesc');
-        if (descEl) descEl.innerText = reduceMotion ? '已开启，已减弱动态效果并优化性能' : '选择是否减弱动画以优化性能';
+    const bgMotionToggle = document.getElementById('bgMotionToggle');
+    const reduceDescEl = document.getElementById('reduceMotionDesc');
+    const bgDescEl = document.getElementById('bgMotionDesc');
 
+    function triggerSwitchAnimation(checkbox, isChecked) {
+        if (!checkbox) return;
+        if (window.AlphaSwitchDrag && typeof window.AlphaSwitchDrag.animate === 'function') {
+            window.AlphaSwitchDrag.animate(checkbox, isChecked);
+        } else {
+            const parent = checkbox.closest('label') || checkbox.closest('.switch-wrap') || checkbox.parentElement;
+            const switchEl = parent ? parent.querySelector('.alpha-switch') : checkbox.nextElementSibling;
+            if (switchEl && switchEl.classList.contains('alpha-switch')) {
+                if (switchEl.__animTimer) {
+                    clearTimeout(switchEl.__animTimer);
+                    switchEl.__animTimer = null;
+                }
+                switchEl.classList.remove('is-dragging', 'is-snapping', 'alpha-animating-on', 'alpha-animating-off');
+                void switchEl.offsetWidth;
+                const animClass = isChecked ? 'alpha-animating-on' : 'alpha-animating-off';
+                switchEl.classList.add(animClass);
+                switchEl.__animTimer = setTimeout(() => {
+                    switchEl.classList.remove('alpha-animating-on', 'alpha-animating-off');
+                    switchEl.__animTimer = null;
+                }, 340);
+            }
+        }
+    }
+
+    function updateReduceMotionUI(enabled, animate = false) {
+        if (reduceMotionToggle) {
+            const changed = reduceMotionToggle.checked !== enabled;
+            reduceMotionToggle.checked = enabled;
+            if (animate && changed) {
+                triggerSwitchAnimation(reduceMotionToggle, enabled);
+            }
+        }
+        if (reduceDescEl) {
+            reduceDescEl.innerText = enabled ? '已减弱动态效果并优化性能' : '选择是否减弱动画以优化性能';
+        }
+    }
+
+    function updateBgMotionUI(enabled, animate = false) {
+        if (bgMotionToggle) {
+            const changed = bgMotionToggle.checked !== enabled;
+            bgMotionToggle.checked = enabled;
+            if (animate && changed) {
+                triggerSwitchAnimation(bgMotionToggle, enabled);
+            }
+        }
+        if (bgDescEl) {
+            bgDescEl.innerText = enabled ? '环境背景光晕已启用' : '选择是否为环境背景启用光晕';
+        }
+    }
+
+    function setReduceMotionState(enabled, notify = true, animate = false) {
+        localStorage.setItem('alpha_reduce_motion', enabled ? 'true' : 'false');
+        updateReduceMotionUI(enabled, animate);
+        if (notify) {
+            window.parent.postMessage({type: 'alpha_reduce_motion', value: enabled}, '*');
+        }
+        if (window.AlphaReduceMotion && typeof window.AlphaReduceMotion.set === 'function') {
+            window.AlphaReduceMotion.set(enabled);
+        }
+    }
+
+    function setBgMotionState(enabled, notify = true, animate = false) {
+        localStorage.setItem('alpha_bg_motion', enabled ? 'true' : 'false');
+        updateBgMotionUI(enabled, animate);
+        if (notify) {
+            window.parent.postMessage({type: 'alpha_bg_motion', value: enabled}, '*');
+        }
+        applyBgMotionSetting(enabled);
+    }
+
+    function applyBgMotionSetting(enabled) {
+        const isEnabled = (typeof enabled === 'boolean') ? enabled : (localStorage.getItem('alpha_bg_motion') === 'true');
+        const docEl = document.documentElement;
+        const bodyEl = document.body;
+        if (docEl) docEl.classList.toggle('enable-bg-motion', isEnabled);
+        if (bodyEl) bodyEl.classList.toggle('enable-bg-motion', isEnabled);
+    }
+
+    // 初始化状态读取与互斥约束处理
+    let initialReduceMotion = localStorage.getItem('alpha_reduce_motion') === 'true';
+    let initialBgMotion = localStorage.getItem('alpha_bg_motion') === 'true';
+
+    // 互斥校验：如果减弱动态效果开启，则壁纸位移同步关闭
+    if (initialReduceMotion && initialBgMotion) {
+        initialBgMotion = false;
+        localStorage.setItem('alpha_bg_motion', 'false');
+    }
+
+    updateReduceMotionUI(initialReduceMotion, false);
+    updateBgMotionUI(initialBgMotion, false);
+    applyBgMotionSetting(initialBgMotion);
+
+    if (reduceMotionToggle) {
         reduceMotionToggle.addEventListener('change', (e) => {
             const enabled = e.target.checked;
-            if (descEl) descEl.innerText = enabled ? '已开启，已减弱动态效果并优化性能' : '选择是否减弱动画以优化性能';
-            localStorage.setItem('alpha_reduce_motion', enabled ? 'true' : 'false');
-            window.parent.postMessage({type: 'alpha_reduce_motion', value: enabled}, '*');
-            if (window.AlphaReduceMotion && typeof window.AlphaReduceMotion.set === 'function') {
-                window.AlphaReduceMotion.set(enabled);
-            }
-        });
-
-        window.addEventListener('storage', (e) => {
-            if (e.key === 'alpha_reduce_motion' && reduceMotionToggle) {
-                const enabled = (e.newValue === 'true');
-                reduceMotionToggle.checked = enabled;
-                if (descEl) descEl.innerText = enabled ? '已开启，已减弱动态效果并优化性能' : '选择是否减弱动画以优化性能';
+            setReduceMotionState(enabled, true, false);
+            // 联动机制：打开“减弱动态效果”时，自动关闭“壁纸位移”，并触发滑块退场动画
+            if (enabled) {
+                setBgMotionState(false, true, true);
             }
         });
     }
+
+    if (bgMotionToggle) {
+        bgMotionToggle.addEventListener('change', (e) => {
+            const enabled = e.target.checked;
+            setBgMotionState(enabled, true, false);
+            // 联动机制：如果在“减弱动态效果”开启时打开“壁纸位移”，自动关闭“减弱动态效果”，并触发滑块退场动画
+            if (enabled) {
+                setReduceMotionState(false, true, true);
+            }
+        });
+    }
+
+    window.addEventListener('storage', (e) => {
+        if (e.key === 'alpha_reduce_motion') {
+            const enabled = (e.newValue === 'true');
+            updateReduceMotionUI(enabled, true);
+            if (enabled && bgMotionToggle && bgMotionToggle.checked) {
+                setBgMotionState(false, true, true);
+            }
+        } else if (e.key === 'alpha_bg_motion') {
+            const enabled = (e.newValue === 'true');
+            updateBgMotionUI(enabled, true);
+            applyBgMotionSetting(enabled);
+            if (enabled && reduceMotionToggle && reduceMotionToggle.checked) {
+                setReduceMotionState(false, true, true);
+            }
+        }
+    });
+
+    window.addEventListener('message', (e) => {
+        if (e.data && e.data.type === 'alpha_reduce_motion') {
+            const enabled = !!e.data.value;
+            updateReduceMotionUI(enabled, true);
+            if (enabled && bgMotionToggle && bgMotionToggle.checked) {
+                setBgMotionState(false, true, true);
+            }
+        } else if (e.data && e.data.type === 'alpha_bg_motion') {
+            const enabled = !!e.data.value;
+            updateBgMotionUI(enabled, true);
+            applyBgMotionSetting(enabled);
+            if (enabled && reduceMotionToggle && reduceMotionToggle.checked) {
+                setReduceMotionState(false, true, true);
+            }
+        }
+    });
 
     const autoStartToggle = document.getElementById('autoStartToggle');
     if (autoStartToggle) {
@@ -3003,7 +3167,7 @@ function updateToastStackPositions() {
             if (freeze) {
                 docEl.classList.add('pause-bg-motion', 'pause-clock-breath');
                 if (bodyEl) bodyEl.classList.add('pause-bg-motion', 'pause-clock-breath');
-            } else if (!isSleeping) {
+            } else {
                 docEl.classList.remove('pause-bg-motion', 'pause-clock-breath');
                 if (bodyEl) bodyEl.classList.remove('pause-bg-motion', 'pause-clock-breath');
             }
@@ -3024,6 +3188,7 @@ function updateToastStackPositions() {
 
         function onSleep() {
             isSleeping = true;
+            document.documentElement.classList.add('alpha-sleep');
             if (idleTimer) {
                 clearTimeout(idleTimer);
                 idleTimer = null;
@@ -3032,6 +3197,9 @@ function updateToastStackPositions() {
             try {
                 if (window.AlphaCardGlow && typeof window.AlphaCardGlow.sleep === 'function') {
                     window.AlphaCardGlow.sleep(document);
+                }
+                if (window.AlphaInputGlow && typeof window.AlphaInputGlow.sleep === 'function') {
+                    window.AlphaInputGlow.sleep(document);
                 }
                 if (window.AlphaLiquidGlass && typeof window.AlphaLiquidGlass.releaseAll === 'function') {
                     window.AlphaLiquidGlass.releaseAll();
@@ -3042,10 +3210,14 @@ function updateToastStackPositions() {
         function onWake() {
             isSleeping = false;
             isIdle = false;
+            document.documentElement.classList.remove('alpha-sleep');
             applyVisualFreeze(false);
             try {
                 if (window.AlphaCardGlow && typeof window.AlphaCardGlow.wake === 'function') {
                     window.AlphaCardGlow.wake(document);
+                }
+                if (window.AlphaInputGlow && typeof window.AlphaInputGlow.wake === 'function') {
+                    window.AlphaInputGlow.wake(document);
                 }
             } catch (_) {}
             onUserActive();
@@ -3058,12 +3230,15 @@ function updateToastStackPositions() {
 
         window.addEventListener('AlphaSleep', onSleep);
         window.addEventListener('AlphaWake', onWake);
+        window.addEventListener('focus', onUserActive);
         window.addEventListener('blur', () => {
-            if (idleTimer) clearTimeout(idleTimer);
+            if (idleTimer) {
+                clearTimeout(idleTimer);
+                idleTimer = null;
+            }
             isIdle = true;
             applyVisualFreeze(true);
         });
-        window.addEventListener('focus', onUserActive);
         document.addEventListener('visibilitychange', () => {
             if (document.hidden) onSleep();
             else onWake();

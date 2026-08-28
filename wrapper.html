@@ -2,6 +2,8 @@
 <html class="wrapper-html" id="wrapperHtml">
 <head>
   <meta charset="utf-8" />
+  <title>主页 - Tasks</title>
+  <link rel="preload" href="./fonts/OPPO Sans 4.0.ttf" as="font" type="font/truetype" crossorigin>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data: local-font:; frame-src 'self' data: blob:; child-src 'self' data: blob:; object-src 'none'; base-uri 'none'; form-action 'self'" />
   <script src="./assets/liquid-glass.js"></script>
@@ -29,8 +31,11 @@
 
     @font-face { 
       font-family: 'OPPO Sans 4.0'; 
-      src: url('./fonts/OPPO Sans 4.0.ttf') format('truetype'); 
+      src: url('local-font://OPPO%20Sans%204.0.ttf') format('truetype'),
+           url('./fonts/OPPO Sans 4.0.ttf') format('truetype'); 
       font-weight: 1 999; 
+      font-style: normal;
+      font-display: block;
     }
 
     html, body {
@@ -113,9 +118,7 @@
       transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1),
                   opacity 0.2s ease,
                   transform 0.36s cubic-bezier(0.16, 1, 0.3, 1),
-                  max-width 0.36s cubic-bezier(0.16, 1, 0.3, 1),
-                  -webkit-mask-image 0.2s ease,
-                  mask-image 0.2s ease;
+                  max-width 0.36s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     /* 单页模式：标签组收拢淡出，同时让 Tasks 标题从左侧自然浮现。 */
@@ -168,25 +171,54 @@
       height: 32px; padding: 0 10px 0 14px; margin-right: 6px; 
       border-radius: 8px; font-size: 13px;
       cursor: pointer; position: relative;
-      /* 放弃 flex-basis, 转用 width 承接 CSS 变量, 激活平滑过渡 */
       flex: 0 0 auto;
       width: var(--alpha-tab-width, 120px);
       min-width: 120px;
       max-width: 240px;
+      background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.38) 0%, rgba(255, 255, 255, 0.15) 100%);
+      backdrop-filter: blur(20px) saturate(130%);
+      -webkit-backdrop-filter: blur(20px) saturate(130%);
+      border-top: 1px solid rgba(255, 255, 255, 0.7);
+      border-left: 1px solid rgba(255, 255, 255, 0.55);
+      border-right: 1px solid rgba(255, 255, 255, 0.25);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05), inset 0 1px 2px rgba(255, 255, 255, 0.35);
       
-      transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease, font-weight 0.3s ease,
-                  transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
-                  width 0.4s cubic-bezier(0.16, 1, 0.3, 1),
-                  min-width 0.4s cubic-bezier(0.16, 1, 0.3, 1),
-                  max-width 0.4s cubic-bezier(0.16, 1, 0.3, 1),
-                  padding 0.4s cubic-bezier(0.16, 1, 0.3, 1), 
-                  margin 0.4s cubic-bezier(0.16, 1, 0.3, 1), 
-                  opacity 0.4s ease;
+      /* 独立过渡属性：避免在渐变 background 上产生浏览器插值闪白 */
+      transition: border-color 0.24s ease, box-shadow 0.24s ease, color 0.22s ease, font-weight 0.22s ease, filter 0.24s ease,
+                  transform 0.32s cubic-bezier(0.34, 1.45, 0.64, 1),
+                  width 0.32s cubic-bezier(0.2, 0.9, 0.3, 1),
+                  min-width 0.32s cubic-bezier(0.2, 0.9, 0.3, 1),
+                  max-width 0.32s cubic-bezier(0.2, 0.9, 0.3, 1),
+                  padding 0.32s cubic-bezier(0.2, 0.9, 0.3, 1), 
+                  margin 0.32s cubic-bezier(0.2, 0.9, 0.3, 1), 
+                  opacity 0.20s cubic-bezier(0.2, 0, 0, 1);
       transform-origin: center;
-      /* 静止标签不强制创建 3D 合成层；缩放视觉保持不变。 */
       transform: scale(1); 
       touch-action: none;
       -webkit-app-region: no-drag;
+    }
+
+    /* 核心高光平滑淡入淡出层（柔和通透质感，杜绝过度白光） */
+    .tab::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.48) 0%, rgba(255, 255, 255, 0.22) 100%);
+      opacity: 0;
+      pointer-events: none;
+      z-index: 0;
+      transition: opacity 0.24s cubic-bezier(0.2, 0, 0, 1);
+    }
+    .tab.active::before {
+      opacity: 1;
+    }
+    .tab.inactive:hover::before {
+      opacity: 0.35;
+    }
+    .tab.dragging::before {
+      opacity: 0 !important;
     }
 
     /* 单标签页或单页模式：允许在选中的标签页及标题栏非功能区上拖拽窗口 */
@@ -216,7 +248,12 @@
       z-index: 99999999 !important;
       margin-right: 0 !important;
       cursor: grabbing;
-      transition: none !important;
+      /* 位移跟手保持瞬时响应，仅对阴影/边框/滤镜做平滑过渡，避免突兀变亮但不造成透明闪烁 */
+      transition: border-color 0.26s ease,
+                  box-shadow 0.26s ease,
+                  filter 0.26s ease,
+                  backdrop-filter 0.26s ease,
+                  -webkit-backdrop-filter 0.26s ease !important;
       opacity: 1 !important;
       contain: none !important;
       will-change: transform !important;
@@ -227,12 +264,7 @@
       transform: translate3d(var(--alpha-tab-drag-x, 0px), 0, 0) scale(1.05) !important;
       /*
        * 方案 2：表层清空所有白雾，直出 100% 纯净高斯模糊底色
-       */
-      background: transparent !important;
-      /*
-       * 拖拽态不再依赖 backdrop-filter。Electron 的透明/Mica 窗口会把
-       * 拖拽元素提升到独立 RenderSurface，背景取样链可能因此被截断。
-       * 真正的高斯模糊由下方 .tab-drag-filter-strip 对小型 DOM 副本执行。
+       * 背景保持原梯度，由上层白底淡入实现顺滑提亮，避免透明闪烁 Mica
        */
       backdrop-filter: none !important;
       -webkit-backdrop-filter: none !important;
@@ -241,6 +273,7 @@
       border-right: 1px solid rgba(255, 255, 255, 0.25) !important;
       border-bottom: 1px solid rgba(255, 255, 255, 0.18) !important;
       box-shadow: 0 12px 32px rgba(15, 23, 42, 0.18), 0 3px 8px rgba(15, 23, 42, 0.08), inset 0 1px 1px rgba(255, 255, 255, 0.40) !important;
+      filter: brightness(1.06) saturate(1.05) !important;
     }
 
     /*
@@ -257,10 +290,14 @@
       border-radius: inherit;
       pointer-events: none;
       /*
-       * 实色遮蔽基底：100% 阻断原生文字透光
+       * 实色遮蔽基底：由透明淡入纯白实现顺滑提亮，底层保留原标签梯度避免闪烁 Mica
        */
-      background: #ffffff !important;
+      background: rgba(255, 255, 255, 0) !important;
       opacity: 1 !important;
+      transition: background 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .tab.dragging .tab-drag-filter-layer {
+      background: #ffffff !important;
     }
 
     .tab-drag-filter-layer::after {
@@ -301,15 +338,7 @@
       z-index: 3;
     }
 
-    /*
-     * 拖拽进行期间，非拖拽标签暂时关闭自身的 backdrop-filter，
-     * 避免 Chromium Skia 在同一 RenderPass 树中因嵌套 backdrop-filter 阻断模糊采样。
-     * 这样拖拽中的标签可以 100% 完整捕获并高斯模糊下方所有标签的实体卡片与文字。
-     */
-    #title-bar.tab-drag-active .tab:not(.dragging) {
-      backdrop-filter: none !important;
-      -webkit-backdrop-filter: none !important;
-    }
+    /* 拖拽期间保持所有标签 backdrop-filter 稳定恒定，避免造成全栏闪没 */
 
     .tab.dragging .tab-close { pointer-events: none; }
 
@@ -321,40 +350,34 @@
       pointer-events: none;
     }
 
-    /* 选中状态 (高亮纯白发光态) */
+    /* 选中状态 (自然清透发光态) */
     .tab.active {
-      background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.75) 0%, rgba(255, 255, 255, 0.45) 100%);
-      backdrop-filter: blur(40px) saturate(140%) brightness(1.05); -webkit-backdrop-filter: blur(40px) saturate(140%) brightness(1.05);
       border-top: 1.5px solid rgba(255, 255, 255, 0.95);
       border-left: 1px solid rgba(255, 255, 255, 0.85);
       border-right: 1px solid rgba(255, 255, 255, 0.45);
       border-bottom: 1px solid rgba(255, 255, 255, 0.35);
-      box-shadow: 0 6px 20px rgba(15, 23, 42, 0.10), 0 2px 6px rgba(15, 23, 42, 0.06), inset 0 0 0 1px rgba(255, 255, 255, 0.12), inset 2px 3px 10px rgba(255, 255, 255, 0.45), inset -2px -3px 10px rgba(0, 0, 0, 0.03), inset 4px 6px 20px rgba(255, 255, 255, 0.20);
+      box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08), 0 2px 6px rgba(15, 23, 42, 0.04), inset 0 0 0 1px rgba(255, 255, 255, 0.15), inset 1.5px 2px 6px rgba(255, 255, 255, 0.30), inset -1px -1px 4px rgba(0, 0, 0, 0.02);
       font-weight: 700; color: #0f172a; z-index: 2;
-      transform: scale(1.03) !important; /* 物理级充气浮现感 */
+      transform: scale(1.03) !important;
     }
 
     /* 未选中状态 (幽灵玻璃态) */
     .tab.inactive {
-      background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.42) 0%, rgba(255, 255, 255, 0.18) 100%);
-      backdrop-filter: blur(24px) saturate(130%); -webkit-backdrop-filter: blur(24px) saturate(130%);
       border-top: 1px solid rgba(255, 255, 255, 0.7);
       border-left: 1px solid rgba(255, 255, 255, 0.55);
       border-right: 1px solid rgba(255, 255, 255, 0.25);
       border-bottom: 1px solid rgba(255, 255, 255, 0.18);
       box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05), inset 0 1px 2px rgba(255, 255, 255, 0.35);
       font-weight: 600; color: #334155; z-index: 1;
-      transform: scale(0.97); /* 空间退后感 */
+      transform: scale(0.97);
     }
     .tab.inactive:hover {
-      background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0.15) 100%);
       box-shadow: 0 5px 16px rgba(15, 23, 42, 0.08), 0 1px 4px rgba(15, 23, 42, 0.04), inset 0 2px 4px rgba(255, 255, 255, 0.35);
       border-top: 1px solid rgba(255, 255, 255, 0.75);
       border-left: 1px solid rgba(255, 255, 255, 0.6);
       transform: scale(1.0);
     }
     .tab.inactive:active {
-      background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0.3) 100%);
       transform: scale(0.98);
       border-top: 1.5px solid rgba(255, 255, 255, 0.85);
       border-left: 1px solid rgba(255, 255, 255, 0.75);
@@ -367,26 +390,39 @@
       margin-right: 0 !important; opacity: 0 !important; border-width: 0 !important;
     }
     /* 微调初始物理形态, 配合已有的布局阻尼曲线与视觉回弹曲线, 达成完美的液态充气感 */
-    .tab.entering { transform: translateY(14px) scale(0.72) !important; }
-    .tab.closing  { transform: translateY(-10px) scale(0.85) !important; }
+    .tab.entering { transform: translateY(8px) scale(0.82) !important; filter: brightness(1.25) saturate(1.1) !important; }
+    .tab.closing  { transform: translateY(-8px) scale(0.86) !important; }
 
     .tab-title {
+      position: relative;
+      z-index: 1;
       flex: 1 1 auto; text-align: left; 
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
       margin-right: 8px;
     }
 
     .tab-close {
+      position: relative;
+      z-index: 1;
       flex: 0 0 18px; 
       display: flex; justify-content: center; align-items: center;
       width: 18px; height: 18px; border-radius: 5px;
       color: #64748b;
-      transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-      transform-origin: center;
-      transform: translate3d(0, 0, 0) scale(1);
+      transition: background 0.2s ease, color 0.2s ease, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+      transform-origin: center center;
+      transform: translateZ(0) scale(1);
+      will-change: transform;
+      backface-visibility: hidden;
     }
-    .tab-close:hover { background: rgba(255, 255, 255, 0.6); color: #0f172a; transform: translate3d(0, 0, 0) scale(1.1); }
-    .tab-close:active { transform: translate3d(0, 0, 0) scale(0.82); background: rgba(255, 255, 255, 0.75); }
+    .tab-close:hover { background: rgba(255, 255, 255, 0.6); color: #0f172a; transform: translateZ(0) scale(1.1); }
+    .tab-close:active { transform: translateZ(0) scale(0.82); background: rgba(255, 255, 255, 0.75); }
+    /* 防止鼠标在叉号上时父级 .tab 的 hover 缩放导致叉号视觉上浮 1px */
+    .tab.inactive:has(.tab-close:hover) {
+      transform: scale(0.97);
+    }
+    .tab.active:has(.tab-close:hover) {
+      transform: scale(1.03) !important;
+    }
 
     /* 加号按键动态置顶 */
     .add-tab-btn {
@@ -483,31 +519,126 @@
       visibility: hidden; opacity: 0; pointer-events: none;
       background: transparent;
       transform: translate3d(0, 0, 0) scale(1);
-      filter: blur(0px);
-      will-change: auto;
-      /* 混合过渡: 位移使用高阶视差阻尼曲线, 透明度保持自然流畅 */
-      transition: opacity 0.35s cubic-bezier(0.25, 1, 0.5, 1),
-                  transform 0.42s cubic-bezier(0.16, 1, 0.3, 1),
-                  filter 0.42s cubic-bezier(0.16, 1, 0.3, 1),
-                  visibility 0.42s;
       contain: layout paint size;
+      backface-visibility: hidden;
+      will-change: auto;
     }
-    .content-frame.enter-right { transform: translate3d(40px, 0, 0) scale(0.97); opacity: 0; filter: blur(16px); }
-    .content-frame.enter-left  { transform: translate3d(-40px, 0, 0) scale(0.97); opacity: 0; filter: blur(16px); }
-    
-    .content-frame.exit-left   { transform: translate3d(-40px, 0, 0) scale(0.97); opacity: 0; filter: blur(16px); }
-    .content-frame.exit-right  { transform: translate3d(40px, 0, 0) scale(0.97); opacity: 0; filter: blur(16px); }
+
+    .content-frame:not(.active):not(.enter-right):not(.enter-left):not(.enter-top):not(.exit-left):not(.exit-right) {
+      content-visibility: hidden;
+    }
     
     .content-frame.active { 
       visibility: visible; opacity: 1; pointer-events: auto;
       z-index: 2; 
-      transform: translate3d(0, 0, 0) scale(1); /* 回归舞台中央 */
-      filter: blur(0px);
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+
+    .content-frame.enter-right {
+      visibility: visible !important;
+      pointer-events: auto;
+      z-index: 2;
+      animation: alpha-frame-enter-right 0.32s cubic-bezier(0.18, 0.92, 0.28, 1) both !important;
+    }
+    .content-frame.enter-left {
+      visibility: visible !important;
+      pointer-events: auto;
+      z-index: 2;
+      animation: alpha-frame-enter-left 0.32s cubic-bezier(0.18, 0.92, 0.28, 1) both !important;
+    }
+    .content-frame.enter-top {
+      visibility: visible !important;
+      pointer-events: auto;
+      z-index: 2;
+      animation: alpha-frame-enter-top 0.32s cubic-bezier(0.18, 0.92, 0.28, 1) both !important;
+    }
+    
+    .content-frame.exit-left {
+      visibility: visible !important;
+      pointer-events: none !important;
+      z-index: 1;
+      animation: alpha-frame-exit-left 0.26s cubic-bezier(0.36, 0, 0.66, -0.04) both !important;
+    }
+    .content-frame.exit-right {
+      visibility: visible !important;
+      pointer-events: none !important;
+      z-index: 1;
+      animation: alpha-frame-exit-right 0.26s cubic-bezier(0.36, 0, 0.66, -0.04) both !important;
+    }
+    .content-frame.exit-depth {
+      visibility: visible !important;
+      pointer-events: none !important;
+      z-index: 1;
+      animation: alpha-frame-exit-depth 0.26s cubic-bezier(0.36, 0, 0.66, -0.04) both !important;
     }
     
     .content-frame.stationary {
+      visibility: visible !important;
+      opacity: 1 !important;
       transform: translate3d(0, 0, 0) scale(1) !important;
-      filter: blur(0px) !important;
+      animation: none !important;
+    }
+
+    @keyframes alpha-frame-enter-right {
+      0%   { opacity: 0; transform: translate3d(48px, 0, 0) scale(0.972); }
+      100% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+    }
+    @keyframes alpha-frame-enter-left {
+      0%   { opacity: 0; transform: translate3d(-48px, 0, 0) scale(0.972); }
+      100% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+    }
+    @keyframes alpha-frame-enter-top {
+      0%   { opacity: 0; transform: translate3d(0, -36px, 0) scale(0.98); }
+      100% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+    }
+    @keyframes alpha-frame-exit-left {
+      0%   { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+      100% { opacity: 0; transform: translate3d(-40px, 0, 0) scale(0.98); }
+    }
+    @keyframes alpha-frame-exit-right {
+      0%   { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+      100% { opacity: 0; transform: translate3d(40px, 0, 0) scale(0.98); }
+    }
+    @keyframes alpha-frame-exit-depth {
+      0%   { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+      100% { opacity: 0; transform: translate3d(0, 20px, 0) scale(0.984); }
+    }
+
+    /* 同一物理 iframe 的两个逻辑标签仍需有明确的页面切换反馈。 */
+    .content-frame.shared-switch-right,
+    .content-frame.shared-switch-left,
+    .content-frame.shared-switch-top {
+      visibility: visible;
+      pointer-events: auto;
+      z-index: 2;
+    }
+    .content-frame.shared-switch-right {
+      animation: alpha-shared-switch-right 380ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+    .content-frame.shared-switch-left {
+      animation: alpha-shared-switch-left 380ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+    .content-frame.shared-switch-top {
+      animation: alpha-shared-switch-top 380ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    @keyframes alpha-shared-switch-right {
+      0%   { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+      40%  { opacity: 0.25; transform: translate3d(-14px, 0, 0) scale(0.994); }
+      41%  { opacity: 0.25; transform: translate3d(14px, 0, 0) scale(0.994); }
+      100% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+    }
+    @keyframes alpha-shared-switch-left {
+      0%   { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+      40%  { opacity: 0.25; transform: translate3d(14px, 0, 0) scale(0.994); }
+      41%  { opacity: 0.25; transform: translate3d(-14px, 0, 0) scale(0.994); }
+      100% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+    }
+    @keyframes alpha-shared-switch-top {
+      0%   { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+      40%  { opacity: 0.25; transform: translate3d(0, 10px, 0) scale(0.994); }
+      41%  { opacity: 0.25; transform: translate3d(0, -10px, 0) scale(0.994); }
+      100% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
     }
 
     /*
@@ -570,27 +701,23 @@
     }
 
     @keyframes alpha-tab-snapshot-exit-left {
-      0%   { opacity: 1; transform: translate3d(0, 0, 0) scale(1); filter: blur(0); }
-      45%  { opacity: 0.72; filter: blur(2px); }
-      100% { opacity: 0; transform: translate3d(-36px, 0, 0) scale(0.985); filter: blur(6px); }
+      0%   { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+      100% { opacity: 0; transform: translate3d(-40px, 0, 0) scale(0.98); }
     }
 
     @keyframes alpha-tab-snapshot-exit-right {
-      0%   { opacity: 1; transform: translate3d(0, 0, 0) scale(1); filter: blur(0); }
-      45%  { opacity: 0.72; filter: blur(2px); }
-      100% { opacity: 0; transform: translate3d(36px, 0, 0) scale(0.985); filter: blur(6px); }
+      0%   { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+      100% { opacity: 0; transform: translate3d(40px, 0, 0) scale(0.98); }
     }
 
     @keyframes alpha-tab-snapshot-enter-right {
-      0%   { opacity: 0; transform: translate3d(36px, 0, 0) scale(0.985); filter: blur(6px); }
-      55%  { opacity: 0.88; filter: blur(1.5px); }
-      100% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); filter: blur(0); }
+      0%   { opacity: 0; transform: translate3d(48px, 0, 0) scale(0.972); }
+      100% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
     }
 
     @keyframes alpha-tab-snapshot-enter-left {
-      0%   { opacity: 0; transform: translate3d(-36px, 0, 0) scale(0.985); filter: blur(6px); }
-      55%  { opacity: 0.88; filter: blur(1.5px); }
-      100% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); filter: blur(0); }
+      0%   { opacity: 0; transform: translate3d(-48px, 0, 0) scale(0.972); }
+      100% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -605,9 +732,14 @@
     .content-frame.frame-transitioning,
     .content-frame.enter-right,
     .content-frame.enter-left,
+    .content-frame.enter-top,
     .content-frame.exit-left,
-    .content-frame.exit-right {
-      will-change: transform, opacity, filter;
+    .content-frame.exit-right,
+    .content-frame.exit-depth,
+    .content-frame.shared-switch-right,
+    .content-frame.shared-switch-left,
+    .content-frame.shared-switch-top {
+      will-change: transform, opacity;
     }
 
     /*
@@ -618,8 +750,6 @@
      */
     .electron-runtime #iframe-container {
       filter: none !important;
-      transition: opacity 0.45s cubic-bezier(0.16, 1, 0.3, 1),
-                  transform 0.45s cubic-bezier(0.16, 1, 0.3, 1) !important;
     }
 
     .electron-runtime::view-transition-old(alpha-tab-content),
@@ -631,24 +761,25 @@
     .electron-runtime .content-frame,
     .electron-runtime .content-frame.enter-right,
     .electron-runtime .content-frame.enter-left,
+    .electron-runtime .content-frame.enter-top,
     .electron-runtime .content-frame.exit-left,
     .electron-runtime .content-frame.exit-right,
+    .electron-runtime .content-frame.exit-depth,
     .electron-runtime .content-frame.active,
     .electron-runtime .content-frame.stationary {
       filter: none !important;
     }
 
-    .electron-runtime .content-frame {
-      transition: opacity 0.26s cubic-bezier(0.25, 1, 0.5, 1),
-                  transform 0.30s cubic-bezier(0.16, 1, 0.3, 1),
-                  visibility 0.30s !important;
-    }
-
     .electron-runtime .content-frame.frame-transitioning,
     .electron-runtime .content-frame.enter-right,
     .electron-runtime .content-frame.enter-left,
+    .electron-runtime .content-frame.enter-top,
     .electron-runtime .content-frame.exit-left,
-    .electron-runtime .content-frame.exit-right {
+    .electron-runtime .content-frame.exit-right,
+    .electron-runtime .content-frame.exit-depth,
+    .electron-runtime .content-frame.shared-switch-right,
+    .electron-runtime .content-frame.shared-switch-left,
+    .electron-runtime .content-frame.shared-switch-top {
       will-change: transform, opacity;
     }
 
@@ -663,9 +794,21 @@
 
     html.alpha-tab-live-fallback-running .content-frame.enter-right,
     html.alpha-tab-live-fallback-running .content-frame.enter-left,
+    html.alpha-tab-live-fallback-running .content-frame.enter-top,
     html.alpha-tab-live-fallback-running .content-frame.exit-left,
-    html.alpha-tab-live-fallback-running .content-frame.exit-right {
-      filter: blur(6px) !important;
+    html.alpha-tab-live-fallback-running .content-frame.exit-right,
+    html.alpha-tab-live-fallback-running .content-frame.exit-depth {
+      filter: blur(4px) !important;
+    }
+
+    /* Electron 中以位移、透明度和轻微缩放制造纵深，不对整张 iframe 逐帧模糊。 */
+    .electron-runtime.alpha-tab-live-fallback-running .content-frame.enter-right,
+    .electron-runtime.alpha-tab-live-fallback-running .content-frame.enter-left,
+    .electron-runtime.alpha-tab-live-fallback-running .content-frame.enter-top,
+    .electron-runtime.alpha-tab-live-fallback-running .content-frame.exit-left,
+    .electron-runtime.alpha-tab-live-fallback-running .content-frame.exit-right,
+    .electron-runtime.alpha-tab-live-fallback-running .content-frame.exit-depth {
+      filter: none !important;
     }
 
     html.alpha-tab-live-fallback-running .content-frame.active {
@@ -673,14 +816,9 @@
     }
 
     /* 标题栏面积很小，保留真实毛玻璃；适当降低采样半径以减少 GPU 带宽。 */
-    .electron-runtime .tab.active {
-      backdrop-filter: blur(18px) saturate(130%) brightness(1.05);
-      -webkit-backdrop-filter: blur(18px) saturate(130%) brightness(1.05);
-    }
-
-    .electron-runtime .tab.inactive {
-      backdrop-filter: blur(12px) saturate(125%);
-      -webkit-backdrop-filter: blur(12px) saturate(125%);
+    .electron-runtime .tab {
+      backdrop-filter: blur(16px) saturate(130%) !important;
+      -webkit-backdrop-filter: blur(16px) saturate(130%) !important;
     }
 
     .electron-runtime .tab.dragging,
@@ -862,10 +1000,17 @@
             .title-text {
                 color: rgba(240, 246, 255, 0.88);
             }
+            .tab {
+                background: radial-gradient(ellipse at 50% 0%, rgba(26, 30, 42, 0.45) 0%, rgba(12, 14, 20, 0.60) 100%) !important;
+                border-top: 1px solid rgba(255, 255, 255, 0.10) !important;
+                border-left: 1px solid rgba(255, 255, 255, 0.06) !important;
+                border-right: 1px solid rgba(255, 255, 255, 0.03) !important;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.01) !important;
+            }
+            .tab::before {
+                background: radial-gradient(ellipse at 50% 0%, rgba(36, 44, 60, 0.65) 0%, rgba(16, 20, 28, 0.78) 100%) !important;
+            }
             .tab.active {
-                background: radial-gradient(ellipse at 50% 0%, rgba(36, 42, 56, 0.75) 0%, rgba(16, 20, 28, 0.90) 100%) !important;
-                backdrop-filter: blur(32px) saturate(140%) !important;
-                -webkit-backdrop-filter: blur(32px) saturate(140%) !important;
                 border-top: 1.2px solid rgba(255, 255, 255, 0.22) !important;
                 border-left: 1px solid rgba(255, 255, 255, 0.14) !important;
                 border-right: 1px solid rgba(255, 255, 255, 0.06) !important;
@@ -879,13 +1024,6 @@
                 color: rgba(240, 246, 255, 0.88);
             }
             .tab.inactive {
-                background: radial-gradient(ellipse at 50% 0%, rgba(26, 30, 42, 0.45) 0%, rgba(12, 14, 20, 0.60) 100%) !important;
-                backdrop-filter: blur(28px) saturate(130%) !important;
-                -webkit-backdrop-filter: blur(28px) saturate(130%) !important;
-                border-top: 1px solid rgba(255, 255, 255, 0.10) !important;
-                border-left: 1px solid rgba(255, 255, 255, 0.06) !important;
-                border-right: 1px solid rgba(255, 255, 255, 0.03) !important;
-                border-bottom: 1px solid rgba(255, 255, 255, 0.01) !important;
                 box-shadow: 
                     0 4px 14px rgba(0, 0, 0, 0.25),
                     inset 0 0 0 1px rgba(255, 255, 255, 0.02),
@@ -894,7 +1032,6 @@
                 color: #94a3b8;
             }
             .tab.inactive:hover {
-                background: radial-gradient(ellipse at 50% 0%, rgba(36, 42, 58, 0.60) 0%, rgba(18, 22, 32, 0.72) 100%) !important;
                 border-top: 1px solid rgba(255, 255, 255, 0.16) !important;
                 border-left: 1px solid rgba(255, 255, 255, 0.10) !important;
                 border-right: 1px solid rgba(255, 255, 255, 0.05) !important;
@@ -907,14 +1044,12 @@
                 color: rgba(240, 246, 255, 0.85);
             }
             .tab.inactive:active {
-                background: radial-gradient(ellipse at 50% 0%, rgba(44, 52, 70, 0.70) 0%, rgba(22, 26, 38, 0.80) 100%) !important;
                 border-top: 1.2px solid rgba(255, 255, 255, 0.20) !important;
                 border-left: 1px solid rgba(255, 255, 255, 0.14) !important;
             }
             .tab.dragging,
             .tab.active.dragging,
             .tab.inactive.dragging {
-                background: transparent !important;
                 backdrop-filter: none !important;
                 -webkit-backdrop-filter: none !important;
                 border-top: 1.2px solid rgba(255, 255, 255, 0.20) !important;
@@ -926,8 +1061,12 @@
             }
 
             .tab-drag-filter-layer {
-                background: #11141c !important;
+                background: rgba(17, 20, 28, 0) !important;
                 opacity: 1 !important;
+                transition: background 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+            }
+            .tab.dragging .tab-drag-filter-layer {
+                background: #11141c !important;
             }
 
             .tab-drag-filter-layer::after {
@@ -1255,8 +1394,14 @@
 
   <script>
     const IS_ELECTRON_RUNTIME = !!window.electronAPI || /Electron\//i.test(navigator.userAgent);
-    const FRAME_TRANSITION_TIMEOUT = IS_ELECTRON_RUNTIME ? 340 : 460;
-    const SUPPORTS_TAB_SNAPSHOT_TRANSITION = typeof document.startViewTransition === 'function';
+    const FRAME_TRANSITION_TIMEOUT = IS_ELECTRON_RUNTIME ? 320 : 360;
+    // 切换动画默认开启；用户的“减弱动态效果”设置仍具有最高优先级。
+    const ENABLE_FRAME_TRANSITIONS = localStorage.getItem('alpha_enable_frame_transitions') !== 'false';
+    // 完整 iframe 快照在透明 Electron 窗口中显存代价较高，仅保留为显式诊断选项。
+    // 默认采用短时 transform/opacity 合成动画，不削弱视觉层次。
+    const SUPPORTS_TAB_SNAPSHOT_TRANSITION =
+      localStorage.getItem('alpha_enable_snapshot_transitions') === 'true' &&
+      typeof document.startViewTransition === 'function';
     document.documentElement.classList.toggle('electron-runtime', IS_ELECTRON_RUNTIME);
     document.documentElement.classList.toggle('alpha-tab-snapshot-capable', SUPPORTS_TAB_SNAPSHOT_TRANSITION);
 
@@ -1352,8 +1497,220 @@
     const tabElementMap = new Map();
     const iframeMap = new Map();
     const tabDataMap = new Map();
+    // Multiple logical tabs may point at one physical iframe. Metadata lives on the physical
+    // frame so duplicate tabs do not multiply renderer, timer and GPU costs.
+    const frameMetaMap = new WeakMap();
+    const reusableFrameIndex = new Map();
     const knownFrameSources = new WeakSet();
     let splashReadyNotified = false;
+
+    // ===== 滚动位置持久化：根页面 + 内部滚动容器，按逻辑标签独立保存 =====
+    // 很多子页面真正滚动的是 main/list 容器而不是 window。旧实现只记录 scrollY，
+    // 因而窗口失焦再恢复时会把这类页面错误地送回顶部。
+    const tabScrollSnapshot = new Map(); // tabId -> { pageKey, root:{x,y}, elements:Map }
+    const tabScrollRestoreJobs = new Map();
+    const scrollElementKeyCache = new WeakMap();
+    const scrollRestoreFrames = new WeakMap();
+    let tabScrollRestoreGeneration = 0;
+
+    function escapeScrollSelector(value) {
+      if (window.CSS && typeof window.CSS.escape === 'function') return window.CSS.escape(value);
+      return String(value).replace(/[^a-zA-Z0-9_-]/g, ch => `\\${ch}`);
+    }
+
+    function getScrollElementKey(element, doc) {
+      if (!element || element.nodeType !== 1 || !doc) return null;
+      const cached = scrollElementKeyCache.get(element);
+      if (cached && cached.doc === doc) return cached.key;
+      let key = null;
+      if (element.id) key = `#${escapeScrollSelector(element.id)}`;
+      if (key) {
+        scrollElementKeyCache.set(element, { doc, key });
+        return key;
+      }
+      for (const attr of ['data-alpha-scroll-key', 'data-scroll-key', 'data-testid']) {
+        const value = element.getAttribute(attr);
+        if (value) {
+          key = `[${attr}="${escapeScrollSelector(value)}"]`;
+          scrollElementKeyCache.set(element, { doc, key });
+          return key;
+        }
+      }
+      const segments = [];
+      let node = element;
+      for (let depth = 0; node && node.nodeType === 1 && node !== doc.body && depth < 7; depth++) {
+        let segment = node.tagName.toLowerCase();
+        const parent = node.parentElement;
+        if (parent) {
+          const siblings = Array.from(parent.children).filter(child => child.tagName === node.tagName);
+          if (siblings.length > 1) segment += `:nth-of-type(${siblings.indexOf(node) + 1})`;
+        }
+        segments.unshift(segment);
+        node = parent;
+      }
+      key = segments.length ? `body>${segments.join('>')}` : null;
+      if (key) scrollElementKeyCache.set(element, { doc, key });
+      return key;
+    }
+
+    function getFrameScrollPageKey(frame, tabId) {
+      return getPageInstanceKey(getIframePageRelativeUrl(frame) || tabDataMap.get(tabId)?.url || '');
+    }
+
+    function captureTabScroll(tabId, scrollTarget = null, options = {}) {
+      if (!tabId) return;
+      const frame = iframeMap.get(tabId);
+      if (!frame) return;
+      try {
+        const win = frame.contentWindow;
+        const doc = frame.contentDocument || (win ? win.document : null);
+        if (!win || !doc) return;
+        const pageKey = getFrameScrollPageKey(frame, tabId);
+        const previous = tabScrollSnapshot.get(tabId);
+        const samePage = !!previous && (!previous.pageKey || !pageKey || previous.pageKey === pageKey);
+        const snapshot = samePage ? previous : {
+          pageKey,
+          root: { x: 0, y: 0 },
+          elements: new Map(),
+          elementRefs: new Map()
+        };
+        if (!snapshot.root) snapshot.root = { x: snapshot.x || 0, y: snapshot.y || 0 };
+        if (!(snapshot.elements instanceof Map)) snapshot.elements = new Map();
+        if (!(snapshot.elementRefs instanceof Map)) snapshot.elementRefs = new Map();
+        snapshot.pageKey = pageKey || snapshot.pageKey || null;
+
+        const root = doc.scrollingElement || doc.documentElement || doc.body;
+        let rootX = Number(win.scrollX || root?.scrollLeft || doc.body?.scrollLeft || 0);
+        let rootY = Number(win.scrollY || root?.scrollTop || doc.body?.scrollTop || 0);
+        const preserveZero = !!options.preserveExistingOnZero && rootX === 0 && rootY === 0 &&
+          (snapshot.root.x !== 0 || snapshot.root.y !== 0);
+        if (!preserveZero) snapshot.root = { x: rootX, y: rootY };
+
+        const saveElement = (element, preserveExisting = false) => {
+          if (!element || element === win || element === doc || element === doc.documentElement ||
+              element === doc.body || element === root || element.nodeType !== 1) return;
+          const key = getScrollElementKey(element, doc);
+          if (!key) return;
+          const position = { x: Number(element.scrollLeft || 0), y: Number(element.scrollTop || 0) };
+          const oldPosition = snapshot.elements.get(key);
+          if (preserveExisting && position.x === 0 && position.y === 0 && oldPosition &&
+              (oldPosition.x !== 0 || oldPosition.y !== 0)) return;
+          snapshot.elements.set(key, position);
+          // 同一 document 的失焦恢复优先使用真实节点引用；选择器只负责跨文档历史恢复。
+          snapshot.elementRefs.set(key, element);
+        };
+
+        saveElement(scrollTarget, !!options.preserveExistingOnZero);
+        if (options.includeTracked) {
+          for (const key of snapshot.elements.keys()) {
+            let element = null;
+            try { element = doc.querySelector(key); } catch (_) {}
+            if (element) saveElement(element, !!options.preserveExistingOnZero);
+          }
+        }
+        snapshot.capturedAt = performance.now();
+        tabScrollSnapshot.set(tabId, snapshot);
+      } catch (_) {}
+    }
+
+    function restoreTabScroll(frame, tabId) {
+      if (!frame || !tabId || iframeMap.get(tabId) !== frame) return;
+      const snapshot = tabScrollSnapshot.get(tabId);
+      if (!snapshot) return;
+      try {
+        const win = frame.contentWindow;
+        const doc = frame.contentDocument || (win ? win.document : null);
+        if (!win || !doc) return;
+        const currentPageKey = getFrameScrollPageKey(frame, tabId);
+        if (snapshot.pageKey && currentPageKey && snapshot.pageKey !== currentPageKey) return;
+        const rootPosition = snapshot.root || { x: snapshot.x || 0, y: snapshot.y || 0 };
+        const restoreInlineScrollBehavior = (element, callback) => {
+          if (!element || !element.style) return callback();
+          const value = element.style.getPropertyValue('scroll-behavior');
+          const priority = element.style.getPropertyPriority('scroll-behavior');
+          element.style.setProperty('scroll-behavior', 'auto', 'important');
+          try { callback(); } finally {
+            if (value) element.style.setProperty('scroll-behavior', value, priority);
+            else element.style.removeProperty('scroll-behavior');
+          }
+        };
+        const instantElementScroll = (element, x, y) => {
+          if (!element) return;
+          restoreInlineScrollBehavior(element, () => {
+            try { element.scrollTo({ left: x, top: y, behavior: 'instant' }); }
+            catch (_) { element.scrollLeft = x; element.scrollTop = y; }
+            // 直接赋值作为旧 Chromium 以及自定义 scrollTo 覆盖的兜底。
+            element.scrollLeft = x;
+            element.scrollTop = y;
+          });
+        };
+
+        scrollRestoreFrames.set(frame, performance.now() + 260);
+        restoreInlineScrollBehavior(doc.documentElement, () => {
+          restoreInlineScrollBehavior(doc.body, () => {
+            try { win.scrollTo({ left: rootPosition.x, top: rootPosition.y, behavior: 'instant' }); }
+            catch (_) { try { win.scrollTo(rootPosition.x, rootPosition.y); } catch (_) {} }
+          });
+        });
+        const root = doc.scrollingElement || doc.documentElement;
+        instantElementScroll(root, rootPosition.x, rootPosition.y);
+        if (doc.body && doc.body !== root) instantElementScroll(doc.body, rootPosition.x, rootPosition.y);
+        if (snapshot.elements instanceof Map) {
+          for (const [key, position] of snapshot.elements) {
+            let element = snapshot.elementRefs instanceof Map ? snapshot.elementRefs.get(key) : null;
+            if (!element || !element.isConnected || element.ownerDocument !== doc) {
+              element = null;
+              try { element = doc.querySelector(key); } catch (_) {}
+              if (element) {
+                if (!(snapshot.elementRefs instanceof Map)) snapshot.elementRefs = new Map();
+                snapshot.elementRefs.set(key, element);
+              }
+            }
+            if (!element) continue;
+            instantElementScroll(element, position.x, position.y);
+          }
+        }
+      } catch (_) {}
+    }
+
+    function cancelTabScrollRestore(tabId) {
+      const job = tabScrollRestoreJobs.get(tabId);
+      if (!job) return;
+      if (job.rafId !== null) cancelAnimationFrame(job.rafId);
+      for (const timerId of job.timerIds) clearTimeout(timerId);
+      tabScrollRestoreJobs.delete(tabId);
+    }
+
+    function scheduleRestoreTabScroll(frame, tabId, options = {}) {
+      if (!frame || !tabId) return;
+      cancelTabScrollRestore(tabId);
+      const generation = ++tabScrollRestoreGeneration;
+      const job = { generation, rafId: null, timerIds: [] };
+      tabScrollRestoreJobs.set(tabId, job);
+      const apply = () => {
+        const current = tabScrollRestoreJobs.get(tabId);
+        if (!current || current.generation !== generation || activeTabId !== tabId || iframeMap.get(tabId) !== frame) return;
+        restoreTabScroll(frame, tabId);
+      };
+      apply();
+      job.rafId = requestAnimationFrame(() => {
+        job.rafId = null;
+        apply();
+      });
+      // 失焦恢复时给响应式布局/虚拟列表三个校正点；任何真实用户输入都会取消作业，
+      // 因而不会在用户已经开始滚动后又把页面拉回旧位置。
+      const delays = options.extended ? [60, 180, 420] : [70];
+      for (const delay of delays) {
+        job.timerIds.push(setTimeout(() => {
+          apply();
+          if (delay === delays[delays.length - 1]) tabScrollRestoreJobs.delete(tabId);
+        }, delay));
+      }
+    }
+    // 在隐藏帧之前捕获当前活动标签的滚动，切换后恢复目标标签的滚动
+    function flushActiveTabScroll() {
+      if (activeTabId) captureTabScroll(activeTabId, null, { includeTracked: true });
+    }
 
     // 缓存常用 DOM 元素（此时已解析完成, 可直接获取）
     const tabsContainer = document.getElementById('tabsContainer');
@@ -1376,6 +1733,7 @@
     let activeFrameCache = null;
     const frameExitJobs = new WeakMap();
     const frameActivationJobs = new WeakMap();
+    const sharedFrameSwitchJobs = new WeakMap();
     const titleUpdateTimers = new Map();
     const titleUpdateGenerations = new Map();
     const tabCloseTimers = new Map();
@@ -1396,47 +1754,40 @@
       const finalize = (event) => {
         if (finalized) return;
         if (event && event.target !== frame) return;
-        if (event) {
-          const isStationaryFade = frame.classList.contains('stationary') && event.propertyName === 'opacity';
-          const isMotionEnd = event.propertyName === 'transform' || event.propertyName === 'filter';
-          if (!isStationaryFade && !isMotionEnd) return;
-        }
 
         finalized = true;
         const job = frameActivationJobs.get(frame);
         if (job) {
           if (job.timerId !== null) clearTimeout(job.timerId);
-          frame.removeEventListener('transitionend', job.onTransitionEnd);
+          frame.removeEventListener('animationend', job.onEnd);
+          frame.removeEventListener('transitionend', job.onEnd);
           frameActivationJobs.delete(frame);
         }
         if (activeTabId !== tabId || !frame.isConnected) return;
-        frame.classList.remove('enter-left', 'enter-right', 'stationary', 'frame-transitioning');
+        frame.classList.remove('enter-left', 'enter-right', 'enter-top', 'stationary', 'frame-transitioning');
+        frame.classList.add('active');
       };
 
       frame.classList.add('frame-transitioning');
-      const rafId = requestAnimationFrame(() => {
-        const job = frameActivationJobs.get(frame);
-        if (!job || !frame.isConnected || activeTabId !== tabId) {
-          cancelFrameActivation(frame);
-          return;
+      const timerId = setTimeout(() => finalize(), FRAME_TRANSITION_TIMEOUT + 40);
+      frameActivationJobs.set(frame, { timerId, onEnd: finalize });
+      frame.addEventListener('animationend', finalize);
+      frame.addEventListener('transitionend', finalize);
+      try {
+        if (frame.contentWindow) {
+          frame.contentWindow.dispatchEvent(new CustomEvent('AlphaWake', { detail: { isHomeTransition } }));
         }
-        frame.classList.add('active');
-        job.timerId = setTimeout(() => finalize(), FRAME_TRANSITION_TIMEOUT);
-        frame.addEventListener('transitionend', finalize);
-        try {
-          if (frame.contentWindow) {
-            frame.contentWindow.dispatchEvent(new CustomEvent('AlphaWake', { detail: { isHomeTransition } }));
-          }
-        } catch (_) {}
-      });
-      frameActivationJobs.set(frame, { rafId, timerId: null, onTransitionEnd: finalize });
+      } catch (_) {}
     }
 
     function cancelFrameExit(frame) {
       const job = frame && frameExitJobs.get(frame);
       if (!job) return;
       clearTimeout(job.timerId);
-      frame.removeEventListener('transitionend', job.onTransitionEnd);
+      if (job.onEnd) {
+        frame.removeEventListener('animationend', job.onEnd);
+        frame.removeEventListener('transitionend', job.onEnd);
+      }
       frameExitJobs.delete(frame);
     }
 
@@ -1448,7 +1799,6 @@
       const finalize = (event) => {
         if (finalized) return;
         if (event && event.target !== frame) return;
-        if (event && event.propertyName !== 'transform' && event.propertyName !== 'filter' && event.propertyName !== 'opacity') return;
 
         finalized = true;
         cancelFrameExit(frame);
@@ -1459,13 +1809,12 @@
         frame.style.display = 'none';
         frame.inert = true;
         frame.setAttribute('aria-hidden', 'true');
-        try {
-          if (frame.contentWindow) frame.contentWindow.dispatchEvent(new CustomEvent('AlphaSleep'));
-        } catch (_) {}
+        notifyFrameSleep(frame);
       };
 
-      const timerId = setTimeout(() => finalize(), FRAME_TRANSITION_TIMEOUT);
-      frameExitJobs.set(frame, { timerId, onTransitionEnd: finalize });
+      const timerId = setTimeout(() => finalize(), FRAME_TRANSITION_TIMEOUT + 40);
+      frameExitJobs.set(frame, { timerId, onEnd: finalize });
+      frame.addEventListener('animationend', finalize);
       frame.addEventListener('transitionend', finalize);
     }
 
@@ -1516,7 +1865,7 @@
       if ([...stateKeys].every(key => Object.is(currentThrottleState[key], nextState[key]))) return;
 
       currentThrottleState = nextState;
-      for (const frame of iframeMap.values()) {
+      for (const frame of new Set(iframeMap.values())) {
         applyThrottleToIframe(frame, nextState);
       }
     }
@@ -1688,13 +2037,35 @@
       layer.className = 'tab-drag-filter-layer';
       layer.setAttribute('aria-hidden', 'true');
       layer.inert = true;
+      // 起始透明，通过下一帧移除内联样式触发 background 淡入，避免瞬切且不闪 Mica（底层保留原梯度）
+      const isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const transparentBg = isDark ? 'rgba(17,20,28,0)' : 'rgba(255,255,255,0)';
+      layer.style.setProperty('background', transparentBg, 'important');
       state.dragFilterLayer = layer;
       state.tabEl.prepend(layer);
+      void layer.offsetWidth;
+      const raf1 = requestAnimationFrame(() => {
+        const raf2 = requestAnimationFrame(() => {
+          if (layer.isConnected) layer.style.removeProperty('background');
+        });
+        layer._fadeRaf = raf2;
+      });
+      layer._fadeRaf = raf1;
       refreshTabDragFilterSnapshot(state);
     }
 
     function removeTabDragFilterSnapshot(state) {
-      state.dragFilterLayer?.remove();
+      const layer = state.dragFilterLayer;
+      if (!layer || !layer.isConnected) {
+        state.dragFilterLayer = null;
+        state.dragFilterStrip = null;
+        return;
+      }
+      if (layer._fadeRaf) {
+        cancelAnimationFrame(layer._fadeRaf);
+        layer._fadeRaf = null;
+      }
+      layer.remove();
       state.dragFilterLayer = null;
       state.dragFilterStrip = null;
     }
@@ -1884,7 +2255,7 @@
       if (!state || state.pointerId !== event.pointerId) return;
 
       if (!state.dragging) {
-        if (Math.abs(event.clientX - state.startX) < 5) return;
+        if (Math.abs(event.clientX - state.startX) < 8) return;
         beginTabDrag(state);
       }
 
@@ -1970,9 +2341,657 @@
       return false;
     }
 
+    function cancelSharedFrameSwitch(frame) {
+      const job = frame && sharedFrameSwitchJobs.get(frame);
+      if (job) {
+        clearTimeout(job.timerId);
+        frame.removeEventListener('animationend', job.onAnimationEnd);
+        sharedFrameSwitchJobs.delete(frame);
+      }
+      if (frame) {
+        frame.classList.remove('shared-switch-right', 'shared-switch-left', 'shared-switch-top');
+      }
+    }
+
+    function playSharedFrameSwitch(frame, tabId, transitionPreset, direction) {
+      if (!frame) return;
+      cancelFrameActivation(frame);
+      cancelFrameExit(frame);
+      cancelSharedFrameSwitch(frame);
+
+      const switchClass = transitionPreset === 'toolbar' ? 'shared-switch-top' :
+        (direction === 'left' ? 'shared-switch-left' : 'shared-switch-right');
+      frame.className = 'content-frame active';
+      frame.style.display = 'block';
+      frame.style.opacity = '';
+      frame.inert = false;
+      frame.removeAttribute('aria-hidden');
+
+      // 快速连续切换到同一类方向时，强制结束上一关键帧后再启动本次动画。
+      void frame.offsetWidth;
+      frame.classList.add(switchClass);
+
+      let finished = false;
+      const finalize = (event) => {
+        if (finished || (event && event.target !== frame)) return;
+        finished = true;
+        const job = sharedFrameSwitchJobs.get(frame);
+        if (job) {
+          clearTimeout(job.timerId);
+          frame.removeEventListener('animationend', job.onAnimationEnd);
+          sharedFrameSwitchJobs.delete(frame);
+        }
+        frame.classList.remove('shared-switch-right', 'shared-switch-left', 'shared-switch-top');
+        if (activeTabId === tabId && frame.isConnected) {
+          frame.className = 'content-frame active';
+          notifyFrameWake(frame, { isSharedTabSwitch: true });
+        }
+      };
+      const timerId = setTimeout(() => finalize(), 440);
+      sharedFrameSwitchJobs.set(frame, { timerId, onAnimationEnd: finalize });
+      frame.addEventListener('animationend', finalize);
+    }
+
+    function getPageInstanceKey(rawUrl) {
+      const safeUrl = normalizeLocalPageUrl(rawUrl);
+      if (!safeUrl) return null;
+      try {
+        const resolved = new URL(safeUrl, APP_BASE_URL);
+        const path = decodeURIComponent(resolved.pathname);
+        // Windows/Electron application files are case-insensitive in normal deployments.
+        // Query/hash remain part of the key because they may encode different page state.
+        return path.toLowerCase() + resolved.search + resolved.hash;
+      } catch (_) {
+        return safeUrl.toLowerCase();
+      }
+    }
+
+    function getLocalPageName(rawUrl) {
+      if (!rawUrl) return '';
+      try {
+        const safeUrl = normalizeLocalPageUrl(String(rawUrl));
+        const resolved = new URL(safeUrl || String(rawUrl), APP_BASE_URL);
+        return decodeURIComponent(resolved.pathname).split('/').pop().toLowerCase();
+      } catch (_) {
+        return String(rawUrl).split(/[?#]/, 1)[0].split(/[\\/]/).pop().toLowerCase();
+      }
+    }
+
+    function isHomeFocusPage(rawUrl) {
+      const pageName = getLocalPageName(rawUrl);
+      return pageName === 'home.html' || pageName === 'focus.html';
+    }
+
+    function isHomeFocusPair(fromUrl, toUrl) {
+      const fromName = getLocalPageName(fromUrl);
+      const toName = getLocalPageName(toUrl);
+      return (fromName === 'home.html' && toName === 'focus.html') ||
+        (fromName === 'focus.html' && toName === 'home.html');
+    }
+
+    function getFrameMeta(frame, create = false, safeUrl = null) {
+      if (!frame) return null;
+      let meta = frameMetaMap.get(frame);
+      if (!meta && create) {
+        meta = {
+          key: getPageInstanceKey(safeUrl),
+          tabIds: new Set(),
+          ready: false,
+          shareable: true,
+          nonShareReason: '',
+          uiSignature: '',
+          uiObserver: null,
+          uiCheckTimer: null,
+          documentUrl: safeUrl || null,
+          pendingDirectNavigation: null,
+          navigationGuardUntil: 0,
+          navigationWakeTimers: [],
+          createdAt: performance.now()
+        };
+        frameMetaMap.set(frame, meta);
+      }
+      return meta || null;
+    }
+
+    function indexPhysicalFrame(frame, key) {
+      if (!frame || !key) return;
+      let frames = reusableFrameIndex.get(key);
+      if (!frames) {
+        frames = new Set();
+        reusableFrameIndex.set(key, frames);
+      }
+      frames.add(frame);
+    }
+
+    function unindexPhysicalFrame(frame, key) {
+      if (!frame || !key) return;
+      const frames = reusableFrameIndex.get(key);
+      if (!frames) return;
+      frames.delete(frame);
+      if (!frames.size) reusableFrameIndex.delete(key);
+    }
+
+    function registerTabFrame(tabId, frame, safeUrl) {
+      const meta = getFrameMeta(frame, true, safeUrl);
+      meta.tabIds.add(tabId);
+      iframeMap.set(tabId, frame);
+      if (meta.key && meta.shareable) indexPhysicalFrame(frame, meta.key);
+      return meta;
+    }
+
+    function markPhysicalFrameReady(frame, currentUrl) {
+      const meta = getFrameMeta(frame, true, currentUrl);
+      const nextKey = getPageInstanceKey(currentUrl);
+      if (nextKey && meta.key !== nextKey) {
+        unindexPhysicalFrame(frame, meta.key);
+        meta.key = nextKey;
+        // A completed navigation is a fresh share candidate only when it is not already
+        // representing several logical tabs.
+        meta.shareable = meta.tabIds.size <= 1;
+        meta.nonShareReason = meta.shareable ? '' : 'shared-navigation';
+      }
+      meta.ready = true;
+      if (meta.key && meta.shareable) indexPhysicalFrame(frame, meta.key);
+      else unindexPhysicalFrame(frame, meta.key);
+    }
+
+    function markPhysicalFrameNonShareable(frame, reason) {
+      const meta = getFrameMeta(frame);
+      if (!meta || !meta.shareable) return;
+      meta.shareable = false;
+      meta.nonShareReason = reason || 'interaction';
+      unindexPhysicalFrame(frame, meta.key);
+      if (meta.uiCheckTimer !== null) clearTimeout(meta.uiCheckTimer);
+      if (meta.uiObserver) meta.uiObserver.disconnect();
+      meta.uiCheckTimer = null;
+      meta.uiObserver = null;
+    }
+
+    // Shared iframes use copy-on-interaction. As long as several tabs show the same untouched
+    // document they share one renderer/document. Immediately before one tab can change that
+    // document, the other logical tabs are moved to one fresh baseline iframe. This preserves
+    // most of the memory saving without making a popup, form edit or scroll leak into every tab.
+    // 修复：原选择器遗漏大量实际弹窗实现（.sphere-modal、.flatpickr-calendar.open 等），
+    //       导致弹窗在共享文档上插入后未触发分叉，进而所有共享标签都能看到弹窗。
+    const UI_STATE_SELECTOR = [
+      'dialog', '[role="dialog"]', '[aria-modal="true"]', '[popover]',
+      '.modal', '.popup', '.popover', '.drawer', '.overlay', '.sheet', '.toast',
+      '.sphere-modal', '.flatpickr-calendar.open', '.custom-monet-title',
+      '.monet-selector', '[data-modal]', '.confirm-box', '.alert-box'
+    ].join(',');
+
+    // 增强版：覆盖更广的弹窗/遮罩形态，同时兼容未命中选择器的纯文本弹窗
+    function getLightweightUiSignature(doc) {
+      if (!doc || !doc.documentElement) return '';
+      const parts = [];
+      let candidates = [];
+      try { candidates = doc.querySelectorAll(UI_STATE_SELECTOR); } catch (_) {}
+      const limit = Math.min(candidates.length, 16);
+      for (let i = 0; i < limit; i++) {
+        const el = candidates[i];
+        if (!el || el.hidden || el.inert || el.getAttribute('aria-hidden') === 'true') continue;
+        const inlineStyle = (el.getAttribute('style') || '').replace(/\s+/g, '').toLowerCase();
+        if (/display:none|visibility:hidden|opacity:0(?:;|$)/.test(inlineStyle)) continue;
+        const relevantClasses = [...el.classList]
+          .filter(name => /modal|popup|popover|drawer|overlay|sheet|toast|open|show|active|visible|sphere/i.test(name))
+          .slice(0, 4).sort().join('.');
+        parts.push(`${el.tagName}:${el.id || ''}:${relevantClasses}:${el.hasAttribute('open') ? 1 : 0}`);
+      }
+      const body = doc.body;
+      if (body) {
+        const bodyState = [...body.classList]
+          .filter(name => /modal|popup|dialog|drawer|overlay|open|locked|sphere/i.test(name))
+          .slice(0, 6).sort().join('.');
+        if (bodyState) parts.push(`body:${bodyState}`);
+      }
+      // 滚动由捕获阶段的专用监听器处理，不在 DOM 签名中重复读取，避免无谓布局查询。
+      return parts.join('|');
+    }
+
+    function initializeForkedFrame(frame, fallbackUrl, probeTabId) {
+      const init = () => {
+        if (!frame.isConnected) return;
+        try {
+          const doc = frame.contentDocument || (frame.contentWindow ? frame.contentWindow.document : null);
+          if (!doc || doc.readyState === 'loading' || doc.URL === 'about:blank') return;
+          const currentUrl = getIframePageRelativeUrl(frame) || fallbackUrl;
+          markPhysicalFrameReady(frame, currentUrl);
+          applyThrottleToIframe(frame, currentThrottleState);
+          installNavigationBridge(doc, frame);
+          injectGlobalRuntime(doc, frame);
+          if (doc.title) {
+            for (const linkedTabId of getLinkedTabIds(frame, probeTabId)) {
+              const tab = tabDataMap.get(linkedTabId);
+              if (tab) tab.title = doc.title;
+              updateTabTitle(linkedTabId, doc.title);
+            }
+          }
+          notifyFrameSleep(frame);
+        } catch (_) {}
+      };
+
+      watchFrameReady(probeTabId, frame, init);
+      frame.addEventListener('load', () => {
+        cancelFrameReadyProbe(probeTabId);
+        init();
+      });
+    }
+
+    function splitSharedFrameBeforeMutation(frame, reason) {
+      const meta = getFrameMeta(frame);
+      if (!meta) return;
+      if (meta.tabIds.size <= 1) {
+        markPhysicalFrameNonShareable(frame, reason);
+        return;
+      }
+
+      const linkedIds = [...meta.tabIds];
+      const keeperTabId = linkedIds.includes(activeTabId) ? activeTabId : linkedIds[0];
+      const forkTabIds = linkedIds.filter(id => id !== keeperTabId && tabDataMap.has(id));
+      if (!forkTabIds.length) {
+        markPhysicalFrameNonShareable(frame, reason);
+        return;
+      }
+
+      const currentUrl = getIframePageRelativeUrl(frame) || tabDataMap.get(keeperTabId)?.url;
+      const safeUrl = normalizeLocalPageUrl(currentUrl || '');
+      if (!safeUrl) {
+        markPhysicalFrameNonShareable(frame, reason);
+        return;
+      }
+
+      // The interacting tab keeps the live document, so the event can continue without delay.
+      // All untouched siblings still have identical state and can share one newly loaded frame.
+      unindexPhysicalFrame(frame, meta.key);
+      meta.tabIds = new Set([keeperTabId]);
+      meta.shareable = false;
+      meta.nonShareReason = reason || 'ui-diverged';
+      if (meta.uiCheckTimer !== null) {
+        clearTimeout(meta.uiCheckTimer);
+        meta.uiCheckTimer = null;
+      }
+      if (meta.uiObserver) {
+        meta.uiObserver.disconnect();
+        meta.uiObserver = null;
+      }
+
+      const fork = document.createElement('iframe');
+      fork.id = `iframe-fork-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+      fork.className = 'content-frame';
+      fork.src = safeUrl;
+      fork.referrerPolicy = 'no-referrer';
+      fork.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-modals allow-downloads allow-popups allow-popups-to-escape-sandbox');
+      fork.setAttribute('allow', "clipboard-read 'self'; clipboard-write 'self'");
+      fork.style.display = 'none';
+      fork.inert = true;
+      fork.setAttribute('aria-hidden', 'true');
+
+      const forkMeta = getFrameMeta(fork, true, safeUrl);
+      forkMeta.tabIds = new Set(forkTabIds);
+      for (const tabId of forkTabIds) {
+        iframeMap.set(tabId, fork);
+        // 分叉标签保持其已持久化的滚动快照，新 fork 默认回到顶部
+        if (!tabScrollSnapshot.has(tabId)) {
+          tabScrollSnapshot.set(tabId, {
+            pageKey: getPageInstanceKey(safeUrl),
+            root: { x: 0, y: 0 },
+            elements: new Map()
+          });
+        }
+      }
+      if (forkMeta.key) indexPhysicalFrame(fork, forkMeta.key);
+
+      iframeContainer.appendChild(fork);
+      if (fork.contentWindow) knownFrameSources.add(fork.contentWindow);
+      initializeForkedFrame(fork, safeUrl, forkTabIds[0]);
+    }
+
+    function scheduleSharedUiStateCheck(frame, doc) {
+      const meta = getFrameMeta(frame);
+      if (!meta || meta.uiCheckTimer !== null) return;
+      // 使用 32ms 的轻量防抖，既能合并同一帧内的多次插入，又能避免 80ms 的明显延迟导致切换时仍共享
+      meta.uiCheckTimer = setTimeout(() => {
+        meta.uiCheckTimer = null;
+        if (!frame.isConnected || !meta.shareable) return;
+        const nextSignature = getLightweightUiSignature(doc);
+        if (nextSignature !== meta.uiSignature) {
+          splitSharedFrameBeforeMutation(frame, 'ui-state');
+        }
+        meta.uiSignature = nextSignature;
+      }, 32);
+    }
+
+    function installSharedUiStateGuard(doc, frame) {
+      const meta = getFrameMeta(frame);
+      if (!doc || !doc.documentElement || !meta || !meta.shareable || meta.uiObserver) return;
+      meta.uiSignature = getLightweightUiSignature(doc);
+      // 初始加载期（~1200ms）内的批量 DOM 构建（任务列表、图表等）不应视为分叉信号
+      const GRACE_MS = 1200;
+      const modalClassPattern = /modal|popup|popover|drawer|overlay|sheet|toast|dialog|sphere|open|show|active|visible|locked/i;
+      function isModalLikeElement(el) {
+        if (!el || !el.classList) return false;
+        for (const c of el.classList) if (modalClassPattern.test(c)) return true;
+        return false;
+      }
+      meta.uiObserver = new MutationObserver((records) => {
+        if (!meta.shareable) return;
+        if (performance.now() - meta.createdAt < GRACE_MS) return;
+        let relevant = false;
+        for (const record of records) {
+          if (record.type === 'attributes') {
+            const target = record.target && record.target.nodeType === 1 ? record.target : null;
+            if (!target) continue;
+            if (target === doc.body) { relevant = true; break; }
+            if (target.matches?.(UI_STATE_SELECTOR) || target.closest?.(UI_STATE_SELECTOR)) { relevant = true; break; }
+            if (isModalLikeElement(target)) { relevant = true; break; }
+            // style 从 hidden 到 visible 的切换也需捕获
+            if (record.attributeName === 'style' || record.attributeName === 'open' || record.attributeName === 'hidden') {
+              // 仅当该元素可能是遮罩/弹窗时才视为相关，避免任务卡片 hover 类名触发
+              if (target.hasAttribute('open') || target.getAttribute('aria-modal') === 'true' || isModalLikeElement(target) || target.matches?.('dialog,[popover]')) {
+                relevant = true; break;
+              }
+            }
+          } else if (record.type === 'childList') {
+            for (const node of record.addedNodes) {
+              if (node.nodeType !== 1) continue;
+              const tag = node.tagName;
+              if (tag === 'SCRIPT' || tag === 'STYLE' || tag === 'LINK' || tag === 'TEMPLATE') continue;
+              if (node.matches?.(UI_STATE_SELECTOR) || node.querySelector?.(UI_STATE_SELECTOR)) { relevant = true; break; }
+              if (isModalLikeElement(node)) { relevant = true; break; }
+              // 兜底：新插入的固定定位大元素很可能是弹窗/抽屉
+              try {
+                const cs = doc.defaultView ? doc.defaultView.getComputedStyle(node) : null;
+                if (cs && (cs.position === 'fixed' || cs.position === 'absolute') && cs.display !== 'none') {
+                  const rect = node.getBoundingClientRect();
+                  if (rect.width > 160 && rect.height > 100) { relevant = true; break; }
+                }
+              } catch (_) {}
+            }
+            if (relevant) break;
+            for (const node of record.removedNodes) {
+              if (node.nodeType === 1 && (node.matches?.(UI_STATE_SELECTOR) || node.querySelector?.(UI_STATE_SELECTOR) || isModalLikeElement(node))) {
+                relevant = true; break;
+              }
+            }
+            if (relevant) break;
+          }
+        }
+        if (relevant) scheduleSharedUiStateCheck(frame, doc);
+      });
+      meta.uiObserver.observe(doc.documentElement, {
+        subtree: true,
+        childList: true,
+        attributes: true,
+        attributeFilter: ['class', 'style', 'open', 'hidden', 'inert', 'aria-hidden', 'aria-modal']
+      });
+    }
+
+    function findReusableFrame(safeUrl) {
+      const key = getPageInstanceKey(safeUrl);
+      const frames = key ? reusableFrameIndex.get(key) : null;
+      if (!frames) return null;
+
+      for (const frame of frames) {
+        const meta = getFrameMeta(frame);
+        if (!frame.isConnected || !meta || !meta.shareable || !meta.tabIds.size) {
+          if (!frame.isConnected) frames.delete(frame);
+          continue;
+        }
+        // A still-loading frame is pristine by definition and is safe to coalesce.
+        if (!meta.ready && meta.key === key) return frame;
+        const liveUrl = getIframePageRelativeUrl(frame);
+        if (getPageInstanceKey(liveUrl) === key) return frame;
+      }
+      if (!frames.size) reusableFrameIndex.delete(key);
+      return null;
+    }
+
+    function getLinkedTabIds(frame, fallbackTabId) {
+      const meta = getFrameMeta(frame);
+      if (meta && meta.tabIds.size) return [...meta.tabIds];
+      return fallbackTabId ? [fallbackTabId] : [];
+    }
+
+    function normalizeChildPageUrl(rawUrl, childDoc) {
+      if (typeof rawUrl !== 'string') return null;
+      try {
+        const resolved = new URL(rawUrl, childDoc && childDoc.baseURI ? childDoc.baseURI : APP_BASE_URL);
+        const path = decodeURIComponent(resolved.pathname);
+        const sameContainer = resolved.protocol === APP_BASE_URL.protocol &&
+          (APP_BASE_URL.protocol === 'file:' || resolved.origin === APP_BASE_URL.origin) &&
+          path.startsWith(APP_BASE_PATH);
+        if (!sameContainer || !/\.html$/i.test(path)) return null;
+        return path.slice(APP_BASE_PATH.length) + resolved.search + resolved.hash;
+      } catch (_) {
+        return null;
+      }
+    }
+
+    // A single delegated listener and a window.open bridge replace the old onclick-source
+    // scanning. Local pages become logical tabs without spawning extra Electron windows.
+    function installNavigationBridge(doc, iframe) {
+      if (!doc || doc.__alphaNavigationBridgeInstalled) return;
+      const childWindow = doc.defaultView;
+      if (!childWindow) return;
+      doc.__alphaNavigationBridgeInstalled = true;
+
+      // Home/Focus 使用 window.location.href 在同一个 iframe 内原地换文档。
+      // pagehide 发生时先清掉 wrapper 尚未结束的进退场任务，避免这些旧任务在
+      // 新文档首帧之后继续把同一个 iframe 设为 inert、隐藏或休眠。
+      const installedDocumentUrl = getIframePageRelativeUrl(iframe) || doc.URL || '';
+      const installedFrameMeta = getFrameMeta(iframe, true, installedDocumentUrl);
+      installedFrameMeta.documentUrl = installedDocumentUrl;
+      childWindow.addEventListener('pagehide', () => {
+        const liveMeta = getFrameMeta(iframe);
+        if (!liveMeta) return;
+        liveMeta.pendingDirectNavigation = {
+          fromUrl: getIframePageRelativeUrl(iframe) || installedDocumentUrl,
+          startedAt: performance.now()
+        };
+        liveMeta.navigationGuardUntil = performance.now() + 2200;
+        if (liveMeta.uiCheckTimer !== null) clearTimeout(liveMeta.uiCheckTimer);
+        if (liveMeta.uiObserver) liveMeta.uiObserver.disconnect();
+        liveMeta.uiCheckTimer = null;
+        liveMeta.uiObserver = null;
+        liveMeta.uiSignature = '';
+        try { cleanupTooltipTree(doc); } catch (_) {}
+        if (iframe === activeFrameCache || iframeMap.get(activeTabId) === iframe) {
+          cancelFrameActivation(iframe);
+          cancelFrameExit(iframe);
+          cancelSharedFrameSwitch(iframe);
+          iframe.className = 'content-frame active';
+          iframe.style.display = 'block';
+          iframe.style.opacity = '1';
+          iframe.inert = false;
+          iframe.removeAttribute('aria-hidden');
+        }
+      }, { capture: true, once: true });
+
+      const markInteraction = (reason) => {
+        if (activeTabId && iframeMap.get(activeTabId) === iframe) {
+          cancelTabScrollRestore(activeTabId);
+          scrollRestoreFrames.delete(iframe);
+        }
+        const meta = getFrameMeta(iframe);
+        if (!meta || !meta.shareable) return;
+        // 同步捕获当前滚动，确保分叉后 keeper 仍保留精确滚动位置
+        if (activeTabId && iframeMap.get(activeTabId) === iframe) {
+          try { captureTabScroll(activeTabId, null, { includeTracked: true }); } catch (_) {}
+        }
+        splitSharedFrameBeforeMutation(iframe, reason);
+      };
+      if (Math.abs(childWindow.scrollX || 0) > 1 || Math.abs(childWindow.scrollY || 0) > 1) {
+        markInteraction('initial-scroll');
+      } else {
+        for (const tid of getLinkedTabIds(iframe)) {
+          if (!tabScrollSnapshot.has(tid)) {
+            tabScrollSnapshot.set(tid, {
+              pageKey: getFrameScrollPageKey(iframe, tid),
+              root: { x: 0, y: 0 },
+              elements: new Map()
+            });
+          }
+        }
+      }
+      // ---- 高可靠 copy-on-write：任何可能导致 UI 分叉的用户交互都在 DOM 变更前同步分叉 ----
+      // 相比原先仅监听 wheel/touchmove/scroll 一次，扩大到 pointer/keyboard 等早于 DOM 变更的事件，
+      // 并移除 once:true，确保首次交互后共享文档必定在弹窗插入前完成隔离，代价仅为一次同步的 Set 操作。
+      const preFork = (reason) => markInteraction(reason);
+      doc.addEventListener('pointerdown', () => preFork('pointer'), { capture: true, passive: true });
+      if (!childWindow.PointerEvent) {
+        doc.addEventListener('mousedown', () => preFork('pointer'), { capture: true, passive: true });
+        doc.addEventListener('touchstart', () => preFork('scroll'), { capture: true, passive: true });
+      }
+      doc.addEventListener('keydown', () => preFork('keyboard'), { capture: true, passive: true });
+      doc.addEventListener('wheel', () => preFork('scroll'), { capture: true, passive: true });
+      // scroll 同时负责：共享帧即时分叉 + rAF 合并保存根滚动和内部滚动容器。
+      const pendingScrollTargets = new Set();
+      let scrollSaveRaf = null;
+      const handleScrollForSnapshotAndFork = (event) => {
+        if (wrapperWindowSuspending && document.hasFocus()) {
+          // 焦点只是进入同窗口 iframe，并非应用真正失焦。
+          wrapperWindowSuspending = false;
+          wrapperWindowActive = true;
+        }
+        if (!wrapperWindowActive || wrapperWindowSuspending) return;
+        // wrapper 自己执行的瞬时位置恢复会产生 scroll 事件；它不是用户交互，
+        // 不能据此分叉共享 iframe，也不能反向覆盖刚恢复的快照。
+        if ((scrollRestoreFrames.get(iframe) || 0) > performance.now()) return;
+        const target = event && event.target && event.target !== doc ? event.target : null;
+        if (target) pendingScrollTargets.add(target);
+        const meta = getFrameMeta(iframe);
+        if (meta && meta.shareable) {
+          if (meta.tabIds.size > 1) {
+            // 滚动本身已改变共享文档的视口，需立即分叉以避免其他共享标签继承该偏移。
+            splitSharedFrameBeforeMutation(iframe, 'scroll');
+          } else {
+            // 即便目前只有一个标签，发生过程序化滚动的帧也不再是“初始同状态”，
+            // 后续新建同文件标签时不得把它误当作可合并基线。
+            markPhysicalFrameNonShareable(iframe, 'scroll');
+          }
+        }
+        if (scrollSaveRaf !== null) return;
+        scrollSaveRaf = requestAnimationFrame(() => {
+          scrollSaveRaf = null;
+          // 后台页的 sleep/resize 可能程序化触发 scroll=0；不能让它覆盖失焦前快照。
+          if (!wrapperWindowActive || wrapperWindowSuspending || !activeTabId || iframeMap.get(activeTabId) !== iframe) {
+            pendingScrollTargets.clear();
+            return;
+          }
+          if (!pendingScrollTargets.size) {
+            captureTabScroll(activeTabId);
+          } else {
+            for (const scrollTarget of pendingScrollTargets) captureTabScroll(activeTabId, scrollTarget);
+          }
+          pendingScrollTargets.clear();
+        });
+      };
+      doc.addEventListener('scroll', handleScrollForSnapshotAndFork, { capture: true, passive: true });
+      try { childWindow.addEventListener('scroll', handleScrollForSnapshotAndFork, { passive: true }); } catch (_) {}
+      // 输入类：beforeinput 早于 DOM 变更，input/change 为兜底
+      doc.addEventListener('beforeinput', () => preFork('input'), { capture: true, passive: true });
+      doc.addEventListener('input', () => preFork('input'), { capture: true, passive: true });
+      doc.addEventListener('change', () => preFork('change'), { capture: true, passive: true });
+      doc.addEventListener('submit', () => preFork('submit'), { capture: true, passive: true });
+      doc.addEventListener('beforetoggle', (event) => {
+        if (event.newState === 'open') preFork('popover');
+      }, { capture: true, passive: true });
+      installSharedUiStateGuard(doc, iframe);
+
+      if (!childWindow.__alphaOriginalOpen) {
+        childWindow.__alphaOriginalOpen = childWindow.open.bind(childWindow);
+        childWindow.open = function(rawUrl, target, features) {
+          markInteraction('popup');
+          const localUrl = normalizeChildPageUrl(String(rawUrl || ''), doc);
+          if (localUrl) {
+            window.ALPHA.navigate(localUrl, 'new');
+            return null;
+          }
+          try {
+            const externalUrl = new URL(String(rawUrl || ''), doc.baseURI).href;
+            if (secureOpenExternal(externalUrl)) return null;
+          } catch (_) {}
+          // Preserve non-URL browser uses (for example an empty named window) as a fallback.
+          return childWindow.__alphaOriginalOpen(rawUrl, target, features);
+        };
+      }
+
+      doc.addEventListener('click', (event) => {
+        const target = event.target && event.target.nodeType === 1 ? event.target : null;
+        if (!target) return;
+
+        const interactive = target.closest('button, [role="button"], input, select, textarea, [contenteditable="true"], summary');
+        if (interactive) markInteraction('control');
+
+        // Compatibility for legacy pages that still navigate from an inline onclick. Unlike
+        // the previous implementation, only the actually clicked onclick element is inspected;
+        // ordinary clicks do not walk and parse every ancestor.
+        const inlineNavigator = target.closest('[onclick]');
+        if (inlineNavigator) {
+          const inlineCode = inlineNavigator.getAttribute('onclick') || '';
+          if (!/ALPHA\.back|goBack/.test(inlineCode)) {
+            const match = inlineCode.match(/['"]([^'"]+\.html(?:[?#][^'"]*)?)['"]/i);
+            const inlineUrl = match ? normalizeChildPageUrl(match[1], doc) : null;
+            if (inlineUrl) {
+              const customMode = inlineNavigator.getAttribute('data-nav-mode') || 'auto';
+              const openNewTab = localStorage.getItem('alpha_open_new_tab') !== 'false';
+              const finalMode = !openNewTab ? 'current' :
+                (customMode === 'auto' ? window.ALPHA.config.linkMode : customMode);
+              event.preventDefault();
+              event.stopImmediatePropagation();
+              window.ALPHA.navigate(inlineUrl, finalMode, { transition: 'forward' });
+              return;
+            }
+          }
+        }
+
+        const anchor = target.closest('a[href]');
+        if (!anchor || anchor.hasAttribute('download')) return;
+        const rawHref = anchor.getAttribute('href');
+        if (!rawHref) return;
+        if (rawHref.startsWith('#')) {
+          markInteraction('anchor');
+          return;
+        }
+        if (/^javascript:/i.test(rawHref)) {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          return;
+        }
+
+        const safeHref = normalizeChildPageUrl(rawHref, doc);
+        if (!safeHref) {
+          try {
+            const externalUrl = new URL(rawHref, doc.baseURI).href;
+            if (secureOpenExternal(externalUrl)) {
+              event.preventDefault();
+              event.stopImmediatePropagation();
+            }
+          } catch (_) {}
+          return;
+        }
+
+        const customMode = anchor.getAttribute('data-nav-mode');
+        const targetMode = (anchor.getAttribute('target') || '').toLowerCase();
+        let mode = customMode || 'auto';
+        if (!customMode && targetMode === '_blank') mode = 'new';
+        else if (!customMode && targetMode === '_self') mode = 'current';
+
+        const openNewTab = localStorage.getItem('alpha_open_new_tab') !== 'false';
+        const finalMode = !openNewTab ? 'current' :
+          (mode === 'auto' ? window.ALPHA.config.linkMode : mode);
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        window.ALPHA.navigate(safeHref, finalMode, { transition: 'forward' });
+      }, true);
+    }
+
     // =========================================================================
     // ======= 智能空闲预热与休眠预渲染池引擎 (Idle Pre-warm & Dormant Pool Engine) =======
     // =========================================================================
+    // Loading five complete pages in the background costs more than it saves in an Electron
+    // wrapper. Keep the old pool available only as an explicit diagnostic/legacy opt-in.
+    const ENABLE_IFRAME_PREWARM = localStorage.getItem('alpha_enable_iframe_prewarm') === 'true';
     const PrewarmPool = {
       pool: new Map(),           // safeUrl -> iframeElement
       pendingQueue: [],          // Array<{ url: string, priority: string }>
@@ -1983,6 +3002,24 @@
 
       // 高频核心次级目标页列表 (按使用频率与加载复杂度排序)
       CORE_TARGETS: ['TaskHub.html', 'TaskTimer.html', 'TaskFlow.html', 'settings.html', 'Account.html'],
+
+      evictAll() {
+        for (const [url, iframe] of this.pool.entries()) {
+          try {
+            iframe.remove();
+          } catch (_) {}
+        }
+        this.pool.clear();
+        this.inFlight.clear();
+        this.pendingQueue = [];
+        if (this.idleTimerId !== null) {
+          if (typeof cancelIdleCallback === 'function') cancelIdleCallback(this.idleTimerId);
+          else clearTimeout(this.idleTimerId);
+          this.idleTimerId = null;
+        }
+        this.isProcessing = false;
+        this.started = false;
+      },
 
       has(url) {
         const safeUrl = normalizeLocalPageUrl(url);
@@ -2005,6 +3042,7 @@
 
       // 预热指定页面 (支持 idle 空闲排队 与 high 意图悬停插队)
       prewarm(url, priority = 'idle') {
+        if (!ENABLE_IFRAME_PREWARM) return;
         const safeUrl = normalizeLocalPageUrl(url);
         if (!safeUrl) return;
         
@@ -2117,13 +3155,202 @@
 
       // 启动全量后台错峰空闲预热
       startIdlePrewarm() {
-        if (this.started) return;
+        if (!ENABLE_IFRAME_PREWARM || this.started) return;
         this.started = true;
         for (const target of this.CORE_TARGETS) {
           this.prewarm(target, 'idle');
         }
       }
     };
+
+    // ================= 单标签模式的双帧页面切换 =================
+    // 导航期间只短暂并存旧/新两个 iframe；新页就绪后交错滑动，动画结束立刻释放旧页。
+    // 这样既能呈现真正的前进/后退方向，也不会常驻额外 renderer。
+    const currentPageNavigationJobs = new Map();
+
+    function cloneScrollSnapshot(snapshot) {
+      if (!snapshot) return null;
+      return {
+        pageKey: snapshot.pageKey || null,
+        root: { x: snapshot.root?.x || snapshot.x || 0, y: snapshot.root?.y || snapshot.y || 0 },
+        elements: new Map(snapshot.elements instanceof Map ? snapshot.elements : []),
+        capturedAt: snapshot.capturedAt || performance.now()
+      };
+    }
+
+    function rememberCurrentHistoryScroll(tab) {
+      if (!tab || !Number.isInteger(tab.historyIndex)) return;
+      captureTabScroll(tab.id, null, { includeTracked: true });
+      if (!(tab.historyScroll instanceof Map)) tab.historyScroll = new Map();
+      const snapshot = cloneScrollSnapshot(tabScrollSnapshot.get(tab.id));
+      if (snapshot) tab.historyScroll.set(tab.historyIndex, snapshot);
+    }
+
+    function trimHistoryScroll(tab, maxIndex) {
+      if (!(tab?.historyScroll instanceof Map)) return;
+      for (const index of tab.historyScroll.keys()) {
+        if (index > maxIndex) tab.historyScroll.delete(index);
+      }
+    }
+
+    function initializeCurrentNavigationDocument(tabId, frame, safeUrl) {
+      try {
+        const doc = frame.contentDocument || (frame.contentWindow ? frame.contentWindow.document : null);
+        if (!doc || doc.readyState === 'loading' || doc.URL === 'about:blank') return false;
+        const currentUrl = getIframePageRelativeUrl(frame) || safeUrl;
+        markPhysicalFrameReady(frame, currentUrl);
+        applyThrottleToIframe(frame, currentThrottleState);
+        if (!doc.__alphaInstalled) doc.__alphaInstalled = true;
+        installNavigationBridge(doc, frame);
+        injectGlobalRuntime(doc, frame);
+        if (doc.title) updateTabTitle(tabId, doc.title);
+        return true;
+      } catch (_) {
+        return false;
+      }
+    }
+
+    function cancelCurrentPageNavigation(tabId) {
+      const job = currentPageNavigationJobs.get(tabId);
+      if (!job) return;
+      currentPageNavigationJobs.delete(tabId);
+      if (job.timeoutId !== null) clearTimeout(job.timeoutId);
+      cancelFrameReadyProbe(tabId);
+      if (iframeMap.get(tabId) !== job.candidateFrame) disposeDetachedPhysicalFrame(job.candidateFrame);
+    }
+
+    function navigateCurrentTab(safeUrl, options = {}) {
+      const tabId = activeTabId;
+      const tab = tabDataMap.get(tabId);
+      const oldFrame = iframeMap.get(tabId);
+      if (!tabId || !tab || !oldFrame) return false;
+
+      const transitionPreset = normalizeContentTransition(options.transition, 'forward');
+      cancelCurrentPageNavigation(tabId);
+
+      const candidateFrame = document.createElement('iframe');
+      candidateFrame.id = `iframe-nav-${tabId}-${Date.now()}`;
+      candidateFrame.className = 'content-frame';
+      candidateFrame.src = safeUrl;
+      candidateFrame.referrerPolicy = 'no-referrer';
+      candidateFrame.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-modals allow-downloads allow-popups allow-popups-to-escape-sandbox');
+      candidateFrame.setAttribute('allow', "clipboard-read 'self'; clipboard-write 'self'");
+      candidateFrame.style.display = 'none';
+      candidateFrame.inert = true;
+      candidateFrame.setAttribute('aria-hidden', 'true');
+      getFrameMeta(candidateFrame, true, safeUrl);
+      iframeContainer.appendChild(candidateFrame);
+      if (candidateFrame.contentWindow) knownFrameSources.add(candidateFrame.contentWindow);
+
+      const job = {
+        tabId,
+        oldFrame,
+        candidateFrame,
+        safeUrl,
+        transitionPreset,
+        restoreSnapshot: cloneScrollSnapshot(options.restoreSnapshot),
+        timeoutId: null,
+        activated: false
+      };
+      currentPageNavigationJobs.set(tabId, job);
+
+      const activateCandidate = () => {
+        const currentJob = currentPageNavigationJobs.get(tabId);
+        if (currentJob !== job || job.activated || !candidateFrame.isConnected) return;
+        job.activated = true;
+        if (job.timeoutId !== null) clearTimeout(job.timeoutId);
+        cancelFrameReadyProbe(tabId);
+
+        // 旧帧在动画期间继续存在，但从逻辑标签引用和复用索引中解除。
+        const mayDisposeOldFrame = detachTabFrameReference(tabId, oldFrame);
+        registerTabFrame(tabId, candidateFrame, safeUrl);
+        initializeCurrentNavigationDocument(tabId, candidateFrame, safeUrl);
+        tabScrollSnapshot.set(tabId, job.restoreSnapshot || {
+          pageKey: getPageInstanceKey(safeUrl),
+          root: { x: 0, y: 0 },
+          elements: new Map()
+        });
+
+        const isStillActive = activeTabId === tabId;
+        const reduceMotion = localStorage.getItem('alpha_reduce_motion') === 'true';
+        const animate = ENABLE_FRAME_TRANSITIONS && !reduceMotion && transitionPreset !== 'instant';
+
+        const retireOldFrame = () => {
+          if (mayDisposeOldFrame) {
+            disposeDetachedPhysicalFrame(oldFrame);
+            return;
+          }
+          // 快速操作时，用户可能已切到仍引用旧物理帧的另一个标签；此时不能再隐藏它。
+          if (activeFrameCache === oldFrame || iframeMap.get(activeTabId) === oldFrame) return;
+          oldFrame.className = 'content-frame';
+          oldFrame.style.opacity = '';
+          oldFrame.style.display = 'none';
+          oldFrame.inert = true;
+          oldFrame.setAttribute('aria-hidden', 'true');
+          notifyFrameSleep(oldFrame);
+        };
+
+        if (!isStillActive) {
+          candidateFrame.className = 'content-frame';
+          candidateFrame.style.display = 'none';
+          candidateFrame.inert = true;
+          candidateFrame.setAttribute('aria-hidden', 'true');
+          notifyFrameSleep(candidateFrame);
+          retireOldFrame();
+          currentPageNavigationJobs.delete(tabId);
+          return;
+        }
+
+        activeFrameCache = candidateFrame;
+        candidateFrame.style.display = 'block';
+        candidateFrame.inert = false;
+        candidateFrame.removeAttribute('aria-hidden');
+
+        if (!animate) {
+          candidateFrame.className = 'content-frame active';
+          notifyFrameWake(candidateFrame, { isInstant: true });
+          retireOldFrame();
+        } else {
+          const enterClass = transitionPreset === 'toolbar' ? 'enter-top' :
+            transitionPreset === 'back' ? 'enter-left' : 'enter-right';
+          const exitClass = transitionPreset === 'toolbar' ? 'exit-depth' :
+            transitionPreset === 'back' ? 'exit-right' : 'exit-left';
+          oldFrame.className = `content-frame ${exitClass}`;
+          oldFrame.inert = true;
+          oldFrame.setAttribute('aria-hidden', 'true');
+          candidateFrame.className = `content-frame ${enterClass}`;
+          scheduleFrameActivation(candidateFrame, tabId, isHomeTab(tabId));
+
+          let disposed = false;
+          const disposeOld = (event) => {
+            if (disposed) return;
+            if (event && event.target !== oldFrame) return;
+            if (event && !['transform', 'opacity', 'filter'].includes(event.propertyName)) return;
+            disposed = true;
+            oldFrame.removeEventListener('transitionend', disposeOld);
+            retireOldFrame();
+          };
+          oldFrame.addEventListener('transitionend', disposeOld);
+          setTimeout(disposeOld, FRAME_TRANSITION_TIMEOUT + 40);
+        }
+
+        scheduleRestoreTabScroll(candidateFrame, tabId, { extended: true });
+        currentPageNavigationJobs.delete(tabId);
+      };
+
+      watchFrameReady(tabId, candidateFrame, activateCandidate);
+      candidateFrame.addEventListener('load', () => {
+        if (currentPageNavigationJobs.get(tabId) === job) activateCandidate();
+        else if (iframeMap.get(tabId) === candidateFrame) {
+          initializeCurrentNavigationDocument(tabId, candidateFrame, safeUrl);
+          if (activeTabId === tabId) scheduleRestoreTabScroll(candidateFrame, tabId, { extended: true });
+          else notifyFrameSleep(candidateFrame);
+        }
+      });
+      // 本地页面通常会在数十毫秒内 ready；异常页面最多等待 2.5s 后仍切入其加载态。
+      job.timeoutId = setTimeout(activateCandidate, 2500);
+      return true;
+    }
 
     // ================= ① 开放式自定义路由与【原生物理历史引擎】 =================
     window.ALPHA = {
@@ -2134,32 +3361,57 @@
       prewarm: function(url) {
         PrewarmPool.prewarm(url, 'high');
       },
+
+      getPerformanceStats: function() {
+        const physicalFrames = new Set(iframeMap.values());
+        return {
+          logicalTabs: tabs.length,
+          physicalFrames: physicalFrames.size,
+          sharedInstances: [...physicalFrames].filter(frame => {
+            const meta = getFrameMeta(frame);
+            return !!meta && meta.tabIds.size > 1;
+          }).length,
+          prewarmEnabled: ENABLE_IFRAME_PREWARM,
+          frameTransitionsEnabled: ENABLE_FRAME_TRANSITIONS
+        };
+      },
       
-      navigate: function(url, mode = 'auto') {
+      navigate: function(url, mode = 'auto', options = {}) {
         const safeUrl = normalizeLocalPageUrl(url);
         if (!safeUrl) {
           secureOpenExternal(url);
           return false;
         }
+        if (!options || typeof options !== 'object') options = {};
+        const transitionPreset = normalizeContentTransition(options.transition, 'forward');
         const openNewTab = localStorage.getItem('alpha_open_new_tab') !== 'false';
         const finalMode = !openNewTab ? 'current' : ((mode === 'auto') ? this.config.linkMode : mode);
         if (finalMode === 'new') {
-          requestAnimationFrame(() => createNewTab(safeUrl, "加载中..."));
+          queueMicrotask(() => createNewTab(
+            safeUrl,
+            "加载中...",
+            undefined,
+            undefined,
+            undefined,
+            { transition: transitionPreset }
+          ));
         } else {
-          // 当前标签页内导航：记录虚拟历史记录并跳转
+          // 单标签页内导航：保留旧帧直到新页就绪，以形成真正的前进交错动画。
           const tab = tabDataMap.get(activeTabId);
           if (tab) {
+            rememberCurrentHistoryScroll(tab);
             tab.url = safeUrl;
             if (tab.history[tab.historyIndex] !== safeUrl) {
+              trimHistoryScroll(tab, tab.historyIndex);
               tab.history = tab.history.slice(0, tab.historyIndex + 1);
               tab.history.push(safeUrl);
               tab.historyIndex = tab.history.length - 1;
             }
-          }
-          
-          const activeFrame = iframeMap.get(activeTabId);
-          if (activeFrame && activeFrame.contentWindow) {
-            activeFrame.contentWindow.location.href = safeUrl;
+            if (!(tab.historyScroll instanceof Map)) tab.historyScroll = new Map();
+            navigateCurrentTab(safeUrl, {
+              transition: transitionPreset,
+              restoreSnapshot: tab.historyScroll.get(tab.historyIndex)
+            });
           }
         }
         return true;
@@ -2173,23 +3425,18 @@
         const tab = tabDataMap.get(currentTabId);
         if (!tab) return;
         
-        const activeFrame = iframeMap.get(currentTabId);
-        const win = activeFrame ? activeFrame.contentWindow : null;
-
         // 1. 如果当前标签有独立的内页历史记录, 则在当前标签内后退
         if (tab.historyIndex > 0) {
+          rememberCurrentHistoryScroll(tab);
           tab.historyIndex--;
           const prevUrl = tab.history[tab.historyIndex];
           tab.url = prevUrl;
-          if (win && win.location) {
-            try {
-              win.location.replace(prevUrl);
-              return;
-            } catch (_) {
-              win.location.href = prevUrl;
-              return;
-            }
-          }
+          if (!(tab.historyScroll instanceof Map)) tab.historyScroll = new Map();
+          navigateCurrentTab(prevUrl, {
+            transition: 'back',
+            restoreSnapshot: tab.historyScroll.get(tab.historyIndex)
+          });
+          return;
         }
 
         // 2. 如果当前标签处于首层, 且由其他标签派生 (parentId)
@@ -2203,7 +3450,9 @@
             // 父标签页已被关闭，根据保存的血缘来源重新生成父页面
             const targetUrl = tab.parentUrl || 'Home.html';
             const targetTitle = tab.parentTitle || '主页';
-            const recreatedTabId = createNewTab(targetUrl, targetTitle, null);
+            const recreatedTabId = createNewTab(
+              targetUrl, targetTitle, null, undefined, undefined, { transition: 'back' }
+            );
             closeTabWithAnim(currentTabId, recreatedTabId);
             return;
           }
@@ -2222,41 +3471,155 @@
           tab.url = fallback;
           tab.history = [fallback];
           tab.historyIndex = 0;
-          if (win && win.location) {
-            try { win.location.replace(fallback); } catch (_) { win.location.href = fallback; }
-          }
+          tab.historyScroll = new Map();
+          navigateCurrentTab(fallback, { transition: 'back' });
         } else if (currentUrl.includes('settings.html')) {
           const fallback = tab.parentUrl || 'Home.html';
           tab.url = fallback;
           tab.history = [fallback];
           tab.historyIndex = 0;
-          if (win && win.location) {
-            try { win.location.replace(fallback); } catch (_) { win.location.href = fallback; }
-          }
+          tab.historyScroll = new Map();
+          navigateCurrentTab(fallback, { transition: 'back' });
         }
       }
     };
 
-    function createNewTab(url, fallbackTitle = "加载中...", parentId = undefined, parentUrl = undefined, parentTitle = undefined) {
+    function recoverHomeFocusDocumentIfStalled(frame, currentUrl) {
+      if (!frame || !isHomeFocusPage(currentUrl)) return;
+      try {
+        const doc = frame.contentDocument;
+        if (!doc || getLocalPageName(doc.URL) !== getLocalPageName(currentUrl)) return;
+        const pageName = getLocalPageName(currentUrl);
+
+        if (pageName === 'home.html' && doc.body?.classList.contains('focus-transitioning')) {
+          // Home 的正常返回动画约 760ms。超过保护窗口仍保留这些类/代理层，
+          // 说明 WAAPI finished 或清理 rAF 被中断；仅此时执行幂等解锁。
+          const homeLayout = doc.querySelector('.home-layout');
+          const transitionTargets = new Set([
+            ...(homeLayout ? Array.from(homeLayout.children) : []),
+            ...doc.querySelectorAll('.focus-transition-stage,.focus-transition-panel-glass,.focus-transition-clock-clone')
+          ]);
+          for (const animation of doc.getAnimations()) {
+            const target = animation.effect?.target;
+            if (target && (transitionTargets.has(target) || target.closest?.('.focus-transition-stage'))) {
+              try { animation.cancel(); } catch (_) {}
+            }
+          }
+          doc.body.classList.remove('focus-transitioning', 'from-focus', 'focus-transition-cleanup');
+          doc.documentElement.classList.remove('return-from-focus');
+          doc.body.style.removeProperty('visibility');
+          doc.querySelectorAll('.focus-transition-stage,.focus-transition-panel-glass,.focus-transition-clock-clone')
+            .forEach(node => node.remove());
+          doc.querySelectorAll('.home-layout > *').forEach(panel => {
+            panel.style.removeProperty('opacity');
+            panel.style.removeProperty('transform');
+          });
+          doc.querySelectorAll('.home-layout .panel').forEach(panel => {
+            panel.style.removeProperty('--focus-panel-source-opacity');
+            panel.style.removeProperty('backdrop-filter');
+            panel.style.removeProperty('-webkit-backdrop-filter');
+          });
+          const clock = doc.getElementById('homeClock');
+          if (clock) clock.style.removeProperty('visibility');
+        }
+
+        if (pageName === 'focus.html') {
+          const main = doc.getElementById('mainContainer');
+          // Focus 首次入场约 720ms；残留 from-home-active 会让按钮命中区域与
+          // 视觉合成层不一致。这里只清理已明显超时的入场终态。
+          if (main?.classList.contains('from-home-active')) {
+            for (const animation of doc.getAnimations()) {
+              const target = animation.effect?.target;
+              if (target === main || target?.id === 'focusBg') {
+                try { animation.cancel(); } catch (_) {}
+              }
+            }
+            main.classList.remove('from-home-active');
+            main.style.removeProperty('opacity');
+            main.style.removeProperty('transform');
+            main.style.removeProperty('filter');
+          }
+        }
+      } catch (_) {}
+    }
+
+    function stabilizeActiveInlineNavigation(frame, tabId, currentUrl, directPair) {
+      if (!frame || !tabId || activeTabId !== tabId || iframeMap.get(tabId) !== frame) return;
+      const meta = getFrameMeta(frame, true, currentUrl);
+      for (const timerId of meta.navigationWakeTimers || []) clearTimeout(timerId);
+      meta.navigationWakeTimers = [];
+      meta.navigationGuardUntil = performance.now() + (directPair ? 2200 : 900);
+
+      const assertActive = (phase) => {
+        if (!frame.isConnected || activeTabId !== tabId || iframeMap.get(tabId) !== frame) return;
+        const liveUrl = getIframePageRelativeUrl(frame) || currentUrl;
+        if (getLocalPageName(liveUrl) !== getLocalPageName(currentUrl)) return;
+
+        cancelFrameActivation(frame);
+        cancelFrameExit(frame);
+        cancelSharedFrameSwitch(frame);
+        frame.className = 'content-frame active';
+        frame.style.display = 'block';
+        frame.style.opacity = '1';
+        frame.inert = false;
+        frame.removeAttribute('aria-hidden');
+        activeFrameCache = frame;
+
+        // Home/Focus 自己实现了休眠与唤醒；即使 fullscreen/navigation 引起了
+        // wrapper 的短暂 blur，只要窗口没有真正隐藏，就强制交还一次活动态。
+        notifyFrameWake(frame, {
+          forceVisible: true,
+          inlineDocumentNavigation: true,
+          directHomeFocusPair: !!directPair,
+          phase
+        });
+      };
+
+      assertActive('ready');
+      requestAnimationFrame(() => assertActive('next-frame'));
+      meta.navigationWakeTimers.push(setTimeout(() => assertActive('post-layout'), 140));
+      meta.navigationWakeTimers.push(setTimeout(() => {
+        assertActive('watchdog');
+      }, directPair ? 900 : 360));
+      if (directPair) {
+        meta.navigationWakeTimers.push(setTimeout(() => {
+          assertActive('recovery');
+          recoverHomeFocusDocumentIfStalled(frame, currentUrl);
+          meta.navigationWakeTimers = [];
+          meta.pendingDirectNavigation = null;
+        }, 1800));
+      } else {
+        meta.navigationWakeTimers.push(setTimeout(() => {
+          meta.navigationWakeTimers = [];
+          meta.pendingDirectNavigation = null;
+        }, 420));
+      }
+    }
+
+    function createNewTab(url, fallbackTitle = "加载中...", parentId = undefined, parentUrl = undefined, parentTitle = undefined, options = {}) {
       const safeUrl = normalizeLocalPageUrl(url);
       if (!safeUrl) {
         secureOpenExternal(url);
         return null;
       }
+      if (!options || typeof options !== 'object') options = {};
       const openNewTab = localStorage.getItem('alpha_open_new_tab') !== 'false';
       if (!openNewTab && tabs.length > 0) {
         const tab = tabDataMap.get(activeTabId);
         if (tab) {
+          rememberCurrentHistoryScroll(tab);
           tab.url = safeUrl;
           if (tab.history[tab.historyIndex] !== safeUrl) {
+            trimHistoryScroll(tab, tab.historyIndex);
             tab.history = tab.history.slice(0, tab.historyIndex + 1);
             tab.history.push(safeUrl);
             tab.historyIndex = tab.history.length - 1;
           }
-        }
-        const activeFrame = iframeMap.get(activeTabId);
-        if (activeFrame && activeFrame.contentWindow) {
-          activeFrame.contentWindow.location.href = safeUrl;
+          if (!(tab.historyScroll instanceof Map)) tab.historyScroll = new Map();
+          navigateCurrentTab(safeUrl, {
+            transition: normalizeContentTransition(options.transition, 'forward'),
+            restoreSnapshot: tab.historyScroll.get(tab.historyIndex)
+          });
         }
         return activeTabId;
       }
@@ -2278,23 +3641,36 @@
           title: fallbackTitle,
           history: [safeUrl],
           historyIndex: 0,
+          historyScroll: new Map(),
           parentId: effectiveParentId,
           parentUrl: effectiveParentUrl,
           parentTitle: effectiveParentTitle
       };
       tabs.splice(insertIndex, 0, tabInfo);
-      tabDataMap.set(tabId, tabInfo); 
+      tabDataMap.set(tabId, tabInfo);
+      // 初始化独立滚动快照（即使后续共享物理帧，也能通过快照隔离视口）
+      if (!tabScrollSnapshot.has(tabId)) {
+        tabScrollSnapshot.set(tabId, {
+          pageKey: getPageInstanceKey(safeUrl),
+          root: { x: 0, y: 0 },
+          elements: new Map()
+        });
+      }
 
       // 在插入新标签 DOM、触发布局读取前先确定压缩/固定状态，
       // 防止加号先按旧布局渲染一帧，再被推向右侧。
       updateTabWidths();
 
-      // 检查预热池中是否已有预热好的 DOM 实例 (0ms DOM 构建与编译延迟)
-      const prewarmedFrame = PrewarmPool.acquire(safeUrl, tabId);
+      // Prefer a pristine physical instance of the exact same page. The new tab remains a
+      // separate logical tab, but no additional renderer/document is created.
+      const reusableFrame = findReusableFrame(safeUrl);
+      const prewarmedFrame = reusableFrame ? null : PrewarmPool.acquire(safeUrl, tabId);
+      const isSharedInstance = !!reusableFrame;
       const isPrewarmed = !!prewarmedFrame;
-      const iframe = prewarmedFrame || document.createElement('iframe');
+      const iframe = reusableFrame || prewarmedFrame || document.createElement('iframe');
+      const isNewPhysicalFrame = !isSharedInstance && !isPrewarmed;
 
-      if (!isPrewarmed) {
+      if (isNewPhysicalFrame) {
         iframe.id = `iframe-${tabId}`;
         iframe.className = 'content-frame';
         iframe.src = safeUrl;
@@ -2302,11 +3678,11 @@
         iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-modals allow-downloads allow-popups allow-popups-to-escape-sandbox');
         iframe.setAttribute('allow', "clipboard-read 'self'; clipboard-write 'self'");
       }
-      iframeMap.set(tabId, iframe); 
+      registerTabFrame(tabId, iframe, safeUrl);
 
       // 如果来自预热池，优先直接读取已解析完毕的 document.title
       let resolvedTitle = fallbackTitle;
-      if (isPrewarmed) {
+      if (isPrewarmed || isSharedInstance) {
         try {
           const doc = iframe.contentDocument || (iframe.contentWindow ? iframe.contentWindow.document : null);
           if (doc && doc.title && doc.title.trim()) {
@@ -2328,9 +3704,30 @@
         try {
           const doc = iframe.contentDocument || (iframe.contentWindow ? iframe.contentWindow.document : null);
           if (!doc || doc.__alphaInstalled) {
-            if (doc && doc.title) updateTabTitle(tabId, doc.title);
-            if (iframe.contentWindow && tabId === activeTabId) {
-              try { iframe.contentWindow.dispatchEvent(new CustomEvent('AlphaWake')); } catch (_) {}
+            if (doc) {
+              const installedUrl = getIframePageRelativeUrl(iframe) || safeUrl;
+              const installedMeta = getFrameMeta(iframe, true, installedUrl);
+              const installedFromUrl = installedMeta.pendingDirectNavigation?.fromUrl || installedMeta.documentUrl;
+              const installedDirectPair = isHomeFocusPair(installedFromUrl, installedUrl);
+              markPhysicalFrameReady(iframe, installedUrl);
+              installedMeta.documentUrl = installedUrl;
+              installNavigationBridge(doc, iframe);
+              if (doc.title) {
+                for (const linkedTabId of getLinkedTabIds(iframe, tabId)) {
+                  updateTabTitle(linkedTabId, doc.title);
+                }
+              }
+              if (!doc.__alphaInlineNavigationStabilized && isHomeFocusPage(installedUrl) &&
+                  iframeMap.get(activeTabId) === iframe) {
+                doc.__alphaInlineNavigationStabilized = true;
+                stabilizeActiveInlineNavigation(iframe, activeTabId, installedUrl, installedDirectPair);
+              }
+            }
+            if (iframe.contentWindow && iframeMap.get(activeTabId) === iframe) {
+              notifyFrameWake(iframe, {
+                forceVisible: isHomeFocusPage(getIframePageRelativeUrl(iframe) || safeUrl),
+                inlineDocumentReady: true
+              });
             }
             return; // 拦截重复执行
           }
@@ -2338,10 +3735,19 @@
 
           applyThrottleToIframe(iframe, currentThrottleState);
           
-          if (doc && doc.title) updateTabTitle(tabId, doc.title);
+          if (doc && doc.title) {
+            for (const linkedTabId of getLinkedTabIds(iframe, tabId)) {
+              updateTabTitle(linkedTabId, doc.title);
+            }
+          }
 
           // 同步当前标签页的真实 URL 与独立虚拟历史栈
           const currentUrl = getIframePageRelativeUrl(iframe) || safeUrl;
+          const currentMeta = getFrameMeta(iframe, true, currentUrl);
+          const previousDocumentUrl = currentMeta.pendingDirectNavigation?.fromUrl || currentMeta.documentUrl;
+          const directHomeFocusPair = isHomeFocusPair(previousDocumentUrl, currentUrl);
+          markPhysicalFrameReady(iframe, currentUrl);
+          currentMeta.documentUrl = currentUrl;
           const lowerUrl = (currentUrl || '').toLowerCase();
           if (!lowerUrl.includes('home.html') && !lowerUrl.includes('focus.html')) {
             iframe.style.removeProperty('background-image');
@@ -2349,8 +3755,9 @@
             iframe.style.removeProperty('background-size');
             iframe.style.removeProperty('background-repeat');
           }
-          const tab = tabDataMap.get(tabId);
-          if (tab && currentUrl) {
+          for (const linkedTabId of getLinkedTabIds(iframe, tabId)) {
+            const tab = tabDataMap.get(linkedTabId);
+            if (!tab || !currentUrl) continue;
             tab.url = currentUrl;
             if (tab.history[tab.historyIndex] !== currentUrl) {
               if (tab.historyIndex > 0 && tab.history[tab.historyIndex - 1] === currentUrl) {
@@ -2365,93 +3772,27 @@
             }
             // 同步更新以该标签为父标签的子标签 parent 信息
             for (const t of tabDataMap.values()) {
-              if (t.parentId === tabId) {
+              if (t.parentId === linkedTabId) {
                 t.parentUrl = tab.url;
                 t.parentTitle = tab.title;
               }
             }
           }
         
-          // 事件捕获放行机制
-          doc.addEventListener('click', (e) => {
-            let target = e.target;
-            while (target && target !== doc) {
-              const onclickAttr = target.getAttribute('onclick');
-              if (onclickAttr && (onclickAttr.includes('ALPHA.back') || onclickAttr.includes('goBack'))) {
-                 return; 
-              }
-
-              if (target.tagName && target.tagName.toLowerCase() === 'a') {
-                const href = target.getAttribute('href');
-                if (!href || href.startsWith('#')) return;
-                if (/^javascript:/i.test(href)) {
-                  e.preventDefault();
-                  e.stopImmediatePropagation();
-                  return;
-                }
-                const safeHref = normalizeLocalPageUrl(href);
-                if (!safeHref) {
-                  e.preventDefault();
-                  e.stopImmediatePropagation();
-                  secureOpenExternal(href);
-                  return;
-                }
-                
-                const targetAttr = target.getAttribute('target');
-                const customMode = target.getAttribute('data-nav-mode'); 
-                
-                let mode = 'auto'; 
-                if (customMode) mode = customMode; 
-                else if (targetAttr === '_blank') mode = 'new';
-                else if (targetAttr === '_self') mode = 'current';
-                
-                const openNewTab = localStorage.getItem('alpha_open_new_tab') !== 'false';
-                const finalMode = !openNewTab ? 'current' : ((mode === 'auto') ? window.ALPHA.config.linkMode : mode);
-
-                if (finalMode === 'new') {
-                  e.preventDefault(); 
-                  e.stopImmediatePropagation(); 
-                  window.ALPHA.navigate(safeHref, 'new');
-                }
-                return;
-              }
-              
-              if (onclickAttr && (onclickAttr.includes('location.href') || onclickAttr.includes('location='))) {
-                const match = onclickAttr.match(/['"]([^'"]+\.html.*?)['"]/);
-                if (match && match[1]) {
-                  const safeHref = normalizeLocalPageUrl(match[1]);
-                  if (!safeHref) {
-                    e.preventDefault();
-                    e.stopImmediatePropagation();
-                    secureOpenExternal(match[1]);
-                    return;
-                  }
-                  const customMode = target.getAttribute('data-nav-mode') || 'auto';
-                  const openNewTab = localStorage.getItem('alpha_open_new_tab') !== 'false';
-                  const finalMode = !openNewTab ? 'current' : ((customMode === 'auto') ? window.ALPHA.config.linkMode : customMode);
-
-                  if (finalMode === 'new') {
-                    e.preventDefault(); 
-                    e.stopImmediatePropagation(); 
-                    window.ALPHA.navigate(safeHref, 'new');
-                  }
-                  return;
-                }
-              }
-              target = target.parentNode;
-            }
-          }, true);
-          
+          installNavigationBridge(doc, iframe);
           injectGlobalRuntime(doc, iframe);
-          if (iframe.contentWindow) {
-              try {
-                iframe.contentWindow.dispatchEvent(new CustomEvent(tabId === activeTabId ? 'AlphaWake' : 'AlphaSleep'));
-              } catch(_) {}
+          if (iframeMap.get(activeTabId) === iframe && isHomeFocusPage(currentUrl)) {
+            doc.__alphaInlineNavigationStabilized = true;
+            stabilizeActiveInlineNavigation(iframe, activeTabId, currentUrl, directHomeFocusPair);
+          } else if (iframeMap.get(activeTabId) === iframe && wrapperWindowActive) {
+            notifyFrameWake(iframe);
+          } else {
+            notifyFrameSleep(iframe);
           }
         } catch (_) {}
       };
 
-      if (!isPrewarmed) {
+      if (isNewPhysicalFrame) {
         // 1. 共享式 readyState 探测：保留 interactive 阶段的快速初始化，
         // 但所有标签仅使用一个自适应计时器。
         watchFrameReady(tabId, iframe, initAlphaChild);
@@ -2465,8 +3806,9 @@
         iframeContainer.appendChild(iframe);
         if (iframe.contentWindow) knownFrameSources.add(iframe.contentWindow);
       } else {
-        // 预热实例已经在 DOM 容器中，立刻完成初始化同步
-        initAlphaChild();
+        // 预热或共享实例已经在 DOM 容器中，立刻完成初始化同步
+        const sharedMeta = getFrameMeta(iframe);
+        if (!isSharedInstance || (sharedMeta && sharedMeta.ready)) initAlphaChild();
       }
 
       const tabEl = document.createElement('div');
@@ -2500,7 +3842,10 @@
 
       // 新建标签继续沿用原有首次入场逻辑；只有已存在的标签之间切换时，
       // 才使用统一的 wrapper 快照动画。
-      switchTab(tabId, { isNewTab: true });
+      switchTab(tabId, {
+        isNewTab: true,
+        transition: normalizeContentTransition(options.transition, 'forward')
+      });
 
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
@@ -2542,34 +3887,156 @@
       return (prevIndex !== -1 && newIndex !== -1 && newIndex < prevIndex) ? 'left' : 'right';
     }
 
-    function notifyFrameSleep(frame) {
-      try {
-        if (frame && frame.contentWindow) frame.contentWindow.dispatchEvent(new CustomEvent('AlphaSleep'));
-      } catch (_) {}
-    }
-
-    function notifyFrameWake(frame, detail = {}) {
+    function notifyFrameSleep(frame, detail = {}) {
       try {
         if (frame && frame.contentWindow) {
-          frame.contentWindow.dispatchEvent(new CustomEvent('AlphaWake', { detail }));
+          const doc = frame.contentDocument || frame.contentWindow.document;
+          if (doc && doc.documentElement) {
+            doc.documentElement.classList.add('alpha-sleep');
+          }
+          frame.contentWindow.dispatchEvent(new CustomEvent('AlphaSleep', { detail }));
+          if (detail && detail.isDeepSleep && typeof frame.contentWindow.gc === 'function') {
+            try { frame.contentWindow.gc(); } catch (_) {}
+          }
         }
       } catch (_) {}
     }
 
-    function runLiveTabSwitchFallback(tabId) {
+    function notifyFrameWake(frame, detail = {}) {
+      if (!frame || !frame.contentWindow) return;
+      const mayForceVisibleWake = !!detail.forceVisible && !document.hidden;
+      if (!wrapperWindowActive && !mayForceVisibleWake) return;
+      try {
+        const doc = frame.contentDocument || frame.contentWindow.document;
+        if (doc && doc.documentElement) {
+          doc.documentElement.classList.remove('alpha-sleep');
+        }
+        frame.contentWindow.dispatchEvent(new CustomEvent('AlphaWake', { detail }));
+      } catch (_) {}
+    }
+
+    let wrapperWindowActive = !document.hidden;
+    let wrapperWindowSuspending = false;
+    let windowBlurSuspendTimer = null;
+
+    function suspendFramesForWindowState() {
+      const uniqueFrames = new Set(iframeMap.values());
+      if (!wrapperWindowActive) {
+        // 失焦/隐藏时，页面自身的 blur/sleep 处理可能先把视口改为 0。
+        // 若刚读到可疑的 0，则保留最后一次 scroll 事件已记录的有效快照。
+        if (activeTabId) {
+          captureTabScroll(activeTabId, null, {
+            includeTracked: true,
+            preserveExistingOnZero: true
+          });
+        }
+        for (const frame of uniqueFrames) {
+          const meta = getFrameMeta(frame);
+          const isGuardedInlineNavigation = frame === activeFrameCache && !document.hidden &&
+            !!meta && meta.navigationGuardUntil > performance.now() &&
+            isHomeFocusPage(getIframePageRelativeUrl(frame) || meta.documentUrl);
+          if (isGuardedInlineNavigation) {
+            notifyFrameWake(frame, { forceVisible: true, inlineNavigationGuard: true });
+          } else {
+            notifyFrameSleep(frame);
+          }
+        }
+        return;
+      }
+      for (const frame of uniqueFrames) {
+        if (frame === activeFrameCache) {
+          // 先恢复再唤醒，并在子页的 wake 回调完成后轻量复核两次。
+          scheduleRestoreTabScroll(frame, activeTabId, { extended: true });
+          notifyFrameWake(frame, { windowActivated: true });
+        } else notifyFrameSleep(frame);
+      }
+    }
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && activeTabId) {
+        captureTabScroll(activeTabId, null, { includeTracked: true, preserveExistingOnZero: true });
+      }
+      wrapperWindowSuspending = document.hidden;
+      wrapperWindowActive = !document.hidden;
+      suspendFramesForWindowState();
+    }, { passive: true });
+
+    window.addEventListener('blur', () => {
+      if (activeTabId) {
+        captureTabScroll(activeTabId, null, { includeTracked: true, preserveExistingOnZero: true });
+      }
+      wrapperWindowSuspending = true;
+      if (windowBlurSuspendTimer !== null) clearTimeout(windowBlurSuspendTimer);
+      windowBlurSuspendTimer = setTimeout(() => {
+        windowBlurSuspendTimer = null;
+        if (!document.hasFocus()) {
+          wrapperWindowActive = false;
+          suspendFramesForWindowState();
+        } else {
+          wrapperWindowSuspending = false;
+        }
+      }, 120);
+    }, { passive: true });
+
+    window.addEventListener('focus', () => {
+      if (windowBlurSuspendTimer !== null) {
+        clearTimeout(windowBlurSuspendTimer);
+        windowBlurSuspendTimer = null;
+      }
+      wrapperWindowSuspending = false;
+      wrapperWindowActive = true;
+      suspendFramesForWindowState();
+    }, { passive: true });
+
+    function normalizeContentTransition(value, fallback = 'tab') {
+      return ['tab', 'forward', 'back', 'toolbar', 'instant'].includes(value) ? value : fallback;
+    }
+
+    function runLiveTabSwitchFallback(tabId, transitionPreset = 'tab') {
       const root = document.documentElement;
       if (tabLiveFallbackCleanupTimer !== null) {
         clearTimeout(tabLiveFallbackCleanupTimer);
       }
       root.classList.add('alpha-tab-live-fallback-running');
-      commitTabSwitch(tabId, 'live');
+      commitTabSwitch(tabId, 'live', normalizeContentTransition(transitionPreset));
       tabLiveFallbackCleanupTimer = setTimeout(() => {
         root.classList.remove('alpha-tab-live-fallback-running');
         tabLiveFallbackCleanupTimer = null;
       }, FRAME_TRANSITION_TIMEOUT + 40);
     }
 
-    function commitTabSwitch(tabId, transitionMode = 'default') {
+    
+    // ======= Windows 原生窗口与任务栏标题实时同步引擎 =======
+    function syncNativeWindowTitle(customTitle = null) {
+      let pageTitle = customTitle;
+      if (!pageTitle && activeTabId) {
+        const activeTab = tabDataMap.get(activeTabId) || tabs.find(t => t.id === activeTabId);
+        if (activeTab && activeTab.title && activeTab.title !== '加载中...') {
+          pageTitle = activeTab.title;
+        }
+      }
+      if (!pageTitle && activeTabId) {
+        const activeFrame = iframeMap.get(activeTabId);
+        if (activeFrame) {
+          try {
+            const doc = activeFrame.contentDocument || (activeFrame.contentWindow ? activeFrame.contentWindow.document : null);
+            if (doc && doc.title && doc.title.trim()) {
+              pageTitle = doc.title.trim();
+            }
+          } catch (_) {}
+        }
+      }
+
+      const fullTitle = pageTitle ? `${pageTitle} - Tasks` : 'Tasks';
+      document.title = fullTitle;
+
+      if (window.electronAPI && typeof window.electronAPI.setWindowTitle === 'function') {
+        window.electronAPI.setWindowTitle(fullTitle);
+      }
+    }
+
+    function commitTabSwitch(tabId, transitionMode = 'default', transitionPreset = 'tab') {
+      transitionPreset = normalizeContentTransition(transitionPreset);
       // 已是当前标签: 只需确保可见
       if (activeTabId === tabId && activeTabElCache && activeTabElCache.getAttribute('data-id') === tabId) {
         ensureTabVisible(activeTabElCache);
@@ -2579,16 +4046,59 @@
       const prevTabId = activeTabId;
       const prevTabEl = activeTabElCache;
       const prevFrame = activeFrameCache;
+      const nextTabEl = tabElementMap.get(tabId);
+      const nextFrame = iframeMap.get(tabId);
+
+      // 在切换前持久化离开标签的滚动，避免 display:none 导致视口丢失
+      if (prevTabId) {
+        try { captureTabScroll(prevTabId, null, { includeTracked: true }); } catch (_) {}
+      }
+      // Duplicate logical tabs can share one physical iframe. Switching between them only
+      // changes tab chrome; hiding and waking the same document would create needless work
+      // and a visible flash. 但共享帧的视口必须按逻辑标签隔离，否则滚动与弹窗会互相泄漏。
+      if (prevFrame && nextFrame && prevFrame === nextFrame) {
+        const sharedDirection = transitionPreset === 'back' ? 'left' :
+          transitionPreset === 'forward' ? 'right' : getTabSwitchDirection(prevTabId, tabId);
+        activeTabId = tabId;
+        if (prevTabEl) {
+          prevTabEl.classList.remove('active');
+          prevTabEl.classList.add('inactive');
+        }
+        if (nextTabEl) {
+          nextTabEl.classList.remove('inactive');
+          nextTabEl.classList.add('active');
+        }
+        nextFrame.style.display = 'block';
+        nextFrame.inert = false;
+        nextFrame.removeAttribute('aria-hidden');
+        nextFrame.style.opacity = '1';
+        activeTabElCache = nextTabEl || null;
+        activeFrameCache = nextFrame;
+        // 同一物理帧切换逻辑标签：立即将视口恢复到目标标签的快照，阻断滚动串台
+        try { scheduleRestoreTabScroll(nextFrame, tabId); } catch (_) {}
+        const reduceMotion = localStorage.getItem('alpha_reduce_motion') === 'true';
+        if (ENABLE_FRAME_TRANSITIONS && !reduceMotion && transitionPreset !== 'instant') {
+          // 即使两个标签完全复用同一个 iframe，也播放明确的退场/入场反馈。
+          playSharedFrameSwitch(nextFrame, tabId, transitionPreset, sharedDirection);
+        } else {
+          cancelSharedFrameSwitch(nextFrame);
+          nextFrame.className = 'content-frame active';
+        }
+        if (nextTabEl) ensureTabVisible(nextTabEl);
+        syncNativeWindowTitle();
+        return;
+      }
 
       // 减弱动态效果开启时：下方页面瞬切，完全砍掉切换页面的过渡动画
       const isReduceMotion = (typeof localStorage !== 'undefined' && localStorage.getItem('alpha_reduce_motion') === 'true');
-      if (isReduceMotion) {
+      if (isReduceMotion || transitionMode === 'instant') {
         activeTabId = tabId;
         if (prevTabEl) {
           prevTabEl.classList.remove('active');
           prevTabEl.classList.add('inactive');
         }
         if (prevFrame) {
+          cancelSharedFrameSwitch(prevFrame);
           cancelFrameActivation(prevFrame);
           cancelFrameExit(prevFrame);
           prevFrame.className = 'content-frame';
@@ -2598,13 +4108,14 @@
           prevFrame.setAttribute('aria-hidden', 'true');
           notifyFrameSleep(prevFrame);
         }
-        const newTabEl = tabElementMap.get(tabId);
-        const newFrame = iframeMap.get(tabId);
+        const newTabEl = nextTabEl;
+        const newFrame = nextFrame;
         if (newTabEl) {
           newTabEl.classList.remove('inactive');
           newTabEl.classList.add('active');
         }
         if (newFrame) {
+          cancelSharedFrameSwitch(newFrame);
           cancelFrameExit(newFrame);
           cancelFrameActivation(newFrame);
           newFrame.style.display = 'block';
@@ -2612,23 +4123,27 @@
           newFrame.removeAttribute('aria-hidden');
           newFrame.className = 'content-frame active';
           newFrame.style.opacity = '1';
+          // 恢复目标标签的独立滚动，修复 display:none 后的视口重置
+          try { scheduleRestoreTabScroll(newFrame, tabId); } catch (_) {}
           notifyFrameWake(newFrame, { isInstant: true });
         }
         activeTabElCache = newTabEl || null;
         activeFrameCache = newFrame || null;
         if (newTabEl) ensureTabVisible(newTabEl);
+        syncNativeWindowTitle();
         return;
       }
 
-      // 智能计算多标签页切换的相对方向（判定向左还是向右漫游）
-      const direction = getTabSwitchDirection(activeTabId, tabId);
+      // 页面内前进/后退使用固定方向；手动点击既有标签则根据标签相对位置决定。
+      const direction = transitionPreset === 'forward' ? 'right' :
+        transitionPreset === 'back' ? 'left' : getTabSwitchDirection(activeTabId, tabId);
+      const isToolbarDrop = transitionPreset === 'toolbar';
 
       // 更新全局状态
       activeTabId = tabId;
 
       const isHomeTransition = isHomeTab(prevTabId) || isHomeTab(tabId);
-      const useLiveDirectionalTransition = transitionMode === 'live' ||
-        (transitionMode === 'default' && isHomeTransition);
+      const useLiveDirectionalTransition = transitionMode !== 'snapshot' && transitionMode !== 'instant';
 
       // 1. 将旧活动标签设为 inactive
       if (prevTabEl) {
@@ -2638,6 +4153,7 @@
 
       // 2. 将旧 iframe 卸载激活态, 并赋予符合方向感的退场动效
       if (prevFrame) {
+        cancelSharedFrameSwitch(prevFrame);
         cancelFrameActivation(prevFrame);
         if (transitionMode === 'snapshot') {
           cancelFrameExit(prevFrame);
@@ -2647,6 +4163,8 @@
           prevFrame.inert = true;
           prevFrame.setAttribute('aria-hidden', 'true');
           notifyFrameSleep(prevFrame);
+        } else if (isToolbarDrop) {
+          prevFrame.className = 'content-frame exit-depth';
         } else if (useLiveDirectionalTransition) {
           prevFrame.className = 'content-frame ' + (direction === 'right' ? 'exit-left' : 'exit-right');
         } else {
@@ -2670,17 +4188,23 @@
 
       // 5. 显示新 iframe, 并施加方向感视差进场动画
       if (newFrame) {
+          cancelSharedFrameSwitch(newFrame);
           cancelFrameExit(newFrame);
           cancelFrameActivation(newFrame);
           newFrame.style.display = 'block';
           newFrame.inert = false;
           newFrame.removeAttribute('aria-hidden');
-          newFrame.classList.remove('exit-left', 'exit-right', 'active', 'enter-left', 'enter-right', 'stationary');
+          // 恢复该逻辑标签独立的滚动位置，修复跨标签滚动串台与 display:none 重置
+          try { scheduleRestoreTabScroll(newFrame, tabId); } catch (_) {}
+          newFrame.classList.remove('exit-left', 'exit-right', 'exit-depth', 'active', 'enter-left', 'enter-right', 'enter-top', 'stationary');
           newFrame.style.opacity = '';
           if (transitionMode === 'snapshot') {
             // 新页面保持静止，供 Chromium 获取稳定的最后一帧快照；真正页面在
             // 快照动画结束后再唤醒，避免内嵌动画与 wrapper 动画叠加。
             newFrame.classList.add('active');
+            // 快照已捕获正确的滚动位置，无需额外延迟
+          } else if (isToolbarDrop) {
+            newFrame.classList.add('enter-top');
           } else if (useLiveDirectionalTransition) {
             newFrame.classList.add(direction === 'right' ? 'enter-right' : 'enter-left');
           } else {
@@ -2699,6 +4223,14 @@
       if (newTabEl) {
           ensureTabVisible(newTabEl);
       }
+
+      // 8. 实时同步 Windows 原生任务栏与窗口标题
+      syncNativeWindowTitle();
+
+      // 9. 调度非活跃页面切入后台后的物理内存修剪
+      if (typeof requestHostIdleMemoryTrim === 'function') {
+        requestHostIdleMemoryTrim(1500);
+      }
     }
 
     function switchTab(tabId, options = undefined) {
@@ -2712,6 +4244,22 @@
         return;
       }
 
+      const isNewTab = !!(options && options.isNewTab);
+      const transitionPreset = normalizeContentTransition(
+        options && options.transition,
+        isNewTab ? 'forward' : 'tab'
+      );
+
+      if (transitionPreset === 'instant') {
+        commitTabSwitch(tabId, 'instant');
+        return;
+      }
+
+      if (!ENABLE_FRAME_TRANSITIONS) {
+        commitTabSwitch(tabId, 'instant');
+        return;
+      }
+
       // 减弱动态效果开启时：瞬切
       const isReduceMotion = (typeof localStorage !== 'undefined' && localStorage.getItem('alpha_reduce_motion') === 'true');
       if (isReduceMotion) {
@@ -2719,15 +4267,14 @@
         return;
       }
 
-      const isNewTab = !!(options && options.isNewTab);
-      const hasExistingPair = !isNewTab && !!activeTabId &&
+      const hasExistingPair = !!activeTabId &&
         iframeMap.has(activeTabId) && iframeMap.has(tabId);
 
-      // 旧版 Chromium 不支持原生快照时仍统一使用 wrapper 的方向动画；
-      // 支持时，模糊只计算临时快照，不触碰真实 iframe 的逐帧栅格化。
-      if (!hasExistingPair || !SUPPORTS_TAB_SNAPSHOT_TRANSITION) {
-        if (hasExistingPair) runLiveTabSwitchFallback(tabId);
-        else commitTabSwitch(tabId, 'default');
+      // 工具栏下落、页面前进/后退始终使用真实 iframe 的短时合成动画；
+      // 只有手动切换既有标签且显式开启诊断选项时才使用完整页面快照。
+      if (!hasExistingPair || !SUPPORTS_TAB_SNAPSHOT_TRANSITION || transitionPreset !== 'tab') {
+        if (hasExistingPair) runLiveTabSwitchFallback(tabId, transitionPreset);
+        else commitTabSwitch(tabId, 'default', transitionPreset);
         return;
       }
 
@@ -2744,14 +4291,14 @@
         transition = document.startViewTransition(() => {
           // 标签可能在旧画面快照完成前被关闭；此时安全保留当前页面。
           if (!tabDataMap.has(tabId) || !iframeMap.has(tabId)) return;
-          commitTabSwitch(tabId, 'snapshot');
+          commitTabSwitch(tabId, 'snapshot', transitionPreset);
         });
       } catch (_) {
         if (generation === tabSnapshotTransitionGeneration) {
           pendingSnapshotTabId = null;
           root.classList.remove('alpha-tab-snapshot-running', 'alpha-tab-switch-left', 'alpha-tab-switch-right');
         }
-        runLiveTabSwitchFallback(tabId);
+        runLiveTabSwitchFallback(tabId, transitionPreset);
         return;
       }
 
@@ -2772,10 +4319,37 @@
       });
     }
 
-    function disposeTabIframe(tabId, iframe) {
-      cancelFrameReadyProbe(tabId);
+    function detachTabFrameReference(tabId, iframe) {
+      const meta = getFrameMeta(iframe);
+      if (meta) {
+        meta.tabIds.delete(tabId);
+        // The physical document stays alive while another logical tab references it.
+        if (meta.tabIds.size) return false;
+        unindexPhysicalFrame(iframe, meta.key);
+        if (meta.uiCheckTimer !== null) clearTimeout(meta.uiCheckTimer);
+        if (meta.uiObserver) meta.uiObserver.disconnect();
+        for (const timerId of meta.navigationWakeTimers || []) clearTimeout(timerId);
+        meta.navigationWakeTimers = [];
+        meta.uiCheckTimer = null;
+        meta.uiObserver = null;
+      }
+      return true;
+    }
+
+    function disposeDetachedPhysicalFrame(iframe) {
+      if (!iframe) return;
+      const meta = getFrameMeta(iframe);
+      if (meta) {
+        unindexPhysicalFrame(iframe, meta.key);
+        if (meta.uiCheckTimer !== null) clearTimeout(meta.uiCheckTimer);
+        if (meta.uiObserver) meta.uiObserver.disconnect();
+        meta.uiCheckTimer = null;
+        meta.uiObserver = null;
+        meta.tabIds.clear();
+      }
       cancelFrameActivation(iframe);
       cancelFrameExit(iframe);
+      cancelSharedFrameSwitch(iframe);
       if (iframe.contentWindow) knownFrameSources.delete(iframe.contentWindow);
       try {
         const frameDoc = iframe.contentDocument;
@@ -2786,11 +4360,20 @@
         iframe.src = 'about:blank';
       } catch (_) {}
       iframe.remove();
-      iframeMap.delete(tabId);
+    }
+
+    function disposeTabIframe(tabId, iframe) {
+      cancelCurrentPageNavigation(tabId);
+      cancelFrameReadyProbe(tabId);
+      cancelTabScrollRestore(tabId);
+      if (iframeMap.get(tabId) === iframe) iframeMap.delete(tabId);
+      if (!detachTabFrameReference(tabId, iframe)) return;
+      disposeDetachedPhysicalFrame(iframe);
     }
     
     function closeTabWithAnim(tabId, targetTabId = null) {
       if (tabCloseTimers.has(tabId)) return;
+      cancelCurrentPageNavigation(tabId);
       const tabEl = tabElementMap.get(tabId);
       if (!tabEl) {
         closeTab(tabId);
@@ -2809,12 +4392,12 @@
       // 在点击的瞬间立刻切换活动标签, 零延迟唤醒/漫游至下一页
       if (activeTabId === tabId) {
         if (targetTabId && tabs.some(t => t.id === targetTabId)) {
-          switchTab(targetTabId);
+          switchTab(targetTabId, { transition: 'back' });
         } else if (tabs.length === 0) {
           createNewTab('Home.html', '主页');
         } else {
           const fallbackIndex = Math.max(0, index - 1);
-          switchTab(tabs[fallbackIndex].id);
+          switchTab(tabs[fallbackIndex].id, { transition: 'tab' });
         }
       } else {
         requestOverlayUpdate();
@@ -2839,14 +4422,16 @@
         trackedVisibleTabId = null;
       }
 
+      tabScrollSnapshot.delete(tabId);
       // 将沉重的 DOM/Iframe 物理销毁剥离到 400ms 动画完全结束后异步处理, 保障前台动画帧率
       const closeTimer = setTimeout(() => {
         tabCloseTimers.delete(tabId);
         tabDataMap.delete(tabId);
+        tabScrollSnapshot.delete(tabId);
         const iframe = iframeMap.get(tabId);
 
         if (iframe) {
-          if (iframe === activeFrameCache) activeFrameCache = null;
+          if (iframe === activeFrameCache && iframeMap.get(activeTabId) !== iframe) activeFrameCache = null;
           disposeTabIframe(tabId, iframe);
         }
 
@@ -2855,12 +4440,16 @@
            tabElementMap.delete(tabId);
         }
         requestOverlayUpdate();
+        if (typeof requestHostIdleMemoryTrim === 'function') {
+          requestHostIdleMemoryTrim(600);
+        }
       }, 400);
       tabCloseTimers.set(tabId, closeTimer);
     }
 
     // 兜底保留原物理 closeTab 函数, 以防 Electron 内部上游生命周期或特殊边界调用断裂
     function closeTab(tabId, deferLayout = false) {
+      cancelCurrentPageNavigation(tabId);
       const pendingCloseTimer = tabCloseTimers.get(tabId);
       if (pendingCloseTimer !== undefined) {
         clearTimeout(pendingCloseTimer);
@@ -2869,6 +4458,7 @@
       const index = tabs.findIndex(t => t.id === tabId);
       if (index !== -1) tabs.splice(index, 1);
       tabDataMap.delete(tabId);
+      tabScrollSnapshot.delete(tabId);
       if (!deferLayout) updateTabWidths();
       
       if (activeTabId === tabId) {
@@ -2925,6 +4515,9 @@
       
       const oldTitle = tab.title;
       tab.title = newTitle;
+      if (tabId === activeTabId) {
+        syncNativeWindowTitle(newTitle);
+      }
       
       for (const t of tabDataMap.values()) {
         if (t.parentId === tabId) {
@@ -2996,7 +4589,8 @@
       if (maskClass === lastOverlayMaskClass) return;
 
       lastOverlayMaskClass = maskClass;
-      tabsWrapper.className = `tabs-wrapper ${maskClass}`;
+      tabsWrapper.classList.remove('mask-none', 'mask-both', 'mask-left', 'mask-right');
+      tabsWrapper.classList.add(maskClass);
     }
     
     function updateTitleBarDragState() {
@@ -3094,9 +4688,13 @@
         titleUpdateGenerations.clear();
         for (const timerId of tabCloseTimers.values()) clearTimeout(timerId);
         tabCloseTimers.clear();
-        for (const frame of iframeMap.values()) {
+        for (const frame of new Set(iframeMap.values())) {
           cancelFrameActivation(frame);
           cancelFrameExit(frame);
+        }
+        if (windowBlurSuspendTimer !== null) {
+          clearTimeout(windowBlurSuspendTimer);
+          windowBlurSuspendTimer = null;
         }
         if (tabVisibilityRafId !== null) cancelAnimationFrame(tabVisibilityRafId);
         if (tabDragMoveRaf !== null) cancelAnimationFrame(tabDragMoveRaf);
@@ -3186,11 +4784,13 @@
     }
 
     function getEffectiveBackgroundColor(el) {
-      while (el && el.nodeType === 1) {
+      let depth = 0;
+      while (el && el.nodeType === 1 && depth < 4) {
+        depth++;
         const win = el.ownerDocument && el.ownerDocument.defaultView;
         if (win) {
           const bg = win.getComputedStyle(el).backgroundColor;
-          if (bg && bg !== 'transparent') {
+          if (bg && bg !== 'transparent' && bg !== 'rgba(0, 0, 0, 0)') {
             const match = bg.match(/rgba?\(\s*\d+,\s*\d+,\s*\d+(?:,\s*([\d.]+))?\s*\)/);
             if (match) {
               const alpha = match[1] !== undefined ? parseFloat(match[1]) : 1.0;
@@ -3417,27 +5017,29 @@
     }
 
     function injectLifecycle(doc) {
-        // 防止重复注入
-        if (doc.getElementById('__alphaLifecycleStyle')) return;
-
-        // 注入 CSS 动画暂停样式
-        const style = doc.createElement('style');
-        style.id = '__alphaLifecycleStyle';
-        style.textContent = `
+        if (!doc) return;
+        // 注入全局深度休眠样式: 强制挂起所有 CSS 动画与过渡
+        if (!doc.getElementById('__alphaLifecycleStyle')) {
+          const style = doc.createElement('style');
+          style.id = '__alphaLifecycleStyle';
+          style.textContent = `
             html.alpha-sleep *,
             html.alpha-sleep *::before,
             html.alpha-sleep *::after {
                 animation-play-state: paused !important;
                 transition: none !important;
+                caret-color: transparent !important;
             }
-        `;
-        doc.documentElement.appendChild(style);
+          `;
+          (doc.head || doc.documentElement).appendChild(style);
+        }
 
-        // 直接在同源子窗口安装生命周期，无需注入可执行字符串。
         const childWindow = doc.defaultView;
         if (!childWindow || childWindow.__alphaLifecycleInstalled) return;
         childWindow.__alphaLifecycleInstalled = true;
+
         childWindow.AlphaLifecycle = {
+          cooperative: true,
           onSleep: [],
           onWake: [],
           addSleep(fn) { if (typeof fn === 'function') this.onSleep.push(fn); },
@@ -3445,12 +5047,19 @@
         };
 
         childWindow.addEventListener('AlphaSleep', () => {
-          doc.documentElement.classList.add('alpha-sleep');
+          if (doc.documentElement) doc.documentElement.classList.add('alpha-sleep');
+          try {
+            for (const media of doc.querySelectorAll('video, audio')) {
+              if (!media.paused && !media.ended) {
+                media.pause();
+              }
+            }
+          } catch (_) {}
           childWindow.AlphaLifecycle.onSleep.forEach(fn => { try { fn(); } catch (_) {} });
         });
 
         childWindow.addEventListener('AlphaWake', () => {
-          doc.documentElement.classList.remove('alpha-sleep');
+          if (doc.documentElement) doc.documentElement.classList.remove('alpha-sleep');
           childWindow.AlphaLifecycle.onWake.forEach(fn => { try { fn(); } catch (_) {} });
         });
     }
@@ -3472,8 +5081,21 @@
         window.AlphaLiquidGlass.init(doc);
       }
       doc.addEventListener('pointerdown', () => {
+        requestHostIdleMemoryTrim(5000);
         if (typeof toggleMenu === 'function') toggleMenu(false);
+        if (!wrapperWindowActive && !document.hidden) {
+          wrapperWindowActive = true;
+          suspendFramesForWindowState();
+        }
       }, true);
+      doc.addEventListener('keydown', (e) => {
+        requestHostIdleMemoryTrim(5000);
+        if (e.key === 'F11' || e.keyCode === 122 || e.code === 'F11') {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      }, true);
+      doc.addEventListener('wheel', () => requestHostIdleMemoryTrim(5000), { passive: true });
       doc.addEventListener('pointerup', () => {
         if (window.AlphaLiquidGlass && typeof window.AlphaLiquidGlass.releaseAll === 'function') {
           window.AlphaLiquidGlass.releaseAll();
@@ -3484,13 +5106,29 @@
           window.AlphaLiquidGlass.releaseAll();
         }
       }, { passive: true });
-      doc.addEventListener('keydown', (e) => {
-        if (e.key === 'F11' || e.keyCode === 122 || e.code === 'F11') {
-          e.preventDefault();
-          e.stopPropagation();
-        }
-      }, true);
     }
+
+    // ======= 全局静默与闲置内存压缩引擎 (Host Idle Memory Trimmer) =======
+    let wrapperIdleTrimTimer = null;
+    function requestHostIdleMemoryTrim(delayMs = 3500) {
+      if (wrapperIdleTrimTimer) clearTimeout(wrapperIdleTrimTimer);
+      wrapperIdleTrimTimer = setTimeout(() => {
+        wrapperIdleTrimTimer = null;
+        try {
+          if (window.electronAPI && typeof window.electronAPI.trimMemory === 'function') {
+            window.electronAPI.trimMemory();
+          }
+        } catch (_) {}
+      }, delayMs);
+    }
+
+    const hostActivityEvents = ['pointerdown', 'keydown', 'wheel', 'touchstart'];
+    hostActivityEvents.forEach(evt => {
+      window.addEventListener(evt, () => requestHostIdleMemoryTrim(5000), { passive: true, capture: true });
+    });
+
+    // 初始启动 5 秒后执行首次闲置裁剪
+    requestHostIdleMemoryTrim(5000);
 
     // 全局禁止 F11 全屏
     window.addEventListener('keydown', (e) => {
@@ -3621,6 +5259,18 @@
           }
         }).catch(() => {});
       }
+      if (typeof window.electronAPI.onBackgroundDeepCleanup === 'function') {
+        window.electronAPI.onBackgroundDeepCleanup(() => {
+          PrewarmPool.evictAll();
+          const uniqueFrames = new Set(iframeMap.values());
+          for (const frame of uniqueFrames) {
+            notifyFrameSleep(frame, { isDeepSleep: true });
+          }
+          try {
+            if (window.gc) window.gc();
+          } catch (_) {}
+        });
+      }
       if (typeof window.electronAPI.onPerformanceThrottleChanged === 'function') {
         window.electronAPI.onPerformanceThrottleChanged((throttleData) => {
           syncThrottleStateToAllFrames(throttleData);
@@ -3683,7 +5333,7 @@
       if (!isKnownFrameSource(e.source) || !e.data || typeof e.data !== 'object') return;
 
       // 将子标签发出的配置变更广播给所有其他标签页
-      for (const frame of iframeMap.values()) {
+      for (const frame of new Set(iframeMap.values())) {
         try {
           if (frame.contentWindow && frame.contentWindow !== e.source) {
             frame.contentWindow.postMessage(e.data, '*');
@@ -3704,7 +5354,90 @@
           window.electronAPI.setCloseToTray(!e.data.value);
         }
       }
+      if (e.data && e.data.type === 'alpha_stop_alarm_audio') {
+        stopGlobalAlarmAudio();
+        if (window.electronAPI && typeof window.electronAPI.stopAlarmAudio === 'function') {
+          window.electronAPI.stopAlarmAudio();
+        }
+      }
     });
+
+    // ======= 全局日程闹钟提示音与事件协调器 =======
+    const globalDefaultAlarmSound = "assets/alarm-default.mp3";
+    let globalAlarmAudio = null;
+    let globalAlarmPlayCount = 1;
+    const GLOBAL_MAX_PLAY_COUNT = 3;
+
+    function getGlobalAlarmAudio() {
+      if (!globalAlarmAudio) {
+        globalAlarmAudio = new Audio(globalDefaultAlarmSound);
+        globalAlarmAudio.addEventListener('ended', () => {
+          if (globalAlarmPlayCount < GLOBAL_MAX_PLAY_COUNT) {
+            globalAlarmPlayCount++;
+            globalAlarmAudio.currentTime = 0;
+            globalAlarmAudio.play().catch(e => console.error("闹钟音频重播被拦截:", e));
+          } else {
+            stopGlobalAlarmAudio();
+          }
+        });
+      }
+      return globalAlarmAudio;
+    }
+
+    function stopGlobalAlarmAudio() {
+      if (globalAlarmAudio) {
+        globalAlarmAudio.pause();
+        globalAlarmAudio.currentTime = 0;
+      }
+      globalAlarmPlayCount = 1;
+    }
+
+    function playGlobalAlarmSound(ringtoneSrc) {
+      stopGlobalAlarmAudio();
+      const audio = getGlobalAlarmAudio();
+      const src = ringtoneSrc || localStorage.getItem('alpha_home_ringtone') || globalDefaultAlarmSound;
+      audio.src = src;
+      globalAlarmPlayCount = 1;
+      audio.currentTime = 0;
+      audio.play().catch(err => {
+        console.warn("全局闹钟提示音播放失败, 尝试使用默认铃声:", err);
+        if (src !== globalDefaultAlarmSound) {
+          audio.src = globalDefaultAlarmSound;
+          audio.play().catch(() => {});
+        }
+      });
+    }
+
+    if (window.electronAPI) {
+      if (typeof window.electronAPI.onAlarmTriggered === 'function') {
+        window.electronAPI.onAlarmTriggered((alarmData) => {
+          playGlobalAlarmSound(alarmData?.ringtone);
+          for (const frame of new Set(iframeMap.values())) {
+            try {
+              if (frame.contentWindow) {
+                frame.contentWindow.postMessage({
+                  type: 'alpha_alarm_triggered',
+                  alarm: alarmData
+                }, '*');
+              }
+            } catch (_) {}
+          }
+        });
+      }
+
+      if (typeof window.electronAPI.onStopAlarm === 'function') {
+        window.electronAPI.onStopAlarm(() => {
+          stopGlobalAlarmAudio();
+          for (const frame of new Set(iframeMap.values())) {
+            try {
+              if (frame.contentWindow) {
+                frame.contentWindow.postMessage({ type: 'alpha_stop_alarm' }, '*');
+              }
+            } catch (_) {}
+          }
+        });
+      }
+    }
 
     window.addEventListener('storage', (e) => {
       if (e.key === 'alpha_open_new_tab') {
@@ -3725,7 +5458,7 @@
     if (window.electronAPI && window.electronAPI.onAutoStartChanged) {
       window.electronAPI.onAutoStartChanged((enabled) => {
         localStorage.setItem('alpha_auto_start', !!enabled);
-        for (const frame of iframeMap.values()) {
+        for (const frame of new Set(iframeMap.values())) {
           try {
             if (frame.contentWindow) {
               frame.contentWindow.postMessage({ type: 'alpha_auto_start', value: !!enabled }, '*');
@@ -3767,7 +5500,8 @@
       const titleBar = document.getElementById('title-bar');
       const iframeContainer = document.getElementById('iframe-container');
 
-      createNewTab('Home.html', '主页');
+      createNewTab('Home.html', '主页', undefined, undefined, undefined, { transition: 'instant' });
+      syncNativeWindowTitle('主页');
       if (tabsContainer) {
         tabsContainerWidth = tabsContainer.clientWidth;
       }
@@ -3808,18 +5542,24 @@
           }
       }, 1800);
 
-      // 开屏动画退场与首屏渲染完全稳定后，启动后台智能错峰空闲预热
-      setTimeout(() => {
-        PrewarmPool.startIdlePrewarm();
-      }, 2600);
+      // Pre-warming is opt-in because each warm page is still a complete renderer document.
+      if (ENABLE_IFRAME_PREWARM) {
+        setTimeout(() => {
+          PrewarmPool.startIdlePrewarm();
+        }, 2600);
+      }
     });
     const menu = document.getElementById('controlsMenu');
     const appIconBtn = document.getElementById('appIconBtn');
     const menuBackdrop = document.getElementById('menuBackdrop');
     const settingsBtn = document.getElementById('settingsBtn');
 
-    addTabBtn?.addEventListener('click', () => window.ALPHA.navigate('Home.html', 'new'));
-    settingsBtn?.addEventListener('click', () => window.ALPHA.navigate('settings.html', 'new'));
+    addTabBtn?.addEventListener('click', () => window.ALPHA.navigate(
+      'Home.html', 'new', { transition: 'toolbar' }
+    ));
+    settingsBtn?.addEventListener('click', () => window.ALPHA.navigate(
+      'settings.html', 'new', { transition: 'toolbar' }
+    ));
     appIconBtn?.addEventListener('error', () => { appIconBtn.style.opacity = '0'; }, { once: true });
     menu?.addEventListener('click', (event) => {
       const item = event.target.closest('[data-action]');

@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="preload" href="./fonts/OPPO Sans 4.0.ttf" as="font" type="font/truetype" crossorigin>
 <link rel="icon" href="Icon.ico" type="image/x-icon">
 <title>TaskTimer</title>
 <script>
@@ -35,7 +36,7 @@
   font-family: 'OPPO Sans 4.0'; 
   src: url('./fonts/OPPO Sans 4.0.ttf') format('truetype'); 
   font-weight: 1 999; 
-  font-display: swap; 
+  font-display: block; 
 }
 
 ::selection { background-color: #d4ebff; color: #0f172a; }
@@ -211,21 +212,38 @@ body::after {
 .stage-sunbeam {
     top: -10%; right: -5%; width: 35vw; height: 80vh;
     transform-origin: top right;
-    animation: sunbeam-pulse 12s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
+    animation: none;
 }
 
 .stage-orb-1 {
     top: -15%; right: -15%; width: 68vw; height: 58vw;
-    animation: orb-drift-1 18s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
+    animation: none;
 }
 
 .stage-orb-2 {
     bottom: -20%; left: -20%; width: 76vw; height: 64vw;
-    animation: orb-drift-2 22s infinite alternate-reverse cubic-bezier(0.4, 0, 0.2, 1);
+    animation: none;
 }
 
 .stage-orb-3 {
     top: 20%; left: 30%; width: 58vw; height: 48vw;
+    animation: none;
+}
+
+body.enable-bg-motion .stage-sunbeam,
+html.enable-bg-motion .stage-sunbeam {
+    animation: sunbeam-pulse 12s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
+}
+body.enable-bg-motion .stage-orb-1,
+html.enable-bg-motion .stage-orb-1 {
+    animation: orb-drift-1 18s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
+}
+body.enable-bg-motion .stage-orb-2,
+html.enable-bg-motion .stage-orb-2 {
+    animation: orb-drift-2 22s infinite alternate-reverse cubic-bezier(0.4, 0, 0.2, 1);
+}
+body.enable-bg-motion .stage-orb-3,
+html.enable-bg-motion .stage-orb-3 {
     animation: orb-drift-3 20s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -1616,54 +1634,71 @@ body.app-switcher-open, html.app-switcher-open {
     100% { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-@keyframes alphaPageIn {
-    0% { opacity: 0; filter: blur(40px); transform: scale(0.98); }
-    100% { opacity: 1; filter: blur(0px); transform: scale(1); }
-}
 @keyframes alphaPageOut {
     0% { opacity: 1; filter: blur(0px); transform: scale(1); }
     100% { opacity: 0; filter: blur(40px); transform: scale(0.96); }
-}
-@keyframes pageInFromHome {
-    0% { opacity: 0; filter: blur(40px); transform: translateX(80px); }
-    100% { opacity: 1; filter: blur(0px); transform: translateX(0); }
 }
 @keyframes pageOutToHome {
     0% { opacity: 1; filter: blur(0px); transform: translateX(0); }
     100% { opacity: 0; filter: blur(40px); transform: translateX(75px) scale(0.97); }
 }
 
-@keyframes alphaSidebarIn {
-    0% { opacity: 0; filter: blur(40px); transform: scale(0.94); }
-    100% { opacity: 1; filter: blur(0px); transform: scale(1); }
-}
-@keyframes alphaMainIn {
-    0% { opacity: 0; filter: blur(40px); transform: scale(0.98); }
-    100% { opacity: 1; filter: blur(0px); transform: scale(1); }
-}
-@keyframes pageSidebarInFromHome {
-    0% { opacity: 0; filter: blur(22px); transform: translateX(90px) scale(0.95); }
-    100% { opacity: 1; filter: blur(0px); transform: translateX(0) scale(1); }
-}
-@keyframes pageMainInFromHome {
-    0% { opacity: 0; filter: blur(40px); transform: translateX(70px) scale(0.98); }
-    100% { opacity: 1; filter: blur(0px); transform: translateX(0) scale(1); }
-}
-
-/* 导航进出场匹配 */
-html[data-nav-engine="home"] .sidebar, html[data-nav-engine="home"] #setupPanel { animation: pageSidebarInFromHome 0.65s cubic-bezier(0.16, 1, 0.3, 1) 0s backwards !important; }
-html[data-nav-engine="home"] .glass-resizer-bar { animation: pageMainInFromHome 0.65s cubic-bezier(0.16, 1, 0.3, 1) 0.05s backwards !important; }
-html[data-nav-engine="home"] .main, html[data-nav-engine="home"] #hubPanel, html[data-nav-engine="home"] #timerPanel { animation: pageMainInFromHome 0.65s cubic-bezier(0.16, 1, 0.3, 1) 0.1s backwards !important; }
-
-html[data-nav-engine="intra"] .sidebar, html[data-nav-engine="intra"] #setupPanel { animation: alphaSidebarIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0s backwards !important; }
-html[data-nav-engine="intra"] .glass-resizer-bar { animation: alphaMainIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.02s backwards !important; }
-html[data-nav-engine="intra"] .main, html[data-nav-engine="intra"] #hubPanel, html[data-nav-engine="intra"] #timerPanel { animation: alphaMainIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.04s backwards !important; }
-
 .page-transition-leave, .sidebar.page-transition-leave, .panel.page-transition-leave, .main.page-transition-leave, #setupPanel.page-transition-leave, #hubPanel.page-transition-leave, #timerPanel.page-transition-leave, .glass-resizer-bar.page-transition-leave, .page-anim-target.page-transition-leave {
     animation: alphaPageOut 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards !important; pointer-events: none; position: relative; z-index: 1; 
 }
 .page-transition-leave.page-leave-to-home, .sidebar.page-leave-to-home, .panel.page-leave-to-home, .main.page-leave-to-home, #setupPanel.page-leave-to-home, #hubPanel.page-leave-to-home, #timerPanel.page-leave-to-home, .glass-resizer-bar.page-leave-to-home, .page-anim-target.page-leave-to-home {
     animation: pageOutToHome 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards !important;
+}
+
+/* ==========================================================================
+   TASKTIMER VIEW TRANSITION (主界面 与 计时界面 切换动画)
+   ========================================================================== */
+body:not(.is-standalone-pip) #setupLayout,
+body:not(.is-standalone-pip) #timerPanel {
+    view-transition-name: timer-switch-stage;
+}
+
+::view-transition-group(timer-switch-stage) {
+    animation-duration: 0.38s;
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+::view-transition-old(timer-switch-stage) {
+    animation: 0.26s cubic-bezier(0.22, 1, 0.36, 1) both timerSwitchStageOut;
+}
+
+::view-transition-new(timer-switch-stage) {
+    animation: 0.38s cubic-bezier(0.16, 1, 0.3, 1) both timerSwitchStageIn;
+}
+
+@keyframes timerSwitchStageOut {
+    0% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(0.96);
+    }
+}
+
+@keyframes timerSwitchStageIn {
+    0% {
+        opacity: 0;
+        transform: scale(0.96);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    ::view-transition-group(timer-switch-stage),
+    ::view-transition-old(timer-switch-stage),
+    ::view-transition-new(timer-switch-stage) {
+        animation: none !important;
+    }
 }
 
 /* ==========================================================================
@@ -2410,6 +2445,545 @@ body.is-standalone-pip textarea,
 body.is-standalone-pip select {
     -webkit-app-region: no-drag !important;
 }
+
+/* =========================================================
+   独立悬浮窗深色模式适配 (Standalone Pip Dark Mode Adaptation)
+   在系统材质 (Mica) 上呈现柔和护眼半透明白色文本与清透暗色玻璃
+   ========================================================= */
+@media (prefers-color-scheme: dark) {
+    body.is-standalone-pip {
+        --text: rgba(240, 246, 255, 0.88);
+        --sub: rgba(203, 213, 225, 0.65);
+        --monet-text: rgba(240, 246, 255, 0.88);
+        --monet-sub: rgba(203, 213, 225, 0.65);
+        --monet-danger: #f87171;
+        --monet-danger-text: #fca5a5;
+        --glass: rgba(255, 255, 255, 0.06);
+        --glass-border: rgba(255, 255, 255, 0.15);
+        --glass-card: rgba(255, 255, 255, 0.04);
+    }
+
+    body.is-standalone-pip #displayTaskName,
+    body.is-standalone-pip #displayTaskName span,
+    body.is-standalone-pip .section-title {
+        color: rgba(240, 246, 255, 0.88) !important;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    }
+
+    body.is-standalone-pip #timerDragHandle div {
+        background: rgba(255, 255, 255, 0.28) !important;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+    }
+
+    body.is-standalone-pip #displayCategories .glass-tag {
+        color: rgba(240, 246, 255, 0.95) !important;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4) !important;
+        border-color: rgba(255, 255, 255, 0.25) !important;
+    }
+
+    body.is-standalone-pip .timer-circle-wrap {
+        background: rgba(20, 25, 38, 0.55) !important;
+        border: 1px solid rgba(255, 255, 255, 0.14) !important;
+        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35), inset 0 10px 24px rgba(0, 0, 0, 0.25), inset 0 -8px 18px rgba(255, 255, 255, 0.06) !important;
+    }
+
+    body.is-standalone-pip .timer-circle-wrap::before {
+        background: radial-gradient(circle at 72% 26%, rgba(171, 158, 211, 0.09) 0%, rgba(149, 165, 210, 0.035) 38%, transparent 80%) !important;
+    }
+
+    body.is-standalone-pip .timer-circle-wrap::after {
+        background: radial-gradient(circle at 42% 76%, rgba(244, 135, 116, 0.09) 0%, rgba(231, 113, 102, 0.035) 42%, transparent 82%) !important;
+    }
+
+    body.is-standalone-pip .timer-circle-wrap.danger-ring {
+        box-shadow: 0 14px 36px rgba(177, 76, 91, 0.16), 0 0 16px rgba(166, 139, 190, 0.08), inset 0 8px 16px rgba(174, 93, 111, 0.04), inset 0 -6px 14px rgba(255, 255, 255, 0.05) !important;
+    }
+
+    body.is-standalone-pip .ring-track {
+        stroke: rgba(255, 255, 255, 0.10) !important;
+        filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
+    }
+
+    body.is-standalone-pip .ring-progress {
+        filter: drop-shadow(0 2px 5px rgba(157, 210, 255, 0.20)) !important;
+    }
+
+    body.is-standalone-pip .ring-progress-danger {
+        filter: drop-shadow(0 2px 5px rgba(227, 96, 93, 0.18)) !important;
+    }
+
+    body.is-standalone-pip .timer-mode-label {
+        color: rgba(240, 246, 255, 0.88) !important;
+    }
+
+    body.is-standalone-pip .timer-digital-clock,
+    body.is-standalone-pip .timer-digital-clock .timer-time-node {
+        color: rgba(240, 246, 255, 0.88) !important;
+        text-shadow: 0 2px 8px rgba(157, 210, 255, 0.16) !important;
+    }
+
+    body.is-standalone-pip .timer-digital-clock .timer-digit-slot:nth-child(1) .timer-time-node,
+    body.is-standalone-pip .timer-digital-clock .timer-digit-slot:nth-child(2) .timer-time-node,
+    body.is-standalone-pip .timer-digital-clock .timer-digit-slot:nth-child(4) .timer-time-node,
+    body.is-standalone-pip .timer-digital-clock .timer-digit-slot:nth-child(5) .timer-time-node,
+    body.is-standalone-pip .timer-digital-clock .timer-digit-slot:nth-child(7) .timer-time-node,
+    body.is-standalone-pip .timer-digital-clock .timer-digit-slot:nth-child(8) .timer-time-node {
+        color: rgba(240, 246, 255, 0.88) !important;
+    }
+
+    body.is-standalone-pip .timer-digital-clock .timer-digit-slot.colon .timer-time-node {
+        background: none !important;
+        -webkit-background-clip: border-box !important;
+        -webkit-text-fill-color: rgba(240, 246, 255, 0.88) !important;
+        color: rgba(240, 246, 255, 0.88) !important;
+    }
+
+    body.is-standalone-pip .danger-ring .timer-time-node:not(.clock-exit) {
+        color: #f87171 !important;
+        text-shadow: 0 2px 8px rgba(248, 113, 113, 0.25) !important;
+    }
+
+    body.is-standalone-pip .danger-ring .timer-digit-slot.colon .timer-time-node {
+        -webkit-text-fill-color: rgba(248, 113, 113, 0.75) !important;
+        color: #f87171 !important;
+    }
+
+    body.is-standalone-pip .danger-ring .timer-mode-label {
+        color: #fca5a5 !important;
+    }
+
+    body.is-standalone-pip .danger-ring .timer-sub-label {
+        color: rgba(252, 165, 165, 0.75) !important;
+    }
+
+    body.is-standalone-pip .timer-sub-label,
+    body.is-standalone-pip #expectedTimeLabel,
+    body.is-standalone-pip #msDisplay {
+        color: rgba(203, 213, 225, 0.65) !important;
+    }
+
+    body.is-standalone-pip .danger {
+        background:
+            linear-gradient(135deg,
+                rgba(235, 95, 95, 0.72) 0%,
+                rgba(220, 75, 75, 0.65) 52%,
+                rgba(225, 88, 80, 0.68) 100%) padding-box,
+            linear-gradient(135deg,
+                rgba(255, 200, 200, 0.38) 0%,
+                rgba(255, 160, 160, 0.20) 48%,
+                rgba(255, 180, 175, 0.32) 100%) border-box !important;
+        box-shadow:
+            0 0 10px rgba(244, 114, 114, 0.12),
+            0 4px 14px rgba(244, 114, 114, 0.14),
+            inset 0 1px 1.5px rgba(255, 255, 255, 0.30),
+            inset 0 -1px 1.5px rgba(150, 24, 24, 0.12) !important;
+        color: #ffffff !important;
+    }
+
+    body.is-standalone-pip .danger:hover {
+        background:
+            linear-gradient(135deg,
+                rgba(240, 105, 105, 0.78) 0%,
+                rgba(226, 85, 85, 0.70) 52%,
+                rgba(232, 98, 90, 0.74) 100%) padding-box,
+            linear-gradient(135deg,
+                rgba(255, 215, 215, 0.48) 0%,
+                rgba(255, 175, 175, 0.26) 48%,
+                rgba(255, 195, 190, 0.42) 100%) border-box !important;
+        box-shadow:
+            0 0 12px rgba(244, 114, 114, 0.16),
+            0 6px 18px rgba(244, 114, 114, 0.18),
+            inset 0 1.2px 1.8px rgba(255, 255, 255, 0.36) !important;
+    }
+
+    body.is-standalone-pip .secondary {
+        background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 60%, transparent 85%) !important;
+        border-top: 1.2px solid rgba(255, 255, 255, 0.18) !important;
+        border-left: 1px solid rgba(255, 255, 255, 0.10) !important;
+        border-right: 1px solid rgba(255, 255, 255, 0.05) !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.02) !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.20), inset 0 0 0 1px rgba(255, 255, 255, 0.03), inset 1px 1.5px 3px rgba(255, 255, 255, 0.06) !important;
+        color: rgba(240, 246, 255, 0.88) !important;
+    }
+
+    body.is-standalone-pip .secondary:hover {
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.13) 0%, rgba(255, 255, 255, 0.05) 100%) !important;
+        border-color: rgba(255, 255, 255, 0.20);
+        box-shadow: 
+            0 4px 14px rgba(0, 0, 0, 0.25), 
+            inset 0 1px 1.5px rgba(255, 255, 255, 0.10), 
+            0 0 0 1px rgba(255, 255, 255, 0.10) !important;
+        color: #ffffff !important;
+    }
+
+    body.is-standalone-pip .secondary:active {
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.09) 0%, rgba(255, 255, 255, 0.03) 100%) !important;
+        box-shadow: 
+            0 2px 8px rgba(0, 0, 0, 0.15), 
+            inset 0 0 0 1px rgba(255, 255, 255, 0.04) !important;
+    }
+
+    body.is-standalone-pip button::before,
+    body.is-standalone-pip .danger::before,
+    body.is-standalone-pip .secondary::before {
+        opacity: calc(var(--lq-border-opacity, 0) * 0.32) !important;
+    }
+    body.is-standalone-pip button::after,
+    body.is-standalone-pip .danger::after,
+    body.is-standalone-pip .secondary::after {
+        opacity: calc(var(--lq-lo, 0) * 0.28) !important;
+    }
+}
+
+html.dark-mode body.is-standalone-pip,
+body.dark-mode.is-standalone-pip {
+    --text: rgba(240, 246, 255, 0.88);
+    --sub: rgba(203, 213, 225, 0.65);
+    --monet-text: rgba(240, 246, 255, 0.88);
+    --monet-sub: rgba(203, 213, 225, 0.65);
+    --monet-danger: #f87171;
+    --monet-danger-text: #fca5a5;
+    --glass: rgba(255, 255, 255, 0.06);
+    --glass-border: rgba(255, 255, 255, 0.15);
+    --glass-card: rgba(255, 255, 255, 0.04);
+}
+
+html.dark-mode body.is-standalone-pip #displayTaskName,
+html.dark-mode body.is-standalone-pip #displayTaskName span,
+html.dark-mode body.is-standalone-pip .section-title,
+body.dark-mode.is-standalone-pip #displayTaskName,
+body.dark-mode.is-standalone-pip #displayTaskName span,
+body.dark-mode.is-standalone-pip .section-title {
+    color: rgba(240, 246, 255, 0.88) !important;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+html.dark-mode body.is-standalone-pip #timerDragHandle div,
+body.dark-mode.is-standalone-pip #timerDragHandle div {
+    background: rgba(255, 255, 255, 0.28) !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+}
+
+html.dark-mode body.is-standalone-pip #displayCategories .glass-tag,
+body.dark-mode.is-standalone-pip #displayCategories .glass-tag {
+    color: rgba(240, 246, 255, 0.95) !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4) !important;
+    border-color: rgba(255, 255, 255, 0.25) !important;
+}
+
+html.dark-mode body.is-standalone-pip .timer-circle-wrap,
+body.dark-mode.is-standalone-pip .timer-circle-wrap {
+    background: rgba(20, 25, 38, 0.55) !important;
+    border: 1px solid rgba(255, 255, 255, 0.14) !important;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35), inset 0 10px 24px rgba(0, 0, 0, 0.25), inset 0 -8px 18px rgba(255, 255, 255, 0.06) !important;
+}
+
+html.dark-mode body.is-standalone-pip .timer-circle-wrap::before,
+body.dark-mode.is-standalone-pip .timer-circle-wrap::before {
+    background: radial-gradient(circle at 72% 26%, rgba(171, 158, 211, 0.09) 0%, rgba(149, 165, 210, 0.035) 38%, transparent 80%) !important;
+}
+
+html.dark-mode body.is-standalone-pip .timer-circle-wrap::after,
+body.dark-mode.is-standalone-pip .timer-circle-wrap::after {
+    background: radial-gradient(circle at 42% 76%, rgba(244, 135, 116, 0.09) 0%, rgba(231, 113, 102, 0.035) 42%, transparent 82%) !important;
+}
+
+html.dark-mode body.is-standalone-pip .timer-circle-wrap.danger-ring,
+body.dark-mode.is-standalone-pip .timer-circle-wrap.danger-ring {
+    box-shadow: 0 14px 36px rgba(177, 76, 91, 0.16), 0 0 16px rgba(166, 139, 190, 0.08), inset 0 8px 16px rgba(174, 93, 111, 0.04), inset 0 -6px 14px rgba(255, 255, 255, 0.05) !important;
+}
+
+html.dark-mode body.is-standalone-pip .ring-track,
+body.dark-mode.is-standalone-pip .ring-track {
+    stroke: rgba(255, 255, 255, 0.10) !important;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
+}
+
+html.dark-mode body.is-standalone-pip .ring-progress,
+body.dark-mode.is-standalone-pip .ring-progress {
+    filter: drop-shadow(0 2px 5px rgba(157, 210, 255, 0.20)) !important;
+}
+
+html.dark-mode body.is-standalone-pip .ring-progress-danger,
+body.dark-mode.is-standalone-pip .ring-progress-danger {
+    filter: drop-shadow(0 2px 5px rgba(227, 96, 93, 0.18)) !important;
+}
+
+html.dark-mode body.is-standalone-pip .timer-mode-label,
+body.dark-mode.is-standalone-pip .timer-mode-label {
+    color: rgba(240, 246, 255, 0.88) !important;
+}
+
+html.dark-mode body.is-standalone-pip .timer-digital-clock,
+html.dark-mode body.is-standalone-pip .timer-digital-clock .timer-time-node,
+body.dark-mode.is-standalone-pip .timer-digital-clock,
+body.dark-mode.is-standalone-pip .timer-digital-clock .timer-time-node {
+    color: rgba(240, 246, 255, 0.88) !important;
+    text-shadow: 0 2px 8px rgba(157, 210, 255, 0.16) !important;
+}
+
+html.dark-mode body.is-standalone-pip .timer-digital-clock .timer-digit-slot:nth-child(1) .timer-time-node,
+html.dark-mode body.is-standalone-pip .timer-digital-clock .timer-digit-slot:nth-child(2) .timer-time-node,
+html.dark-mode body.is-standalone-pip .timer-digital-clock .timer-digit-slot:nth-child(4) .timer-time-node,
+html.dark-mode body.is-standalone-pip .timer-digital-clock .timer-digit-slot:nth-child(5) .timer-time-node,
+html.dark-mode body.is-standalone-pip .timer-digital-clock .timer-digit-slot:nth-child(7) .timer-time-node,
+html.dark-mode body.is-standalone-pip .timer-digital-clock .timer-digit-slot:nth-child(8) .timer-time-node,
+body.dark-mode.is-standalone-pip .timer-digital-clock .timer-digit-slot:nth-child(1) .timer-time-node,
+body.dark-mode.is-standalone-pip .timer-digital-clock .timer-digit-slot:nth-child(2) .timer-time-node,
+body.dark-mode.is-standalone-pip .timer-digital-clock .timer-digit-slot:nth-child(4) .timer-time-node,
+body.dark-mode.is-standalone-pip .timer-digital-clock .timer-digit-slot:nth-child(5) .timer-time-node,
+body.dark-mode.is-standalone-pip .timer-digital-clock .timer-digit-slot:nth-child(7) .timer-time-node,
+body.dark-mode.is-standalone-pip .timer-digital-clock .timer-digit-slot:nth-child(8) .timer-time-node {
+    color: rgba(240, 246, 255, 0.88) !important;
+}
+
+html.dark-mode body.is-standalone-pip .timer-digital-clock .timer-digit-slot.colon .timer-time-node,
+body.dark-mode.is-standalone-pip .timer-digital-clock .timer-digit-slot.colon .timer-time-node {
+    background: none !important;
+    -webkit-background-clip: border-box !important;
+    -webkit-text-fill-color: rgba(240, 246, 255, 0.88) !important;
+    color: rgba(240, 246, 255, 0.88) !important;
+}
+
+html.dark-mode body.is-standalone-pip .danger-ring .timer-time-node:not(.clock-exit),
+body.dark-mode.is-standalone-pip .danger-ring .timer-time-node:not(.clock-exit) {
+    color: #f87171 !important;
+    text-shadow: 0 2px 8px rgba(248, 113, 113, 0.25) !important;
+}
+
+html.dark-mode body.is-standalone-pip .danger-ring .timer-digit-slot.colon .timer-time-node,
+body.dark-mode.is-standalone-pip .danger-ring .timer-digit-slot.colon .timer-time-node {
+    -webkit-text-fill-color: rgba(248, 113, 113, 0.75) !important;
+    color: #f87171 !important;
+}
+
+html.dark-mode body.is-standalone-pip .danger-ring .timer-mode-label,
+body.dark-mode.is-standalone-pip .danger-ring .timer-mode-label {
+    color: #fca5a5 !important;
+}
+
+html.dark-mode body.is-standalone-pip .danger-ring .timer-sub-label,
+body.dark-mode.is-standalone-pip .danger-ring .timer-sub-label {
+    color: rgba(252, 165, 165, 0.75) !important;
+}
+
+html.dark-mode body.is-standalone-pip .timer-sub-label,
+html.dark-mode body.is-standalone-pip #expectedTimeLabel,
+html.dark-mode body.is-standalone-pip #msDisplay,
+body.dark-mode.is-standalone-pip .timer-sub-label,
+body.dark-mode.is-standalone-pip #expectedTimeLabel,
+body.dark-mode.is-standalone-pip #msDisplay {
+    color: rgba(203, 213, 225, 0.65) !important;
+}
+
+html.dark-mode body.is-standalone-pip .danger,
+body.dark-mode.is-standalone-pip .danger {
+    background:
+        linear-gradient(135deg,
+            rgba(235, 95, 95, 0.72) 0%,
+            rgba(220, 75, 75, 0.65) 52%,
+            rgba(225, 88, 80, 0.68) 100%) padding-box,
+        linear-gradient(135deg,
+            rgba(255, 200, 200, 0.38) 0%,
+            rgba(255, 160, 160, 0.20) 48%,
+            rgba(255, 180, 175, 0.32) 100%) border-box !important;
+    box-shadow:
+        0 0 10px rgba(244, 114, 114, 0.12),
+        0 4px 14px rgba(244, 114, 114, 0.14),
+        inset 0 1px 1.5px rgba(255, 255, 255, 0.30),
+        inset 0 -1px 1.5px rgba(150, 24, 24, 0.12) !important;
+    color: #ffffff !important;
+}
+
+html.dark-mode body.is-standalone-pip .danger:hover,
+body.dark-mode.is-standalone-pip .danger:hover {
+    background:
+        linear-gradient(135deg,
+            rgba(240, 105, 105, 0.78) 0%,
+            rgba(226, 85, 85, 0.70) 52%,
+            rgba(232, 98, 90, 0.74) 100%) padding-box,
+        linear-gradient(135deg,
+            rgba(255, 215, 215, 0.48) 0%,
+            rgba(255, 175, 175, 0.26) 48%,
+            rgba(255, 195, 190, 0.42) 100%) border-box !important;
+    box-shadow:
+        0 0 12px rgba(244, 114, 114, 0.16),
+        0 6px 18px rgba(244, 114, 114, 0.18),
+        inset 0 1.2px 1.8px rgba(255, 255, 255, 0.36) !important;
+}
+
+html.dark-mode body.is-standalone-pip .secondary,
+body.dark-mode.is-standalone-pip .secondary {
+    background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 60%, transparent 85%) !important;
+    border-top: 1.2px solid rgba(255, 255, 255, 0.18) !important;
+    border-left: 1px solid rgba(255, 255, 255, 0.10) !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.05) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.02) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.20), inset 0 0 0 1px rgba(255, 255, 255, 0.03), inset 1px 1.5px 3px rgba(255, 255, 255, 0.06) !important;
+    color: rgba(240, 246, 255, 0.88) !important;
+}
+
+html.dark-mode body.is-standalone-pip .secondary:hover,
+body.dark-mode.is-standalone-pip .secondary:hover {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.13) 0%, rgba(255, 255, 255, 0.05) 100%) !important;
+    border-color: rgba(255, 255, 255, 0.20);
+    box-shadow: 
+        0 4px 14px rgba(0, 0, 0, 0.25), 
+        inset 0 1px 1.5px rgba(255, 255, 255, 0.10), 
+        0 0 0 1px rgba(255, 255, 255, 0.10) !important;
+    color: #ffffff !important;
+}
+
+html.dark-mode body.is-standalone-pip .secondary:active,
+body.dark-mode.is-standalone-pip .secondary:active {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.09) 0%, rgba(255, 255, 255, 0.03) 100%) !important;
+    box-shadow: 
+        0 2px 8px rgba(0, 0, 0, 0.15), 
+        inset 0 0 0 1px rgba(255, 255, 255, 0.04) !important;
+}
+
+html.dark-mode body.is-standalone-pip button::before,
+html.dark-mode body.is-standalone-pip .danger::before,
+html.dark-mode body.is-standalone-pip .secondary::before,
+body.dark-mode.is-standalone-pip button::before,
+body.dark-mode.is-standalone-pip .danger::before,
+body.dark-mode.is-standalone-pip .secondary::before {
+    opacity: calc(var(--lq-border-opacity, 0) * 0.32) !important;
+}
+html.dark-mode body.is-standalone-pip button::after,
+html.dark-mode body.is-standalone-pip .danger::after,
+html.dark-mode body.is-standalone-pip .secondary::after,
+body.dark-mode.is-standalone-pip button::after,
+body.dark-mode.is-standalone-pip .danger::after,
+body.dark-mode.is-standalone-pip .secondary::after {
+    opacity: calc(var(--lq-lo, 0) * 0.28) !important;
+}
+</style>
+<style id="tasktimer-subject-overlap-fusion-v1">
+/* TaskTimer subject-only overlap dissolution. The shared liquid engine still
+   supplies the long-distance bridge; this layer replaces only the visible
+   stacked seam inside #subjectBox after two subject pills physically overlap. */
+#subjectBox > .subject-item > span {
+    --tasktimer-subject-fusion-color: rgba(255, 255, 255, 0.48);
+}
+#subjectBox > .subject-item input:checked + span {
+    --tasktimer-subject-fusion-color: rgba(199, 231, 255, 0.72);
+}
+/* Only the edge facing the overlapping peer is dissolved. Other sides retain
+   their original glass outline, so the pair reads as one liquid volume rather
+   than two borderless pills. */
+#subjectBox > .subject-item > span.tasktimer-subject-overlap-left   { border-left-color: transparent !important; }
+#subjectBox > .subject-item > span.tasktimer-subject-overlap-right  { border-right-color: transparent !important; }
+#subjectBox > .subject-item > span.tasktimer-subject-overlap-top    { border-top-color: transparent !important; }
+#subjectBox > .subject-item > span.tasktimer-subject-overlap-bottom { border-bottom-color: transparent !important; }
+
+#subjectBox {
+    position: relative;
+    isolation: isolate;
+    overflow: visible;
+}
+#subjectBox > .subject-item,
+#subjectBox > input {
+    position: relative;
+    z-index: 2;
+}
+
+/* During physical overlap the two original glass shells become transparent;
+   their stable text/icon layers remain above one shared SVG liquid surface. */
+#subjectBox > .subject-item > span.tasktimer-subject-union-member {
+    background: transparent !important;
+    background-color: transparent !important;
+    /* Keep the exact 2/1/1/1px shell metrics while hiding its paint. Setting
+       border: 0 changes the border-box measured on the next animation frame,
+       which made the generated union visibly contract during contact. */
+    border-style: solid !important;
+    border-width: 2px 1px 1px 1px !important;
+    border-color: transparent !important;
+    outline: none !important;
+    box-shadow: none !important;
+    filter: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+/* Checked-state border declarations have greater selector specificity than the
+   generic union member rule. When at least one member is selected, suppress
+   both source rims explicitly and let the SVG draw exactly one combined rim.
+   Widths stay untouched, preserving the original border-box dimensions. */
+#subjectBox > .subject-item > input + span.tasktimer-subject-selected-union-member,
+#subjectBox > .subject-item > input:checked + span.tasktimer-subject-selected-union-member {
+    border-style: solid !important;
+    border-width: 2px 1px 1px 1px !important;
+    border-color: transparent !important;
+}
+#subjectBox > .subject-item > span.tasktimer-subject-selected-union-member::before,
+#subjectBox > .subject-item > span.tasktimer-subject-selected-union-member::after {
+    content: none !important;
+    display: none !important;
+    opacity: 0 !important;
+    background: none !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    filter: none !important;
+    -webkit-mask: none !important;
+    mask: none !important;
+}
+/* Ordinary selected tags retain their ::after surface light. Hide it only
+   while that exact tag is being dragged; a physical union also hides both
+   source pseudo layers because the SVG paints the combined silhouette. */
+#subjectBox > .subject-item > input:checked + span.tasktimer-subject-drag-no-top-light::after,
+#subjectBox > .subject-item > span.tasktimer-subject-union-member::before,
+#subjectBox > .subject-item > span.tasktimer-subject-union-member::after {
+    content: none !important;
+    display: none !important;
+    opacity: 0 !important;
+    background: none !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    filter: none !important;
+    -webkit-mask: none !important;
+    mask: none !important;
+}
+
+/* The original selected top inset is also suppressed only during the active
+   drag. Removing this temporary class restores the page's native highlight. */
+#subjectBox > .subject-item > input:checked + span.tasktimer-subject-drag-no-top-light {
+    box-shadow:
+        0 8px 20px rgba(157, 210, 255, 0.20),
+        inset 0 -1px 3px rgba(157, 210, 255, 0.12) !important;
+}
+
+
+/* The shared JS bridge is useful before contact. Once TaskTimer's subject union is
+   active, suppress the overlapping tag bridge so no extra oval is stacked on
+   top of the reference-like silhouette. */
+.__lq-fusion-bridge.__lq-fusion-tag-pair.tasktimer-subject-union-suppressed {
+    opacity: 0 !important;
+    visibility: hidden !important;
+}
+
+.tasktimer-subject-tag-union-surface {
+    position: absolute;
+    left: -9999px;
+    top: -9999px;
+    z-index: 1;
+    display: block;
+    overflow: visible;
+    pointer-events: none;
+    opacity: 0;
+    /* Do not backdrop-filter the root SVG: that samples its rectangular
+       viewport and can expose a clipped rectangular shadow/glass patch. */
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    /* Both shadows are cast from the final masked union alpha, so the two
+       controls share one ambient shadow instead of losing depth at contact. */
+    filter:
+        drop-shadow(0 15px 38px rgba(15, 23, 42, .125))
+        drop-shadow(0 4px 10px rgba(15, 23, 42, .085));
+    transition: opacity 95ms ease-out;
+    will-change: left, top, width, height, opacity;
+    contain: layout style;
+}
+.tasktimer-subject-tag-union-surface.is-visible { transition-duration: 48ms; }
 </style>
 </head>
 
@@ -2812,16 +3386,10 @@ window.dialogConfirmCallback = null;
 window.alphaPipWindow = null; 
 
 function reqFrame(cb) {
-    try {
-        if (window.alphaPipWindow && !window.alphaPipWindow.closed) return window.alphaPipWindow.requestAnimationFrame(cb);
-    } catch(e) {}
     return window.requestAnimationFrame(cb);
 }
 
 function cancelFrame(id) {
-    try {
-        if (window.alphaPipWindow && !window.alphaPipWindow.closed) return window.alphaPipWindow.cancelAnimationFrame(id);
-    } catch(e) {}
     return window.cancelAnimationFrame(id);
 }
 
@@ -3676,29 +4244,39 @@ function checkAutoStart() {
 /* ==========================================================================
    [05. AUDIO ENGINE & RINGTONE UPLOAD]
    ========================================================================== */
-const alarmAudio = new Audio();
-alarmAudio.preload = "none"; 
-alarmAudio.src = "https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3";
+const defaultTimerRingtone = "https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3";
+let alarmAudio = null;
+
+function getAlarmAudio() {
+    if (!alarmAudio) {
+        alarmAudio = new Audio();
+        alarmAudio.preload = "none";
+        const savedAudio = localStorage.getItem('custom_ringtone');
+        alarmAudio.src = savedAudio || defaultTimerRingtone;
+        alarmAudio.addEventListener('ended', () => {
+            if (alarmPlayCount < MAX_PLAY_COUNT) {
+                alarmPlayCount++;
+                alarmAudio.currentTime = 0;
+                alarmAudio.play().catch(e => console.error("音频重播被拦截:", e));
+            } else {
+                stopAlarm();
+            }
+        });
+    }
+    return alarmAudio;
+}
 
 let alarmPlayCount = 1;
 const MAX_PLAY_COUNT = 3;
 const electronAPI = window.electronAPI || window.top?.electronAPI || window.parent?.electronAPI;
 
 function stopAlarm() { 
-    alarmAudio.pause(); 
-    alarmAudio.currentTime = 0; 
+    if (alarmAudio) {
+        alarmAudio.pause(); 
+        alarmAudio.currentTime = 0; 
+    }
     alarmPlayCount = 1;
 }
-
-alarmAudio.addEventListener('ended', () => {
-    if (alarmPlayCount < MAX_PLAY_COUNT) {
-        alarmPlayCount++;
-        alarmAudio.currentTime = 0;
-        alarmAudio.play().catch(e => console.error("音频重播被拦截:", e));
-    } else {
-        stopAlarm();
-    }
-});
 
 if (electronAPI && electronAPI.onStopAlarm) {
     electronAPI.onStopAlarm(() => { stopAlarm(); });
@@ -3708,7 +4286,6 @@ const savedAudio = localStorage.getItem('custom_ringtone');
 const savedAudioName = localStorage.getItem('custom_ringtone_name');
 
 if (savedAudio) {
-    alarmAudio.src = savedAudio;
     document.getElementById('ringtoneName').textContent = savedAudioName || "自定义铃声";
     document.getElementById('resetRingtoneBtn').classList.remove('hidden');
 }
@@ -3724,7 +4301,7 @@ document.getElementById('ringtoneInput').addEventListener('change', (e) => {
             try {
                 localStorage.setItem('custom_ringtone', base64Str);
                 localStorage.setItem('custom_ringtone_name', file.name);
-                alarmAudio.src = base64Str;
+                if (alarmAudio) alarmAudio.src = base64Str;
                 document.getElementById('ringtoneName').textContent = file.name;
                 document.getElementById('resetRingtoneBtn').classList.remove('hidden');
                 customAlert("自定义铃声上传并保存成功, 下次打开仍会记忆!", "设置成功", "Done");
@@ -3739,7 +4316,7 @@ document.getElementById('ringtoneInput').addEventListener('change', (e) => {
 document.getElementById('resetRingtoneBtn').addEventListener('click', () => {
     localStorage.removeItem('custom_ringtone');
     localStorage.removeItem('custom_ringtone_name');
-    alarmAudio.src = "https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3";
+    if (alarmAudio) alarmAudio.src = defaultTimerRingtone;
     document.getElementById('ringtoneName').textContent = "默认铃声";
     document.getElementById('resetRingtoneBtn').classList.add('hidden');
 });
@@ -3971,6 +4548,24 @@ modeRadios.forEach(radio => {
 /* ==========================================================================
    [07. CORE FOCUS TIMER ENGINE]
    ========================================================================== */
+function switchTimerView(targetView, updateDom) {
+    const isReduceMotion = (typeof localStorage !== 'undefined' && localStorage.getItem('alpha_reduce_motion') === 'true') ||
+        (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    
+    if (window.isStandalonePipMode || isReduceMotion || typeof document.startViewTransition !== 'function') {
+        updateDom();
+        return;
+    }
+
+    try {
+        document.startViewTransition(() => {
+            updateDom();
+        });
+    } catch (_) {
+        updateDom();
+    }
+}
+
 startBtn.addEventListener('click', () => {
     const name = taskNameInput.value.trim();
     if (!name) { customAlert('请输入任务名称!', '信息不完整', 'Write_In', taskNameInput); return; }
@@ -4045,16 +4640,23 @@ startBtn.addEventListener('click', () => {
     renderTimerDigits(secondsElapsed);
     realStartTime = new Date();
     
-    setupLayout.classList.add('hidden');
-    timerPanel.classList.remove('hidden');
+    switchTimerView('timer', () => {
+        setupLayout.classList.add('hidden');
+        timerPanel.classList.remove('hidden');
+    });
     startTimer();
 });
 
 window.alphaResumeTimer = () => {
     if (typeof isRunning !== 'undefined' && isRunning) {
-        if (typeof lastFrameTime !== 'undefined') lastFrameTime = Date.now(); 
-        if (typeof animationFrameId !== 'undefined') cancelFrame(animationFrameId);
-        if (typeof window.alphaUpdateFrame === 'function') animationFrameId = reqFrame(window.alphaUpdateFrame);
+        lastFrameTime = Date.now(); 
+        if (typeof animationFrameId !== 'undefined' && animationFrameId) {
+            cancelFrame(animationFrameId);
+            animationFrameId = null;
+        }
+        if (typeof window.alphaUpdateFrame === 'function') {
+            animationFrameId = reqFrame(window.alphaUpdateFrame);
+        }
     }
 };
 
@@ -4072,22 +4674,22 @@ function startTimer() {
     if (window.alphaBackgroundTimer) clearInterval(window.alphaBackgroundTimer);
     window.alphaBackgroundTimer = null;
 
-    // 后台结束兜底只对倒计时有意义, 正计时不再启动每秒空轮询
-    if (isCountdown) {
-        const expectedEndTime = Date.now() + currentTimerMs;
-        window.alphaBackgroundTimer = setInterval(() => {
-            if (!isRunning) {
+    // 当窗口被部分遮挡、失焦或 rAF 被系统降频时，
+    // 心跳定时器每 200ms 检测一次。若 delta >= 120ms，主动驱动一次 updateFrame，
+    // 保证在任何桌面遮挡/拖拽/切换状态下计时精准且绝不冻结。
+    window.alphaBackgroundTimer = setInterval(() => {
+        if (!isRunning) {
+            if (window.alphaBackgroundTimer) {
                 clearInterval(window.alphaBackgroundTimer);
                 window.alphaBackgroundTimer = null;
-                return;
             }
-            if (Date.now() >= expectedEndTime + 200) {
-                if (typeof window.alphaUpdateFrame === 'function') {
-                    window.alphaUpdateFrame();
-                }
-            }
-        }, 1000);
-    }
+            return;
+        }
+        const delta = Date.now() - lastFrameTime;
+        if (delta >= 120 && typeof updateFrame === 'function') {
+            updateFrame();
+        }
+    }, 200);
 
     function updateFrame() {
         if (!isRunning) return;
@@ -4112,8 +4714,9 @@ function startTimer() {
                 if (window.alphaBackgroundTimer) clearInterval(window.alphaBackgroundTimer); 
                 
                 alarmPlayCount = 1; 
-                alarmAudio.currentTime = 0; 
-                try { alarmAudio.play(); } catch(e){}
+                const audio = getAlarmAudio();
+                audio.currentTime = 0; 
+                try { audio.play(); } catch(e){}
 
                 if (electronAPI && electronAPI.showAlarmNotification) {
                     electronAPI.showAlarmNotification({
@@ -4247,8 +4850,10 @@ safeCancelBtn.onclick = () => {
             window.close();
             return;
         }
-        timerPanelEl.classList.add('hidden');
-        document.getElementById('setupLayout').classList.remove('hidden');
+        switchTimerView('setup', () => {
+            timerPanelEl.classList.add('hidden');
+            document.getElementById('setupLayout').classList.remove('hidden');
+        });
 
         document.getElementById('taskName').value = '';
         clearSubjectSelection();
@@ -4377,8 +4982,10 @@ safeFinishBtn.onclick = () => {
     clearSubjectSelection();
     currentHubTaskId = null;
 
-    timerPanelEl.classList.add('hidden');
-    document.getElementById('setupLayout').classList.remove('hidden');
+    switchTimerView('setup', () => {
+        timerPanelEl.classList.add('hidden');
+        document.getElementById('setupLayout').classList.remove('hidden');
+    });
     renderHubTasks();
 };
 
@@ -4593,17 +5200,19 @@ safeFinishBtn.onclick = () => {
                 </style>
 
 <style id="button-fix">
-  .secondary {
-      background: radial-gradient(ellipse at top left, rgba(255, 255, 255, 0.75) 0%, rgba(255, 255, 255, 0.25) 100%) !important;
-      box-shadow: 0 4px 10px rgba(15, 23, 42, 0.15), inset 0 0 0 1px rgba(255, 255, 255, 0.3), inset 1px 2px 4px rgba(255, 255, 255, 0.8), inset -1px -2px 4px rgba(0, 0, 0, 0.05) !important;
-  }
-  .secondary:hover {
-      background: linear-gradient(135deg, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0.4) 100%) !important;
-      box-shadow: 0 6px 14px rgba(15, 23, 42, 0.2), inset 0 0 0 1px rgba(255, 255, 255, 0.4), inset 1px 2px 6px rgba(255, 255, 255, 0.9), inset -1px -2px 4px rgba(0, 0, 0, 0.05) !important;
+  @media (prefers-color-scheme: light) {
+      body:not(.dark-mode) .secondary {
+          background: radial-gradient(ellipse at top left, rgba(255, 255, 255, 0.75) 0%, rgba(255, 255, 255, 0.25) 100%) !important;
+          box-shadow: 0 4px 10px rgba(15, 23, 42, 0.15), inset 0 0 0 1px rgba(255, 255, 255, 0.3), inset 1px 2px 4px rgba(255, 255, 255, 0.8), inset -1px -2px 4px rgba(0, 0, 0, 0.05) !important;
+      }
+      body:not(.dark-mode) .secondary:hover {
+          background: linear-gradient(135deg, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0.4) 100%) !important;
+          box-shadow: 0 6px 14px rgba(15, 23, 42, 0.2), inset 0 0 0 1px rgba(255, 255, 255, 0.4), inset 1px 2px 6px rgba(255, 255, 255, 0.9), inset -1px -2px 4px rgba(0, 0, 0, 0.05) !important;
+      }
   }
 </style>
 </head>
-            <body>
+            <body class="is-standalone-pip">
                 <div class="pip-titlebar-drag" id="pipTitleBar"></div>
                 <div id="flexSafeZone">
                     <div id="animationWrapper"></div>
@@ -4612,6 +5221,20 @@ safeFinishBtn.onclick = () => {
             </html>
         `);
         pipDoc.close();
+
+        const syncPipTheme = (isDark) => {
+            if (typeof isDark !== 'boolean') {
+                isDark = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) || document.body.classList.contains('dark-mode');
+            }
+            if (pipDoc.documentElement) pipDoc.documentElement.classList.toggle('dark-mode', isDark);
+            if (pipDoc.body) pipDoc.body.classList.toggle('dark-mode', isDark);
+        };
+        syncPipTheme();
+        if (pip.matchMedia) {
+            pip.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+                syncPipTheme(e.matches);
+            });
+        }
 
         const animWrapper = pipDoc.getElementById('animationWrapper');
         if (animWrapper) {
@@ -4762,8 +5385,16 @@ safeFinishBtn.onclick = () => {
             }
         }, 80);
 
+        let isRestoring = false;
         const restorePanel = () => {
+            if (isRestoring) return;
+            if (pipMonitor) {
+                clearInterval(pipMonitor);
+                pipMonitor = null;
+            }
+
             if (timerPanel.parentNode !== dockStation.parentNode) {
+                isRestoring = true;
                 document.adoptNode(timerPanel);
                 dockStation.parentNode.insertBefore(timerPanel, dockStation);
                 dockStation.style.display = 'none';
@@ -4805,12 +5436,27 @@ safeFinishBtn.onclick = () => {
 
                 window.alphaPipWindow = null;
 
+                // 强制重置 liquid-glass 与 card-glow
+                if (window.AlphaLiquidGlass) {
+                    try { window.AlphaLiquidGlass.init(document); } catch (_) {}
+                    try { window.AlphaLiquidGlass.resetElement(timerPanel); } catch (_) {}
+                }
+                if (window.AlphaCardGlow && typeof window.AlphaCardGlow.wake === 'function') {
+                    try { window.AlphaCardGlow.wake(document); } catch (_) {}
+                }
+
+                // 唤醒当前页面的活动状态
+                try { window.dispatchEvent(new CustomEvent('AlphaWake')); } catch (_) {}
+
                 const topAPI = window.electronAPI || window.parent?.electronAPI || window.top?.electronAPI;
                 if (topAPI && topAPI.bringMainToFront) {
                     topAPI.bringMainToFront();
                 }
 
-                setTimeout(() => { timerPanel.style.transition = ''; }, 480);
+                setTimeout(() => {
+                    timerPanel.style.transition = '';
+                    isRestoring = false;
+                }, 480);
                 if (window.alphaResumeTimer) window.alphaResumeTimer();
             }
         };
@@ -5106,7 +5752,42 @@ window.addEventListener('scroll', handleScrollEvent, { passive: true });
 /* ==========================================================================
    [10. APP SWITCHER & PAGE NAVIGATION ENGINE]
    ========================================================================== */
+function syncThemeState(isDark) {
+    if (typeof isDark !== 'boolean') {
+        isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    document.documentElement.classList.toggle('dark-mode', isDark);
+    document.body.classList.toggle('dark-mode', isDark);
+    if (window.alphaPipWindow && !window.alphaPipWindow.closed && window.alphaPipWindow.document) {
+        try {
+            window.alphaPipWindow.document.documentElement.classList.toggle('dark-mode', isDark);
+            window.alphaPipWindow.document.body.classList.toggle('dark-mode', isDark);
+        } catch (_) {}
+    }
+}
+
+if (window.electronAPI && typeof window.electronAPI.isDarkMode === 'function') {
+    window.electronAPI.isDarkMode().then(syncThemeState).catch(() => {
+        syncThemeState(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    });
+} else {
+    syncThemeState(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+}
+
+if (window.electronAPI && typeof window.electronAPI.onNativeThemeUpdated === 'function') {
+    window.electronAPI.onNativeThemeUpdated((data) => {
+        syncThemeState(data?.shouldUseDarkColors);
+    });
+}
+
+if (window.matchMedia) {
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+        syncThemeState(e.matches);
+    });
+}
+
 window.addEventListener('DOMContentLoaded', () => {
+    syncThemeState();
     resetScrollPosition();
     renderHubTasks();
     checkAutoStart();
@@ -6160,7 +6841,7 @@ document.documentElement.classList.toggle('tasktimer-page-hidden', document.hidd
         if (freeze) {
             docEl.classList.add('pause-bg-motion', 'pause-clock-breath');
             if (bodyEl) bodyEl.classList.add('pause-bg-motion', 'pause-clock-breath');
-        } else if (!isSleeping) {
+        } else {
             docEl.classList.remove('pause-bg-motion', 'pause-clock-breath');
             if (bodyEl) bodyEl.classList.remove('pause-bg-motion', 'pause-clock-breath');
         }
@@ -6188,12 +6869,13 @@ document.documentElement.classList.toggle('tasktimer-page-hidden', document.hidd
             isIdle = false;
             applyVisualFreeze(false);
         }
-        // 高频 pointermove 只更新时间戳，不再反复销毁/新建计时器。
+        if (window.alphaResumeTimer) window.alphaResumeTimer();
         scheduleIdleCheck();
     }
 
     function onSleep() {
         isSleeping = true;
+        document.documentElement.classList.add('alpha-sleep');
         if (idleTimer) {
             clearTimeout(idleTimer);
             idleTimer = null;
@@ -6202,6 +6884,9 @@ document.documentElement.classList.toggle('tasktimer-page-hidden', document.hidd
         try {
             if (window.AlphaCardGlow && typeof window.AlphaCardGlow.sleep === 'function') {
                 window.AlphaCardGlow.sleep(document);
+            }
+            if (window.AlphaInputGlow && typeof window.AlphaInputGlow.sleep === 'function') {
+                window.AlphaInputGlow.sleep(document);
             }
             if (window.AlphaLiquidGlass && typeof window.AlphaLiquidGlass.releaseAll === 'function') {
                 window.AlphaLiquidGlass.releaseAll();
@@ -6212,13 +6897,19 @@ document.documentElement.classList.toggle('tasktimer-page-hidden', document.hidd
     function onWake() {
         isSleeping = false;
         isIdle = false;
+        lastActiveAt = performance.now();
+        document.documentElement.classList.remove('alpha-sleep');
         applyVisualFreeze(false);
         try {
             if (window.AlphaCardGlow && typeof window.AlphaCardGlow.wake === 'function') {
                 window.AlphaCardGlow.wake(document);
             }
+            if (window.AlphaInputGlow && typeof window.AlphaInputGlow.wake === 'function') {
+                window.AlphaInputGlow.wake(document);
+            }
         } catch (_) {}
-        onUserActive();
+        if (window.alphaResumeTimer) window.alphaResumeTimer();
+        scheduleIdleCheck();
     }
 
     const activityEvents = ['pointermove', 'pointerdown', 'keydown', 'scroll', 'wheel', 'touchstart'];
@@ -6228,12 +6919,15 @@ document.documentElement.classList.toggle('tasktimer-page-hidden', document.hidd
 
     window.addEventListener('AlphaSleep', onSleep);
     window.addEventListener('AlphaWake', onWake);
+    window.addEventListener('focus', onUserActive);
     window.addEventListener('blur', () => {
-        if (idleTimer) clearTimeout(idleTimer);
+        if (idleTimer) {
+            clearTimeout(idleTimer);
+            idleTimer = null;
+        }
         isIdle = true;
         applyVisualFreeze(true);
     });
-    window.addEventListener('focus', onUserActive);
     document.addEventListener('visibilitychange', () => {
         if (document.hidden) onSleep();
         else onWake();
@@ -6247,6 +6941,7 @@ document.documentElement.classList.toggle('tasktimer-page-hidden', document.hidd
             applyVisualFreeze(true);
         } else if (!isIdle && !isSleeping) {
             applyVisualFreeze(false);
+            if (window.alphaResumeTimer) window.alphaResumeTimer();
         }
     }
 
@@ -6258,6 +6953,25 @@ document.documentElement.classList.toggle('tasktimer-page-hidden', document.hidd
     if (api && typeof api.getPerformanceThrottleState === 'function') {
         api.getPerformanceThrottleState().then(applyThrottle).catch(() => {});
     }
+
+    function applyBgMotionSetting(enabled) {
+        const isEnabled = (typeof enabled === 'boolean') ? enabled : (localStorage.getItem('alpha_bg_motion') === 'true');
+        const docEl = document.documentElement;
+        const bodyEl = document.body;
+        if (docEl) docEl.classList.toggle('enable-bg-motion', isEnabled);
+        if (bodyEl) bodyEl.classList.toggle('enable-bg-motion', isEnabled);
+    }
+    applyBgMotionSetting();
+    window.addEventListener('message', (e) => {
+        if (e.data && e.data.type === 'alpha_bg_motion') {
+            applyBgMotionSetting(!!e.data.value);
+        }
+    });
+    window.addEventListener('storage', (e) => {
+        if (e.key === 'alpha_bg_motion') {
+            applyBgMotionSetting(e.newValue === 'true');
+        }
+    });
 })();
 
 // 禁止通过 F11 快捷键切换全屏
@@ -6267,6 +6981,514 @@ window.addEventListener('keydown', (e) => {
         e.stopPropagation();
     }
 }, true);
+</script>
+<script id="tasktimer-subject-overlap-controller-v1">
+(function initTaskTimerSubjectOverlapFusion() {
+    'use strict';
+
+    const EDGE_CLASSES = [
+        'tasktimer-subject-overlap-left',
+        'tasktimer-subject-overlap-right',
+        'tasktimer-subject-overlap-top',
+        'tasktimer-subject-overlap-bottom'
+    ];
+    const tracked = new Map();
+    let hoverSurface = null;
+    let activeSurface = null;
+    let activePointerId = null;
+    let pointerIsDown = false;
+    let pointerStartX = 0;
+    let pointerStartY = 0;
+    let dragLightSuppressed = false;
+    let currentPeer = null;
+    let currentGroup = null;
+    let frameId = 0;
+
+    const SVG_NS = 'http://www.w3.org/2000/svg';
+    const svgElement = name => document.createElementNS(SVG_NS, name);
+    const union = svgElement('svg');
+    union.classList.add('tasktimer-subject-tag-union-surface');
+    union.setAttribute('aria-hidden', 'true');
+
+    const defs = svgElement('defs');
+    const materialGradient = svgElement('linearGradient');
+    materialGradient.id = 'tasktimerSubjectUnionMaterialV4';
+    materialGradient.setAttribute('gradientUnits', 'userSpaceOnUse');
+    const materialStops = [0, 0.42, 0.58, 1].map(offset => {
+        const stop = svgElement('stop');
+        stop.setAttribute('offset', String(offset));
+        materialGradient.appendChild(stop);
+        return stop;
+    });
+    const unionMask = svgElement('mask');
+    unionMask.id = 'tasktimerSubjectUnionMaskV4';
+    unionMask.setAttribute('maskUnits', 'userSpaceOnUse');
+    unionMask.setAttribute('maskContentUnits', 'userSpaceOnUse');
+    unionMask.style.maskType = 'luminance';
+    const maskPath = svgElement('path');
+    maskPath.setAttribute('fill', 'white');
+    maskPath.setAttribute('fill-rule', 'nonzero');
+    const notchNegative = svgElement('circle');
+    const notchPositive = svgElement('circle');
+    notchNegative.setAttribute('fill', 'black');
+    notchPositive.setAttribute('fill', 'black');
+    unionMask.append(maskPath, notchNegative, notchPositive);
+
+    /* Build the rim from the alpha of the already-masked combined silhouette.
+       Eroding that alpha creates one continuous inner outline, with no seam
+       around either original pill and with both liquid notches included. */
+    const outlineFilter = svgElement('filter');
+    outlineFilter.id = 'tasktimerSubjectUnionOutlineV4';
+    outlineFilter.setAttribute('color-interpolation-filters', 'sRGB');
+    const outlineErode = svgElement('feMorphology');
+    outlineErode.setAttribute('in', 'SourceAlpha');
+    outlineErode.setAttribute('operator', 'erode');
+    outlineErode.setAttribute('radius', '0.82');
+    outlineErode.setAttribute('result', 'tasktimerSubjectUnionInner');
+    const outlineEdge = svgElement('feComposite');
+    outlineEdge.setAttribute('in', 'SourceAlpha');
+    outlineEdge.setAttribute('in2', 'tasktimerSubjectUnionInner');
+    outlineEdge.setAttribute('operator', 'out');
+    outlineEdge.setAttribute('result', 'tasktimerSubjectUnionEdge');
+    const outlineFlood = svgElement('feFlood');
+    outlineFlood.setAttribute('flood-color', 'rgb(255,255,255)');
+    outlineFlood.setAttribute('flood-opacity', '0.70');
+    outlineFlood.setAttribute('result', 'tasktimerSubjectUnionRimColor');
+    const outlinePaint = svgElement('feComposite');
+    outlinePaint.setAttribute('in', 'tasktimerSubjectUnionRimColor');
+    outlinePaint.setAttribute('in2', 'tasktimerSubjectUnionEdge');
+    outlinePaint.setAttribute('operator', 'in');
+    outlineFilter.append(outlineErode, outlineEdge, outlineFlood, outlinePaint);
+
+    defs.append(materialGradient, unionMask, outlineFilter);
+
+    const materialGroup = svgElement('g');
+    materialGroup.setAttribute('fill', 'url(#tasktimerSubjectUnionMaterialV4)');
+    materialGroup.setAttribute('mask', 'url(#tasktimerSubjectUnionMaskV4)');
+    const materialPath = svgElement('path');
+    materialPath.setAttribute('fill-rule', 'nonzero');
+    materialGroup.append(materialPath);
+    /* Keep the material unfiltered: its separate outline is generated from the
+       final union alpha rather than from either original tag. */
+    materialGroup.style.filter = 'none';
+
+    const outlineGroup = svgElement('g');
+    outlineGroup.setAttribute('filter', 'url(#tasktimerSubjectUnionOutlineV4)');
+    outlineGroup.setAttribute('pointer-events', 'none');
+    const outlineMaskedGroup = svgElement('g');
+    outlineMaskedGroup.setAttribute('mask', 'url(#tasktimerSubjectUnionMaskV4)');
+    const outlineSource = svgElement('path');
+    outlineSource.setAttribute('fill', 'white');
+    outlineSource.setAttribute('fill-rule', 'nonzero');
+    outlineMaskedGroup.append(outlineSource);
+    outlineGroup.append(outlineMaskedGroup);
+
+    union.append(defs, materialGroup, outlineGroup);
+
+    function surfaceFrom(target) {
+        if (!(target instanceof Element)) return null;
+        const item = target.closest('.subject-item');
+        if (!item || item.parentElement?.id !== 'subjectBox') return null;
+        return item.querySelector(':scope > span');
+    }
+
+    function clearEdge(surface) {
+        if (surface) surface.classList.remove(
+            ...EDGE_CLASSES,
+            'tasktimer-subject-union-member',
+            'tasktimer-subject-selected-union-member'
+        );
+    }
+
+    function markFacingEdges(a, b, ux, uy, useUnifiedSelectedOutline) {
+        clearEdge(a);
+        clearEdge(b);
+        a.classList.add('tasktimer-subject-union-member');
+        b.classList.add('tasktimer-subject-union-member');
+        if (useUnifiedSelectedOutline) {
+            a.classList.add('tasktimer-subject-selected-union-member');
+            b.classList.add('tasktimer-subject-selected-union-member');
+        }
+        if (Math.abs(ux) >= Math.abs(uy)) {
+            a.classList.add(ux >= 0 ? 'tasktimer-subject-overlap-right' : 'tasktimer-subject-overlap-left');
+            b.classList.add(ux >= 0 ? 'tasktimer-subject-overlap-left' : 'tasktimer-subject-overlap-right');
+        } else {
+            a.classList.add(uy >= 0 ? 'tasktimer-subject-overlap-bottom' : 'tasktimer-subject-overlap-top');
+            b.classList.add(uy >= 0 ? 'tasktimer-subject-overlap-top' : 'tasktimer-subject-overlap-bottom');
+        }
+    }
+
+    function fusionColor(surface) {
+        const value = getComputedStyle(surface).getPropertyValue('--tasktimer-subject-fusion-color').trim();
+        return value || 'rgba(255,255,255,.38)';
+    }
+
+    function suppressSharedTagBridge(suppress) {
+        document.querySelectorAll('.__lq-fusion-bridge.__lq-fusion-tag-pair').forEach(bridge => {
+            bridge.classList.toggle('tasktimer-subject-union-suppressed', suppress);
+        });
+    }
+
+    function isSelectedSurface(surface) {
+        const input = surface?.parentElement?.querySelector(':scope > input');
+        return Boolean(input && input.checked);
+    }
+
+    function colorWithAlpha(color, alpha) {
+        const match = String(color).match(/rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)(?:\s*[,/]\s*([\d.]+))?\s*\)/i);
+        return match
+            ? `rgba(${match[1]}, ${match[2]}, ${match[3]}, ${alpha})`
+            : color;
+    }
+
+    function setStopColor(stop, color) {
+        const match = String(color).match(/rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)(?:\s*[,/]\s*([\d.]+))?\s*\)/i);
+        if (match) {
+            stop.style.stopColor = `rgb(${match[1]}, ${match[2]}, ${match[3]})`;
+            stop.style.stopOpacity = match[4] === undefined ? '1' : match[4];
+        } else {
+            stop.style.stopColor = color;
+            stop.style.stopOpacity = '1';
+        }
+    }
+
+    function roundedRectPath(rect, originX, originY, radius) {
+        const x = rect.left - originX;
+        const y = rect.top - originY;
+        const w = rect.width;
+        const h = rect.height;
+        const r = Math.max(0, Math.min(radius, w * 0.5, h * 0.5));
+        return [
+            `M ${(x + r).toFixed(2)} ${y.toFixed(2)}`,
+            `H ${(x + w - r).toFixed(2)}`,
+            `Q ${(x + w).toFixed(2)} ${y.toFixed(2)} ${(x + w).toFixed(2)} ${(y + r).toFixed(2)}`,
+            `V ${(y + h - r).toFixed(2)}`,
+            `Q ${(x + w).toFixed(2)} ${(y + h).toFixed(2)} ${(x + w - r).toFixed(2)} ${(y + h).toFixed(2)}`,
+            `H ${(x + r).toFixed(2)}`,
+            `Q ${x.toFixed(2)} ${(y + h).toFixed(2)} ${x.toFixed(2)} ${(y + h - r).toFixed(2)}`,
+            `V ${(y + r).toFixed(2)}`,
+            `Q ${x.toFixed(2)} ${y.toFixed(2)} ${(x + r).toFixed(2)} ${y.toFixed(2)}`,
+            'Z'
+        ].join(' ');
+    }
+
+    function boundaryDistance(rect, ux, uy) {
+        const tx = Math.abs(ux) > 0.0001 ? rect.width * 0.5 / Math.abs(ux) : Infinity;
+        const ty = Math.abs(uy) > 0.0001 ? rect.height * 0.5 / Math.abs(uy) : Infinity;
+        return Math.min(tx, ty);
+    }
+
+    function buildUnionNeck(a, best, originX, originY, minEdge, eased) {
+        const tA = boundaryDistance(a, best.ux, best.uy);
+        const tB = boundaryDistance(best.b, best.ux, best.uy);
+        const centerDistance = Math.hypot(best.bcx - (a.left + a.width * 0.5), best.bcy - (a.top + a.height * 0.5));
+        const axialOverlap = Math.max(0, tA + tB - centerDistance);
+        const visibleIntersection = Math.min(best.intersectionWidth, best.intersectionHeight);
+        const joinDepth = Math.max(axialOverlap, visibleIntersection * 0.72);
+        const extension = joinDepth + 2.5;
+        const acx = a.left + a.width * 0.5;
+        const acy = a.top + a.height * 0.5;
+        const edgeAX = acx + best.ux * tA;
+        const edgeAY = acy + best.uy * tA;
+        const edgeBX = best.bcx - best.ux * tB;
+        const edgeBY = best.bcy - best.uy * tB;
+        const start = { x: edgeAX - best.ux * extension, y: edgeAY - best.uy * extension };
+        const end = { x: edgeBX + best.ux * extension, y: edgeBY + best.uy * extension };
+        let dx = end.x - start.x;
+        let dy = end.y - start.y;
+        let length = Math.hypot(dx, dy);
+        if (length < 1) {
+            end.x = start.x + best.ux;
+            end.y = start.y + best.uy;
+            dx = end.x - start.x;
+            dy = end.y - start.y;
+            length = Math.hypot(dx, dy);
+        }
+        const sux = dx / length;
+        const suy = dy / length;
+        const nx = -suy;
+        const ny = sux;
+        const contactHalf = minEdge * (0.30 + eased * 0.14);
+        const waistHalf = contactHalf * (0.72 + eased * 0.20);
+        const mid = { x: (start.x + end.x) * 0.5, y: (start.y + end.y) * 0.5 };
+        const shoulder = length * 0.22;
+        const waistControl = length * 0.15;
+        const point = (p, normal, axis) => ({
+            x: p.x + nx * normal + sux * axis - originX,
+            y: p.y + ny * normal + suy * axis - originY
+        });
+        const f = p => p.x.toFixed(2) + ' ' + p.y.toFixed(2);
+        const topA = point(start, -contactHalf, 0);
+        const topB = point(end, -contactHalf, 0);
+        const bottomB = point(end, contactHalf, 0);
+        const bottomA = point(start, contactHalf, 0);
+        const topMid = point(mid, -waistHalf, 0);
+        const bottomMid = point(mid, waistHalf, 0);
+        return [
+            'M ' + f(topA),
+            'C ' + f(point(start, -contactHalf, shoulder)) + ' ' + f(point(mid, -waistHalf, -waistControl)) + ' ' + f(topMid),
+            'C ' + f(point(mid, -waistHalf, waistControl)) + ' ' + f(point(end, -contactHalf, -shoulder)) + ' ' + f(topB),
+            'L ' + f(bottomB),
+            'C ' + f(point(end, contactHalf, -shoulder)) + ' ' + f(point(mid, waistHalf, waistControl)) + ' ' + f(bottomMid),
+            'C ' + f(point(mid, waistHalf, -waistControl)) + ' ' + f(point(start, contactHalf, shoulder)) + ' ' + f(bottomA),
+            'Z'
+        ].join(' ');
+    }
+
+    function hideLens() {
+        union.classList.remove('is-visible');
+        union.style.opacity = '0';
+        suppressSharedTagBridge(false);
+        if (currentGroup) currentGroup.classList.remove('tasktimer-subject-union-active');
+        clearEdge(activeSurface);
+        clearEdge(currentPeer);
+        currentPeer = null;
+        currentGroup = null;
+    }
+
+    function updateLens(surface) {
+        const item = surface?.closest('.subject-item');
+        const group = item?.parentElement;
+        if (!group || group.id !== 'subjectBox') {
+            hideLens();
+            return false;
+        }
+
+        const a = surface.getBoundingClientRect();
+        if (!a.width || !a.height) {
+            hideLens();
+            return false;
+        }
+        const acx = a.left + a.width * 0.5;
+        const acy = a.top + a.height * 0.5;
+        let best = null;
+
+        group.querySelectorAll(':scope > .subject-item > span').forEach(candidate => {
+            if (candidate === surface) return;
+            const b = candidate.getBoundingClientRect();
+            if (!b.width || !b.height) return;
+            const bcx = b.left + b.width * 0.5;
+            const bcy = b.top + b.height * 0.5;
+            const intersectionWidth = Math.min(a.right, b.right) - Math.max(a.left, b.left);
+            const intersectionHeight = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+            if (intersectionWidth <= 0.35 || intersectionHeight <= 0.35) return;
+            const dx = bcx - acx;
+            const dy = bcy - acy;
+            const distance = Math.hypot(dx, dy);
+            if (distance < 0.01) return;
+            const ux = dx / distance;
+            const uy = dy / distance;
+            const halfA = Math.abs(ux) * a.width * 0.5 + Math.abs(uy) * a.height * 0.5;
+            const halfB = Math.abs(ux) * b.width * 0.5 + Math.abs(uy) * b.height * 0.5;
+            const overlap = halfA + halfB - distance;
+            if (overlap <= 0.35) return;
+            if (!best || overlap > best.overlap) {
+                best = { candidate, b, bcx, bcy, ux, uy, halfA, halfB, overlap, intersectionWidth, intersectionHeight };
+            }
+        });
+
+        if (!best) {
+            hideLens();
+            return false;
+        }
+
+        if (currentPeer && currentPeer !== best.candidate) clearEdge(currentPeer);
+        currentPeer = best.candidate;
+        const minEdge = Math.min(a.width, a.height, best.b.width, best.b.height);
+        const normalized = Math.max(0, Math.min(1, best.overlap / Math.max(4, minEdge * 0.56)));
+        const eased = normalized * normalized * (3 - 2 * normalized);
+        const groupRect = group.getBoundingClientRect();
+        /* Reserve enough real SVG viewport for both drop shadows. `overflow`
+           alone is not reliable for filtered root SVGs in Electron/Chromium. */
+        const padding = 112;
+        const originX = Math.min(a.left, best.b.left) - padding;
+        const originY = Math.min(a.top, best.b.top) - padding;
+        const maxX = Math.max(a.right, best.b.right) + padding;
+        const maxY = Math.max(a.bottom, best.b.bottom) + padding;
+        const svgWidth = Math.max(1, maxX - originX);
+        const svgHeight = Math.max(1, maxY - originY);
+        const radiusA = Math.min(a.height * 0.5, parseFloat(getComputedStyle(surface).borderTopLeftRadius) || a.height * 0.5);
+        const radiusB = Math.min(best.b.height * 0.5, parseFloat(getComputedStyle(best.candidate).borderTopLeftRadius) || best.b.height * 0.5);
+        const neckPath = buildUnionNeck(a, best, originX, originY, minEdge, eased);
+        const mixStart = 43 - eased * 17;
+        const mixEnd = 57 + eased * 17;
+        let colorA = fusionColor(surface);
+        let colorB = fusionColor(best.candidate);
+        const selectedA = isSelectedSurface(surface);
+        const selectedB = isSelectedSurface(best.candidate);
+        const hasSelectedMember = selectedA || selectedB;
+        if (hasSelectedMember) {
+            /* Selection belongs to the merged liquid volume, not to one half.
+               Use the selected member's hue across all four gradient stops and
+               keep it deliberately pale so text/icon contrast remains intact. */
+            const selectedColor = colorWithAlpha(selectedA ? colorA : colorB, 0.34);
+            colorA = selectedColor;
+            colorB = selectedColor;
+        }
+
+        if (union.parentNode !== group) group.insertBefore(union, group.firstChild);
+        currentGroup = group;
+        group.classList.add('tasktimer-subject-union-active');
+        suppressSharedTagBridge(true);
+        markFacingEdges(surface, best.candidate, best.ux, best.uy, hasSelectedMember);
+        union.style.left = (originX - groupRect.left).toFixed(2) + 'px';
+        union.style.top = (originY - groupRect.top).toFixed(2) + 'px';
+        union.style.width = svgWidth.toFixed(2) + 'px';
+        union.style.height = svgHeight.toFixed(2) + 'px';
+        union.setAttribute('width', svgWidth.toFixed(2));
+        union.setAttribute('height', svgHeight.toFixed(2));
+        union.setAttribute('viewBox', '0 0 ' + svgWidth.toFixed(2) + ' ' + svgHeight.toFixed(2));
+
+        const unionPathData = [
+            roundedRectPath(a, originX, originY, radiusA),
+            roundedRectPath(best.b, originX, originY, radiusB),
+            neckPath
+        ].join(' ');
+        materialPath.setAttribute('d', unionPathData);
+        maskPath.setAttribute('d', unionPathData);
+        outlineSource.setAttribute('d', unionPathData);
+        unionMask.setAttribute('x', '0');
+        unionMask.setAttribute('y', '0');
+        unionMask.setAttribute('width', svgWidth.toFixed(2));
+        unionMask.setAttribute('height', svgHeight.toFixed(2));
+
+        /* Reference-like concave cusps: carve two shallow circular bites from
+           the shared outline along the normal of the joining axis. They get
+           slightly shallower as penetration grows, so deep overlap approaches
+           one continuous capsule instead of retaining a rigid hourglass. */
+        const normalX = -best.uy;
+        const normalY = best.ux;
+        const jointX = (Math.max(a.left, best.b.left) + Math.min(a.right, best.b.right)) * 0.5;
+        const jointY = (Math.max(a.top, best.b.top) + Math.min(a.bottom, best.b.bottom)) * 0.5;
+        const notchRadius = minEdge * (0.22 - eased * 0.05);
+        const notchOffset = minEdge * 0.5 + notchRadius * 0.36;
+        const setNotch = (node, direction) => {
+            node.setAttribute('cx', (jointX + normalX * notchOffset * direction - originX).toFixed(2));
+            node.setAttribute('cy', (jointY + normalY * notchOffset * direction - originY).toFixed(2));
+            node.setAttribute('r', notchRadius.toFixed(2));
+        };
+        setNotch(notchNegative, -1);
+        setNotch(notchPositive, 1);
+
+        materialGradient.setAttribute('x1', (acx - originX).toFixed(2));
+        materialGradient.setAttribute('y1', (acy - originY).toFixed(2));
+        materialGradient.setAttribute('x2', (best.bcx - originX).toFixed(2));
+        materialGradient.setAttribute('y2', (best.bcy - originY).toFixed(2));
+        materialStops[0].setAttribute('offset', '0');
+        materialStops[1].setAttribute('offset', (mixStart / 100).toFixed(3));
+        materialStops[2].setAttribute('offset', (mixEnd / 100).toFixed(3));
+        materialStops[3].setAttribute('offset', '1');
+        setStopColor(materialStops[0], colorA);
+        setStopColor(materialStops[1], colorA);
+        setStopColor(materialStops[2], colorB);
+        setStopColor(materialStops[3], colorB);
+        materialGroup.style.filter = 'none';
+        union.classList.toggle('has-selected-member', hasSelectedMember);
+
+        union.style.opacity = (0.86 + eased * 0.14).toFixed(3);
+        union.classList.add('is-visible');
+        return true;
+    }
+
+    function ensureLoop() {
+        if (!frameId) frameId = requestAnimationFrame(runFrame);
+    }
+
+    function runFrame(now) {
+        frameId = 0;
+        tracked.forEach((until, surface) => {
+            if (!surface.isConnected || (until !== Infinity && now >= until)) {
+                clearEdge(surface);
+                tracked.delete(surface);
+                return;
+            }
+        });
+
+        if (activeSurface && tracked.has(activeSurface)) {
+            updateLens(activeSurface);
+        } else {
+            hideLens();
+            activeSurface = null;
+        }
+
+        if (tracked.size || union.classList.contains('is-visible')) ensureLoop();
+    }
+
+    document.addEventListener('pointerover', event => {
+        const surface = surfaceFrom(event.target);
+        if (!surface || (event.relatedTarget instanceof Node && surface.contains(event.relatedTarget))) return;
+        if (hoverSurface && hoverSurface !== surface && hoverSurface !== activeSurface) {
+            tracked.set(hoverSurface, performance.now() + 420);
+        }
+        hoverSurface = surface;
+        tracked.set(surface, Infinity);
+        ensureLoop();
+    }, true);
+
+    document.addEventListener('pointerout', event => {
+        const surface = surfaceFrom(event.target);
+        if (!surface || (event.relatedTarget instanceof Node && surface.contains(event.relatedTarget))) return;
+        if (hoverSurface === surface) hoverSurface = null;
+        if (surface !== activeSurface || !pointerIsDown) {
+            tracked.set(surface, performance.now() + 520);
+        }
+        ensureLoop();
+    }, true);
+
+    document.addEventListener('pointerdown', event => {
+        if (event.button !== undefined && event.button !== 0) return;
+        const surface = surfaceFrom(event.target);
+        if (!surface) return;
+        activeSurface = surface;
+        activePointerId = event.pointerId;
+        pointerIsDown = true;
+        pointerStartX = Number.isFinite(event.clientX) ? event.clientX : 0;
+        pointerStartY = Number.isFinite(event.clientY) ? event.clientY : 0;
+        dragLightSuppressed = false;
+        tracked.set(surface, Infinity);
+        ensureLoop();
+    }, true);
+
+    document.addEventListener('pointermove', event => {
+        if (!pointerIsDown || !activeSurface || dragLightSuppressed) return;
+        if (event.pointerId !== undefined && activePointerId !== null && event.pointerId !== activePointerId) return;
+        const x = Number.isFinite(event.clientX) ? event.clientX : pointerStartX;
+        const y = Number.isFinite(event.clientY) ? event.clientY : pointerStartY;
+        if (Math.hypot(x - pointerStartX, y - pointerStartY) < 2.5) return;
+        dragLightSuppressed = true;
+        activeSurface.classList.add('tasktimer-subject-drag-no-top-light');
+    }, true);
+
+    function release(event) {
+        if (!activeSurface) return;
+        if (event?.pointerId !== undefined && activePointerId !== null && event.pointerId !== activePointerId) return;
+        const releasedSurface = activeSurface;
+        pointerIsDown = false;
+        activePointerId = null;
+        releasedSurface.classList.remove('tasktimer-subject-drag-no-top-light');
+        dragLightSuppressed = false;
+        /* Keep only the fusion geometry alive for the liquid return tail. Text
+           now follows the surface directly, exactly as in TaskTimer. */
+        tracked.set(releasedSurface, performance.now() + 430);
+        ensureLoop();
+    }
+
+    document.addEventListener('pointerup', release, true);
+    document.addEventListener('pointercancel', release, true);
+    window.addEventListener('blur', () => {
+        pointerIsDown = false;
+        activePointerId = null;
+        dragLightSuppressed = false;
+        tracked.forEach((_, surface) => {
+            surface.classList.remove('tasktimer-subject-drag-no-top-light');
+            clearEdge(surface);
+        });
+        tracked.clear();
+        hoverSurface = null;
+        activeSurface = null;
+        hideLens();
+    });
+})();
 </script>
 </body>
 </html>

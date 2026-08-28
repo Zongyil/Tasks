@@ -14,6 +14,10 @@
  * 9. Resizer bar clean transparent container with elegant pill handle;
  * 10. Ambient / streamer backgrounds cut off and replaced with a clean, slightly blue-tinted cool grayish-white solid color (#f0f4f9) on content pages WITHOUT touching Home.html and Focus.html wallpapers;
  * 11. Complete dormancy of all background observers, timers, and RAF loops.
+ * 12. Home.html <-> Focus.html transitions replaced by a simple phone-style shade
+ *     slide (Home sinks down, Focus covers over it from top; on the way back
+ *     Home rises gently into place) instead of the fluid blur / clone / stage
+ *     timeline, saving GPU compositing during page switches.
  */
 
 (function (global) {

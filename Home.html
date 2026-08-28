@@ -18,6 +18,9 @@ html.theme-booting {
     --dyn-border-ring: rgba(255, 255, 255, 0.10);
     --dyn-shadow: rgba(15, 23, 42, 0.04);
 }
+html.theme-booting body {
+    transition: none !important;
+}
 html.return-from-focus body { visibility: hidden; }
 </style>
 <script>
@@ -77,17 +80,24 @@ html.return-from-focus body { visibility: hidden; }
             window.frameElement.style.backgroundRepeat = 'no-repeat';
         }
 
+        let reduceMotionReturn = false;
+        try { reduceMotionReturn = localStorage.getItem('alpha_reduce_motion') === 'true'; } catch (_) {}
         if (sessionStorage.getItem('alpha_from_focus') === 'true') {
-            root.classList.add('return-from-focus');
-            root.style.backgroundImage = bg;
-            root.style.backgroundPosition = 'center';
-            root.style.backgroundSize = 'cover';
-            root.style.backgroundRepeat = 'no-repeat';
+            if (reduceMotionReturn) {
+                /* 减弱动态效果: Focus 已整体滑走, Home 直接静态呈现, 不隐藏正文也不播入场级联 */
+                root.classList.add('alpha-rm-return');
+            } else {
+                root.classList.add('return-from-focus');
+                root.style.backgroundImage = bg;
+                root.style.backgroundPosition = 'center';
+                root.style.backgroundSize = 'cover';
+                root.style.backgroundRepeat = 'no-repeat';
+            }
         }
         if (localStorage.getItem('alpha_show_clock') === 'false') {
             const style = document.createElement('style');
             style.id = 'early-no-clock-style';
-            style.textContent = '.hero-wallpaper::before { opacity: 0 !important; } .home-clock { opacity: 0 !important; }';
+            style.textContent = '.hero-clock-scrim { opacity: 0 !important; } .home-clock { opacity: 0 !important; }';
             document.head.appendChild(style);
         }
     } catch (_) {
@@ -96,6 +106,7 @@ html.return-from-focus body { visibility: hidden; }
 })();
 </script>
 <title>主页</title>
+<link rel="preload" href="./fonts/OPPO Sans 4.0.ttf" as="font" type="font/truetype" crossorigin>
 <link rel="icon" href="Icon.ico" type="image/x-icon">
 <!-- 时间选择器样式不阻塞 Home 返回首帧；控件尚未打开时异步加载即可 -->
 <link rel="preload" href="./assets/flatpickr.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
@@ -108,6 +119,15 @@ html.return-from-focus body { visibility: hidden; }
 <script src="./assets/reduce-motion.js" defer></script>
 <base href="./">
 <style>
+@font-face {
+  font-family: 'OPPO Sans 4.0';
+  src: url('local-font://OPPO%20Sans%204.0.ttf') format('truetype'),
+       url('./fonts/OPPO Sans 4.0.ttf') format('truetype');
+  font-weight: 1 999;
+  font-style: normal;
+  font-display: block;
+}
+
 /* ================== 全局与动态色彩体系 ================== */
 @property --theme-hue {
     syntax: '<number>';
@@ -195,6 +215,7 @@ html {
     background-position: center;
     background-size: cover;
     background-repeat: no-repeat;
+    background-color: var(--dyn-bg, #f7f6fa);
 }
 
 input, textarea, select, [contenteditable="true"], [contenteditable] {
@@ -217,25 +238,22 @@ body {
     scrollbar-width: none; -ms-overflow-style: none;
 }
 
-body > *:not(script):not(style):not(link):not(.sphere-modal):not(.flatpickr-calendar):not(#alphaTooltip):not(.focus-transition-stage) {
-    animation: alphaPageIn 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-}
 
-@keyframes alphaPageIn {
-    0% {
-        opacity: 0;
-        /* 改成负值 (-120px), 让界面从屏幕顶部优雅降落下来 */
-        transform: translateY(-120px) scale(0.96); 
-    }
-    100% {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
-}
 
 body.from-focus > *:not(script):not(style):not(link):not(.sphere-modal):not(.flatpickr-calendar):not(#alphaTooltip):not(.focus-transition-stage),
 html.return-from-focus body > *:not(script):not(style):not(link):not(.sphere-modal):not(.flatpickr-calendar):not(#alphaTooltip):not(.focus-transition-stage) {
     animation: none !important;
+}
+
+/* 减弱动态效果模式: 从 Focus 返回时不播放入场级联,
+   只做一次轻量的整体上移进场, 与 Focus 上滑离场的方向衔接 */
+html.alpha-rm-return body > *:not(script):not(style):not(link):not(.sphere-modal):not(.flatpickr-calendar):not(#alphaTooltip):not(.focus-transition-stage) {
+    animation: alphaRmRiseFromFocus 0.26s cubic-bezier(0.2, 0.8, 0.4, 1) both;
+}
+
+@keyframes alphaRmRiseFromFocus {
+    0% { opacity: 0; transform: translate3d(0, 42px, 0); }
+    100% { opacity: 1; transform: translate3d(0, 0, 0); }
 }
 
 /* 跨页转场只使用这一组独立合成层, 避免改动 Home 的实际布局高度 */
@@ -353,41 +371,193 @@ body.focus-transitioning .panel {
 /* ================== 上半部分: 动态壁纸区 ================== */
 .hero-wallpaper {
     position: relative; width: 100%; height: 45vh; min-height: 300px;
-    background-color: transparent; background-image: url('./background.png'); background-size: cover; background-position: center;
-    
-    /* 使用线性渐变蒙版, 让壁纸底部 35% 的区域平滑渐隐至完全透明 */
-    -webkit-mask-image: linear-gradient(to bottom, black 65%, transparent 100%);
-    mask-image: linear-gradient(to bottom, black 65%, transparent 100%);
-    
-    /* 接入动态透明度变量, 防止深色壁纸边缘出现廉价的突兀泛白 */
-    box-shadow: inset 0 -40px 100px -20px hsla(var(--theme-hue), var(--theme-sat), 96%, var(--wp-glow-opacity, 1));
-    transition: box-shadow 1s ease, background-image 0.5s ease;
+    background-color: var(--dyn-bg, #f7f6fa); background-image: url('./background.png'); background-size: cover; background-position: center;
+    /* 裁切壁纸副本的 blur 外溢，并建立独立堆叠上下文。这样浏览器窗口失焦/
+       标签页拖动时不会把时钟衬底的合成纹理错误地回绘到视口左上角。 */
+    overflow: hidden;
+    isolation: isolate;
+
+    /* 让壁纸本体保持完整，由底部覆盖层负责过渡。避免「元素蒙版 + 覆盖层」
+       同时渐隐时发生双重透明混合，从而在卡片上方形成一道发灰的分界。 */
+    transition: background-image 0.5s ease;
     display: flex; align-items: flex-end; justify-content: flex-end;
     padding: 40px 40px 80px 40px; 
 }
-.hero-wallpaper::before {
-    content: '';
+.hero-clock-scrim {
     position: absolute;
     inset: 0;
+    /* 模糊副本与 Hero 使用完全相同的画布尺寸，避免 cover 在较小元素中
+       重新取景，造成左上角的模糊与原壁纸错位、看起来像没有生效。 */
     z-index: 1; /* 盖在壁纸图层上, 置于时钟图层之下 */
-    background: linear-gradient(135deg, rgba(0, 0, 0, 0.15) 0%, rgba(0, 0, 0, 0) 100%);
-    backdrop-filter: blur(40px) saturate(120%);
-    -webkit-backdrop-filter: blur(40px) saturate(120%);
-    -webkit-mask-image: linear-gradient(135deg, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 80%);
-    mask-image: linear-gradient(135deg, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 80%);
     pointer-events: none;
+    contain: layout paint;
+    backface-visibility: hidden;
     /* 将遮罩退场改为 0.4s, 与时钟的 0.5s 形成 0.1s 的景深错落感 */
     transition: opacity 0.4s cubic-bezier(0.22, 1, 0.36, 1);
 }
-.hero-wallpaper.no-clock::before { 
-    opacity: 0; 
-    backdrop-filter: blur(0px) saturate(100%);
-    -webkit-backdrop-filter: blur(0px) saturate(100%);
+
+/*
+   时钟衬底不用 backdrop-filter，避免 Chromium 偶发生成半透明灰色矩形。
+   三张与 Hero 同源、同尺寸的壁纸副本按「轻 -> 中 -> 强」叠放：
+   - 左上角由强模糊完整接管；
+   - 向右下移动时，强层先羽化露出中层，中层再露出轻层；
+   - 轻层最后羽化露出清晰壁纸。
+   因此衰减的不只是透明度，实际可见的模糊半径也会连续变小。
+*/
+.hero-clock-blur {
+    position: absolute;
+    /* 与 Hero 一比一重合，使两层的 cover 计算、裁切中心和每个像素都一致。 */
+    inset: 0;
+    background-image: var(--clock-scrim-image, url('./background.png'));
+    background-position: center;
+    background-size: cover;
+    background-repeat: no-repeat;
+    transform-origin: center;
+    pointer-events: none;
+    backface-visibility: hidden;
+    /* 轻微放大只用于给 blur 提供边缘采样余量，防止视口左上角混入透明像素；
+       各层模糊量足以吸收这 4% 的取景差，不会形成可辨识重影。 */
+    transform: translateZ(0);
+    opacity: 1;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+}
+
+/*
+   三层共用「宽而长」的连续羽化带：每一层在下一层仍接近满强度时才开始退场。
+   这样模糊半径会在重叠区内渐次交棒，不会在某个环形边界突然从 64px 跳到
+   38px／18px。遮罩、滤镜均为静态合成层；不新增图层或逐帧计算。
+*/
+.hero-clock-blur--soft {
+    z-index: 1;
+    filter: blur(18px) saturate(108%);
+    -webkit-filter: blur(18px) saturate(108%);
+    transform: translateZ(0) scale(1.025);
+    -webkit-mask-image: radial-gradient(ellipse 80% 126% at 0% 0%,
+        #000 0%,
+        #000 28%,
+        rgba(0, 0, 0, 0.98) 38%,
+        rgba(0, 0, 0, 0.88) 48%,
+        rgba(0, 0, 0, 0.66) 59%,
+        rgba(0, 0, 0, 0.42) 70%,
+        rgba(0, 0, 0, 0.20) 81%,
+        rgba(0, 0, 0, 0.065) 91%,
+        rgba(0, 0, 0, 0.012) 97%,
+        transparent 100%);
+    mask-image: radial-gradient(ellipse 80% 126% at 0% 0%,
+        #000 0%,
+        #000 28%,
+        rgba(0, 0, 0, 0.98) 38%,
+        rgba(0, 0, 0, 0.88) 48%,
+        rgba(0, 0, 0, 0.66) 59%,
+        rgba(0, 0, 0, 0.42) 70%,
+        rgba(0, 0, 0, 0.20) 81%,
+        rgba(0, 0, 0, 0.065) 91%,
+        rgba(0, 0, 0, 0.012) 97%,
+        transparent 100%);
+}
+
+.hero-clock-blur--medium {
+    z-index: 2;
+    filter: blur(38px) saturate(118%);
+    -webkit-filter: blur(38px) saturate(118%);
+    transform: translateZ(0) scale(1.045);
+    -webkit-mask-image: radial-gradient(ellipse 64% 102% at 0% 0%,
+        #000 0%,
+        #000 20%,
+        rgba(0, 0, 0, 0.98) 31%,
+        rgba(0, 0, 0, 0.87) 43%,
+        rgba(0, 0, 0, 0.65) 55%,
+        rgba(0, 0, 0, 0.39) 67%,
+        rgba(0, 0, 0, 0.17) 79%,
+        rgba(0, 0, 0, 0.045) 90%,
+        rgba(0, 0, 0, 0.008) 97%,
+        transparent 100%);
+    mask-image: radial-gradient(ellipse 64% 102% at 0% 0%,
+        #000 0%,
+        #000 20%,
+        rgba(0, 0, 0, 0.98) 31%,
+        rgba(0, 0, 0, 0.87) 43%,
+        rgba(0, 0, 0, 0.65) 55%,
+        rgba(0, 0, 0, 0.39) 67%,
+        rgba(0, 0, 0, 0.17) 79%,
+        rgba(0, 0, 0, 0.045) 90%,
+        rgba(0, 0, 0, 0.008) 97%,
+        transparent 100%);
+}
+
+/* 核心圈：在时钟背后保持最大模糊，并以较长羽化带交给中间圈。 */
+.hero-clock-blur--strong {
+    z-index: 3;
+    filter: blur(64px) saturate(128%);
+    -webkit-filter: blur(64px) saturate(128%);
+    transform: translateZ(0) scale(1.065);
+    -webkit-mask-image: radial-gradient(ellipse 50% 80% at 0% 0%,
+        #000 0%,
+        #000 14%,
+        rgba(0, 0, 0, 0.98) 23%,
+        rgba(0, 0, 0, 0.86) 32%,
+        rgba(0, 0, 0, 0.64) 42%,
+        rgba(0, 0, 0, 0.38) 53%,
+        rgba(0, 0, 0, 0.16) 67%,
+        rgba(0, 0, 0, 0.045) 81%,
+        rgba(0, 0, 0, 0.008) 94%,
+        transparent 100%);
+    mask-image: radial-gradient(ellipse 50% 80% at 0% 0%,
+        #000 0%,
+        #000 14%,
+        rgba(0, 0, 0, 0.98) 23%,
+        rgba(0, 0, 0, 0.86) 32%,
+        rgba(0, 0, 0, 0.64) 42%,
+        rgba(0, 0, 0, 0.38) 53%,
+        rgba(0, 0, 0, 0.16) 67%,
+        rgba(0, 0, 0, 0.045) 81%,
+        rgba(0, 0, 0, 0.008) 94%,
+        transparent 100%);
+}
+
+/* 颜色深度与模糊范围同心衰减；普通半透明合成不会触发背景采样。 */
+.hero-clock-scrim::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 4;
+    pointer-events: none;
+    background: radial-gradient(ellipse 84% 130% at 0% 0%,
+        hsla(var(--theme-hue, 270), 32%, 24%, 0.16) 0%,
+        hsla(var(--theme-hue, 270), 28%, 28%, 0.12) 26%,
+        hsla(var(--theme-hue, 270), 24%, 34%, 0.072) 48%,
+        hsla(var(--theme-hue, 270), 20%, 40%, 0.028) 70%,
+        transparent 100%);
+}
+.hero-wallpaper.no-clock .hero-clock-scrim {
+    opacity: 0;
 }
 .hero-wallpaper::after {
     content: ''; position: absolute; inset: 0;
-    background: linear-gradient(to bottom, transparent 40%, var(--dyn-bg) 100%);
+    z-index: 2;
+    /* 卡片的起点约位于 Hero 高度的 80% 附近；在此前已与页面底色充分混合，
+       使壁纸、留白和卡片成为一段连续过渡，而非在负 margin 位置硬切。 */
+    background: linear-gradient(to bottom,
+        transparent 22%,
+        color-mix(in srgb, var(--dyn-bg) 18%, transparent) 46%,
+        color-mix(in srgb, var(--dyn-bg) 62%, transparent) 68%,
+        var(--dyn-bg) 88%,
+        var(--dyn-bg) 100%);
+    box-shadow: inset 0 -2px 0 var(--dyn-bg);
     pointer-events: none;
+}
+
+/* 不支持 color-mix 的浏览器仍采用同样拉长的四段透明度过渡。 */
+@supports not (background: color-mix(in srgb, white 50%, transparent)) {
+    .hero-wallpaper::after {
+        background: linear-gradient(to bottom,
+            transparent 22%,
+            hsla(var(--theme-hue), var(--theme-sat), 96%, 0.18) 46%,
+            hsla(var(--theme-hue), var(--theme-sat), 96%, 0.62) 68%,
+            var(--dyn-bg) 88%,
+            var(--dyn-bg) 100%);
+    }
 }
 
 
@@ -440,7 +610,7 @@ body.focus-transitioning .panel {
   contain: layout;
 }
 
-.nav-card, #todoPanel {
+#todoPanel {
   transform: translateZ(0);
   contain: paint layout;
 }
@@ -1250,8 +1420,40 @@ body.is-idle .flatpickr-time .flatpickr-time-separator {
 @keyframes ringShake { 0% { transform: translateX(-2px); } 100% { transform: translateX(2px); } }
 .alarm-time { font-size: 18px; font-weight: 800; color: var(--text); font-variant-numeric: tabular-nums; }
 .alarm-name { font-size: 14px; font-weight: 600; color: var(--sub); flex: 1; margin: 0 16px; }
-.alarm-del { cursor: pointer; color: #cbd5e1; font-weight: 800; transition: 0.2s; font-size: 18px; }
-.alarm-del:hover { color: #f17875; transform: scale(1.1); }
+.alarm-del {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    color: #e3605d;
+    padding: 0;
+    margin: 0;
+    outline: none;
+    transform-origin: center center;
+    transform: translateZ(0) scale(1);
+    will-change: transform, background-color, color;
+    transition: color 0.2s ease,
+                background-color 0.2s ease,
+                transform 0.24s cubic-bezier(0.34, 1.56, 0.64, 1);
+    -webkit-tap-highlight-color: transparent;
+}
+
+.alarm-del:hover {
+    color: #dc2626;
+    background-color: rgba(239, 68, 68, 0.12);
+    transform: translateZ(0) scale(1.18);
+}
+
+.alarm-del:active {
+    transform: translateZ(0) scale(0.84);
+    background-color: rgba(239, 68, 68, 0.22);
+    transition: transform 0.08s ease-out, background-color 0.08s ease-out;
+}
 
 /* 全局弹窗引擎 */
 .sphere-modal {
@@ -1437,6 +1639,33 @@ input[type="number"]:not(.flatpickr-hour):not(.flatpickr-minute).input-scrolled-
     padding-left: 0 !important;
     padding-right: 0 !important;
 }
+
+/* ================== 常驻页面性能优化 ==================
+   主 Panel 已经完成一次真实毛玻璃采样，内部按钮和导航卡片再次采样收益很小，
+   却会额外创建多张 GPU 表面；改由既有半透明渐变维持玻璃观感。 */
+.primary,
+.danger,
+.nav-card {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+/* 静止时不预留独立合成层，让浏览器只在动画实际发生时自行提升图层。 */
+button,
+upload-label,
+.nav-card,
+.home-clock,
+.home-clock .clock-time-node,
+.home-clock .colon,
+.flatpickr-time .flatpickr-time-separator {
+    will-change: auto;
+}
+
+/* 隐藏弹窗不长期占用合成纹理；显示时仍保留原有进退场动画。 */
+.sphere-modal.hidden,
+.sphere-modal.hidden .modal-content {
+    will-change: auto;
+}
 </style>
 <script>
         (function() {
@@ -1465,6 +1694,11 @@ input[type="number"]:not(.flatpickr-hour):not(.flatpickr-minute).input-scrolled-
 <body>
 
 <div class="hero-wallpaper" id="heroWallpaper">
+    <div class="hero-clock-scrim" aria-hidden="true">
+        <div class="hero-clock-blur hero-clock-blur--soft"></div>
+        <div class="hero-clock-blur hero-clock-blur--medium"></div>
+        <div class="hero-clock-blur hero-clock-blur--strong"></div>
+    </div>
     <div class="home-clock" id="homeClock"></div>
 </div>
 
@@ -1538,30 +1772,20 @@ document.addEventListener('DOMContentLoaded', () => {
             sessionStorage.setItem('nav_from_home', 'true');
             triggerPrewarm();
             
-            // 移除旧动画类防重复, 随后播放回弹 keyframe 动画
+            // 播放卡片弹性轻触反馈, 随后交由 wrapper 全局动效引擎执行丝滑跨页转场
             this.classList.remove('anim-bounce');
-            void this.offsetWidth; // 触发 reflow
+            void this.offsetWidth;
             this.classList.add('anim-bounce');
             
-            // 延迟 180ms 页面退出动画, 保证卡片缩小-反弹动画完全展现
             setTimeout(() => {
-                const pageElements = document.querySelectorAll('body > *:not(script):not(style):not(link):not(.sphere-modal):not(.flatpickr-calendar)');
-                pageElements.forEach(el => {
-                    el.style.transition = 'transform 0.4s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.4s ease, filter 0.4s ease';
-                    el.style.transform = 'translateX(-80px)';
-                    el.style.opacity = '0';
-                    el.style.filter = 'blur(40px)';
-                });
-                setTimeout(() => {
-                    try {
-                        if (window.parent && window.parent.ALPHA && typeof window.parent.ALPHA.navigate === 'function') {
-                            window.parent.ALPHA.navigate(href, 'auto');
-                            return;
-                        }
-                    } catch (_) {}
-                    window.location.href = href;
-                }, 380);
-            }, 180);
+                try {
+                    if (window.parent && window.parent.ALPHA && typeof window.parent.ALPHA.navigate === 'function') {
+                        window.parent.ALPHA.navigate(href, 'auto', { transition: 'forward' });
+                        return;
+                    }
+                } catch (_) {}
+                window.location.href = href;
+            }, 80);
         });
     });
 });
@@ -1697,6 +1921,12 @@ function customAlert(msg, title = "提示", icon = "Done", onClose = null) {
 const heroWallpaper = DOM.heroWallpaper;
 const homeClock = document.getElementById('homeClock');
 
+function setClockScrimWallpaper(url) {
+    if (!heroWallpaper || !url) return;
+    const cssUrl = url.startsWith('url(') ? url : `url("${url}")`;
+    heroWallpaper.style.setProperty('--clock-scrim-image', cssUrl);
+}
+
 function isDefaultWallpaper(wp) {
     if (!wp) return true;
     const clean = wp.trim().replace(/^url\(["']?/, '').replace(/["']?\)$/, '');
@@ -1755,6 +1985,7 @@ function runIOSBlurTransition(oldBgStr, newUrl, parentEl) {
 
     setTimeout(() => {
         parentEl.style.backgroundImage = `url("${newUrl}")`;
+        setClockScrimWallpaper(newUrl);
         // 利用双重 rAF 等待浏览器真正把 backgroundImage 渲染上主屏幕后, 再卸载动画涂层, 彻底告别闪烁
         requestAnimationFrame(() => {
             requestAnimationFrame(() => {
@@ -1908,6 +2139,7 @@ function syncWallpaper(animate = false) {
     } else {
         // 无动画硬加载（首次打开网页时触发, 杜绝闪烁）
         heroWallpaper.style.backgroundImage = `url("${effectiveWp}")`;
+        setClockScrimWallpaper(effectiveWp);
     }
     
     // 更新内存状态锁
@@ -2018,6 +2250,7 @@ function updateHomeClock() {
 // 2. 启动引擎
 let homeClockTimeout = null;
 function scheduleNextClockUpdate() {
+    if (document.hidden) return;
     const now = new Date();
     // 精确计算到下一分钟 00 秒所需要的毫秒数, 防止轮询, 直接对接下一次分钟切换的完美节点
     const msUntilNextMinute = 60000 - (now.getSeconds() * 1000 + now.getMilliseconds());
@@ -2026,6 +2259,18 @@ function scheduleNextClockUpdate() {
         checkAlarms();
         scheduleNextClockUpdate();
     }, msUntilNextMinute);
+}
+
+function pauseHomeClockScheduler() {
+    if (homeClockTimeout) clearTimeout(homeClockTimeout);
+    homeClockTimeout = null;
+}
+
+function resumeHomeClockScheduler() {
+    pauseHomeClockScheduler();
+    updateHomeClock();
+    checkAlarms();
+    scheduleNextClockUpdate();
 }
 // 初始加载时立即执行一次以展示当前时间, 然后再开始进入精准定时
 updateHomeClock();
@@ -2040,13 +2285,15 @@ function checkAlarms() {
         if (al.time === currentHM && al.triggeredDay !== todayStr) {
             al.triggeredDay = todayStr;
             localStorage.setItem('alpha_alarms', JSON.stringify(alarms));
+            if (typeof syncAlarmsToMain === 'function') syncAlarmsToMain();
             
             const itemEl = document.getElementById(`alarm-${al.id}`);
             if (itemEl) itemEl.classList.add('ringing');
             
             alarmPlayCount = 1; 
-            alarmAudio.currentTime = 0; 
-            try { alarmAudio.play(); } catch(e){}
+            const audio = getAlarmAudio();
+            audio.currentTime = 0; 
+            try { audio.play(); } catch(e){}
             
             if (electronAPI && electronAPI.showAlarmNotification) {
                 electronAPI.showAlarmNotification({
@@ -2578,8 +2825,26 @@ alarmNameInput.addEventListener('keydown', function(e) {
 });
 
 // ================== 自定义闹钟铃声功能 ==================
-const defaultRingtoneUrl = "https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3";
-const alarmAudio = new Audio(defaultRingtoneUrl);
+const defaultRingtoneUrl = "assets/alarm-default.mp3";
+let alarmAudio = null;
+
+function getAlarmAudio() {
+    if (!alarmAudio) {
+        alarmAudio = new Audio(defaultRingtoneUrl);
+        const saved = localStorage.getItem('alpha_home_ringtone');
+        if (saved) alarmAudio.src = saved;
+        alarmAudio.addEventListener('ended', () => {
+            if (alarmPlayCount < MAX_PLAY_COUNT) {
+                alarmPlayCount++;
+                alarmAudio.currentTime = 0; // 强制重置播放进度, 防止部分音频格式后续 play() 失败
+                alarmAudio.play().catch(e => console.error("音频重播被拦截:", e));
+            } else {
+                stopAlarmAudio();
+            }
+        });
+    }
+    return alarmAudio;
+}
 
 let alarmPlayCount = 1; // 从 1 开始计数, 逻辑更清晰
 const MAX_PLAY_COUNT = 3;
@@ -2588,24 +2853,22 @@ const MAX_PLAY_COUNT = 3;
 const electronAPI = window.electronAPI || window.top?.electronAPI || window.parent?.electronAPI;
 
 function stopAlarmAudio() {
-    alarmAudio.pause();
-    alarmAudio.currentTime = 0;
+    if (alarmAudio) {
+        alarmAudio.pause();
+        alarmAudio.currentTime = 0;
+    }
     alarmPlayCount = 1; // 恢复初始状态
     
     // 移除所有正在闪烁的红框视觉特效
     document.querySelectorAll('.alarm-item.ringing').forEach(el => el.classList.remove('ringing'));
-}
 
-// 监听当前音频播放完毕, 进行计数与重播
-alarmAudio.addEventListener('ended', () => {
-    if (alarmPlayCount < MAX_PLAY_COUNT) {
-        alarmPlayCount++;
-        alarmAudio.currentTime = 0; // 强制重置播放进度, 防止部分音频格式后续 play() 失败
-        alarmAudio.play().catch(e => console.error("音频重播被拦截:", e));
-    } else {
-        stopAlarmAudio();
+    if (electronAPI && typeof electronAPI.stopAlarmAudio === 'function') {
+        electronAPI.stopAlarmAudio();
     }
-});
+    try {
+        window.parent?.postMessage({ type: 'alpha_stop_alarm_audio' }, '*');
+    } catch (_) {}
+}
 
 // 监听来自 Electron 主进程的「关闭铃声」事件 (通过任务栏按钮触发)
 if (electronAPI && electronAPI.onStopAlarm) {
@@ -2613,6 +2876,42 @@ if (electronAPI && electronAPI.onStopAlarm) {
         stopAlarmAudio();
     });
 }
+
+function handleAlarmTriggered(al) {
+    if (!al) return;
+    const itemEl = document.getElementById(`alarm-${al.id}`);
+    if (itemEl) itemEl.classList.add('ringing');
+
+    const match = alarms.find(a => String(a.id) === String(al.id) || (a.time === al.time && a.name === al.name));
+    if (match) {
+        match.triggeredDay = al.triggeredDay || `${new Date().getFullYear()}-${new Date().getMonth()}-${new Date().getDate()}`;
+        localStorage.setItem('alpha_alarms', JSON.stringify(alarms));
+    }
+
+    customAlert(`<b>${al.time}</b> 到了!<br><br>${al.name}`, "日程提醒", "Rocket", () => {
+        stopAlarmAudio();
+    });
+}
+
+if (electronAPI && typeof electronAPI.onAlarmTriggered === 'function') {
+    electronAPI.onAlarmTriggered((data) => {
+        handleAlarmTriggered(data);
+    });
+}
+
+window.addEventListener('message', (e) => {
+    if (!e.data) return;
+    if (e.data.type === 'alpha_alarm_triggered') {
+        handleAlarmTriggered(e.data.alarm);
+    } else if (e.data.type === 'alpha_stop_alarm') {
+        if (alarmAudio) {
+            alarmAudio.pause();
+            alarmAudio.currentTime = 0;
+        }
+        alarmPlayCount = 1;
+        document.querySelectorAll('.alarm-item.ringing').forEach(el => el.classList.remove('ringing'));
+    }
+});
 
 const savedRingtone = localStorage.getItem('alpha_home_ringtone');
 const savedRingtoneName = localStorage.getItem('alpha_home_ringtone_name');
@@ -2628,11 +2927,17 @@ function updateRingtoneBtn(svgHtml, titleText) {
 
 // 页面加载时恢复文件名
 if (savedRingtone) {
-    alarmAudio.src = savedRingtone;
     updateRingtoneBtn(ringtoneAudioSvg, savedRingtoneName || '自定义铃声');
 }
 
 let ringtoneClickTimer = null;
+
+function syncRingtoneToMain() {
+    if (electronAPI && typeof electronAPI.syncRingtone === 'function') {
+        const saved = localStorage.getItem('alpha_home_ringtone');
+        electronAPI.syncRingtone(saved || null);
+    }
+}
 
 // 单双击防冲突判定引擎
 ringtoneBtn.addEventListener('click', (e) => {
@@ -2645,8 +2950,9 @@ ringtoneBtn.addEventListener('click', (e) => {
         if(localStorage.getItem('alpha_home_ringtone')) {
             localStorage.removeItem('alpha_home_ringtone');
             localStorage.removeItem('alpha_home_ringtone_name');
-            alarmAudio.src = defaultRingtoneUrl;
+            if (alarmAudio) alarmAudio.src = defaultRingtoneUrl;
             updateRingtoneBtn(ringtoneBellSvg, "默认铃声");
+            syncRingtoneToMain();
             customAlert("已恢复系统默认闹钟铃声", "恢复默认", "Done");
         }
     } else {
@@ -2671,8 +2977,9 @@ ringtoneInput.addEventListener('change', (e) => {
                 localStorage.setItem('alpha_home_ringtone', base64Str);
                 localStorage.setItem('alpha_home_ringtone_name', rawName); // 记忆完整文件名
                 
-                alarmAudio.src = base64Str;
+                if (alarmAudio) alarmAudio.src = base64Str;
                 updateRingtoneBtn(ringtoneAudioSvg, rawName);
+                syncRingtoneToMain();
                 customAlert("个性化铃声已保存!<br>提示: 双击该按钮可恢复系统默认铃声", "铃声设置成功", "Done");
             } catch (err) {
                 customAlert("音频文件过大, 无法保存至浏览器本地缓存", "上传失败", "Error");
@@ -2763,6 +3070,12 @@ DOM.todoInput.addEventListener('keydown', function(e) {
 // ================== 日程闹钟引擎 ==================
 let alarms = JSON.parse(localStorage.getItem('alpha_alarms') || '[]');
 
+function syncAlarmsToMain() {
+    if (electronAPI && typeof electronAPI.syncAlarms === 'function') {
+        electronAPI.syncAlarms(alarms);
+    }
+}
+
 function renderAlarms() {
     const list = DOM.alarmList;
     // 确保列表时间排序正确
@@ -2773,7 +3086,7 @@ function renderAlarms() {
     // 1. 安全移除已不存在的数据节点
     Array.from(list.children).forEach(child => {
         const id = child.id.replace('alarm-', '');
-        if (!alarms.find(a => a.id === id) && !child.classList.contains('removing')) {
+        if (!alarms.find(a => String(a.id) === String(id)) && !child.classList.contains('removing')) {
             child.remove();
         }
     });
@@ -2788,7 +3101,9 @@ function renderAlarms() {
             itemEl.innerHTML = `
                 <div class="alarm-time">${al.time}</div>
                 <div class="alarm-name">${al.name}</div>
-                <div class="alarm-del" onclick="deleteAlarm('${al.id}')">✕</div>
+                <button type="button" class="alarm-del" onclick="deleteAlarm('${al.id}')" title="删除日程" aria-label="删除日程">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x" style="pointer-events: none; display: block;"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                </button>
             `;
             list.appendChild(itemEl);
         }
@@ -2809,6 +3124,7 @@ function addAlarm() {
     
     alarms.push({ id: String(Date.now()), time, name, triggeredDay: '' });
     localStorage.setItem('alpha_alarms', JSON.stringify(alarms));
+    syncAlarmsToMain();
     alarmNameInput.value = '';
     
     // 添加成功后, 把焦点还给时间输入框, 方便连续添加
@@ -2824,79 +3140,117 @@ function deleteAlarm(id) {
         itemEl.classList.add('removing');
         // 等待 400ms (与更新后的 CSS 离场动画时长对齐)
         setTimeout(() => {
-            alarms = alarms.filter(a => a.id !== id);
+            alarms = alarms.filter(a => String(a.id) !== String(id));
             localStorage.setItem('alpha_alarms', JSON.stringify(alarms));
+            syncAlarmsToMain();
             itemEl.remove(); 
         }, 400); 
     } else {
-        alarms = alarms.filter(a => a.id !== id);
+        alarms = alarms.filter(a => String(a.id) !== String(id));
         localStorage.setItem('alpha_alarms', JSON.stringify(alarms));
+        syncAlarmsToMain();
         renderAlarms();
     }
 }
 
 renderAlarms();
+syncAlarmsToMain();
+syncRingtoneToMain();
 
-// ================== 智能文本框伸缩 (rAF 防抖) ==================
-let ghostTextarea = null;
-const pendingAdjustments = new Set();
-
-function flushTextareaAdjustments() {
-    // 批量处理所有待调整的 textarea
-    for (const el of pendingAdjustments) {
-        applyTextareaHeight(el);
-    }
-    pendingAdjustments.clear();
-}
-
-function applyTextareaHeight(el) {
-    if (el.dataset.userResized === 'true') return;
-
-    if (!ghostTextarea) {
-        ghostTextarea = document.createElement('textarea');
-        ghostTextarea.style.cssText = `
+// ================== 智能文本框伸缩 (离屏精准镜像计算引擎) ==================
+let mirrorTextarea = null;
+function getMirrorTextarea() {
+    if (!mirrorTextarea || !document.body.contains(mirrorTextarea)) {
+        mirrorTextarea = document.createElement('textarea');
+        mirrorTextarea.setAttribute('tabindex', '-1');
+        mirrorTextarea.setAttribute('aria-hidden', 'true');
+        mirrorTextarea.style.cssText = `
             position: absolute !important;
-            top: -9999px !important;
+            top: 0 !important;
+            left: -9999px !important;
             visibility: hidden !important;
+            pointer-events: none !important;
             overflow: hidden !important;
+            height: 0 !important;
+            min-height: 0 !important;
+            max-height: none !important;
+            transform: none !important;
+            transition: none !important;
+            animation: none !important;
             box-sizing: border-box !important;
         `;
-        document.body.appendChild(ghostTextarea);
+        document.body.appendChild(mirrorTextarea);
     }
+    return mirrorTextarea;
+}
 
-    const computedStyle = window.getComputedStyle(el);
-    ghostTextarea.style.width = computedStyle.width;
-    ghostTextarea.style.font = computedStyle.font;
-    ghostTextarea.style.lineHeight = computedStyle.lineHeight;
-    ghostTextarea.style.padding = computedStyle.padding;
-    ghostTextarea.style.border = computedStyle.border;
-    ghostTextarea.style.wordWrap = 'break-word';
+function calculateTextareaTargetHeight(el) {
+    if (!el) return 0;
+    const mirror = getMirrorTextarea();
+    const cs = window.getComputedStyle(el);
 
-    ghostTextarea.value = el.value;
-    ghostTextarea.style.height = '0px';
-    let targetHeight = ghostTextarea.scrollHeight;
+    mirror.style.boxSizing = cs.boxSizing;
+    mirror.style.width = cs.width;
+    mirror.style.paddingTop = cs.paddingTop;
+    mirror.style.paddingRight = cs.paddingRight;
+    mirror.style.paddingBottom = cs.paddingBottom;
+    mirror.style.paddingLeft = cs.paddingLeft;
+    mirror.style.borderTopWidth = cs.borderTopWidth;
+    mirror.style.borderRightWidth = cs.borderRightWidth;
+    mirror.style.borderBottomWidth = cs.borderBottomWidth;
+    mirror.style.borderLeftWidth = cs.borderLeftWidth;
+    mirror.style.borderStyle = cs.borderStyle;
 
-    if (targetHeight < 200) targetHeight = 200;
+    mirror.style.fontFamily = cs.fontFamily;
+    mirror.style.fontSize = cs.fontSize;
+    mirror.style.fontWeight = cs.fontWeight;
+    mirror.style.fontStyle = cs.fontStyle;
+    mirror.style.letterSpacing = cs.letterSpacing;
+    mirror.style.lineHeight = cs.lineHeight;
+    mirror.style.textTransform = cs.textTransform;
+    mirror.style.textIndent = cs.textIndent;
+    mirror.style.wordBreak = cs.wordBreak;
+    mirror.style.overflowWrap = cs.overflowWrap;
+    mirror.style.whiteSpace = 'pre-wrap';
+
+    mirror.value = el.value || '';
+    mirror.style.height = '0px';
+
+    const borderTop = parseFloat(cs.borderTopWidth) || 0;
+    const borderBottom = parseFloat(cs.borderBottomWidth) || 0;
+    const borderSize = (cs.boxSizing === 'border-box') ? (borderTop + borderBottom) : 0;
+
+    return mirror.scrollHeight + borderSize;
+}
+
+function adjustTextareaHeight(el) {
+    if (!el || el.dataset.userResized === 'true') return;
+    const minHeight = 200;
     const maxHeight = 380;
+    let targetHeight = calculateTextareaTargetHeight(el);
 
-    if (el.dataset.lastTargetHeight === String(targetHeight)) return;
-    el.dataset.lastTargetHeight = String(targetHeight);
+    if (targetHeight < minHeight) targetHeight = minHeight;
 
     if (targetHeight >= maxHeight) {
         el.style.height = maxHeight + 'px';
-        setTimeout(() => {
-            if (parseInt(el.style.height) >= maxHeight) {
-                el.style.overflowY = 'auto';
-            }
-        }, 400);
+        el.style.overflowY = 'auto';
     } else {
-        if (el.style.overflowY === 'auto') {
-            el.style.overflowY = 'hidden';
-            void el.offsetHeight;
-        }
         el.style.height = targetHeight + 'px';
         el.style.overflowY = 'hidden';
     }
+}
+
+// 保持兼容旧调用的别名
+function applyTextareaHeight(el) {
+    adjustTextareaHeight(el);
+}
+
+const pendingAdjustments = new Set();
+function flushTextareaAdjustments() {
+    for (const el of pendingAdjustments) {
+        adjustTextareaHeight(el);
+    }
+    pendingAdjustments.clear();
 }
 
 // 使用 rAF 防抖: 同一帧内的多次 input 合并为一次布局计算
@@ -2967,8 +3321,12 @@ const focusTransition = (() => {
     let navigated = false;
     let direction = null; // to-focus | from-focus
     let returnStartedAt = 0;
+    let reduceSinkActive = false;
 
     const clamp01 = value => Math.max(0, Math.min(1, value));
+    const reduceMotionEnabled = () => {
+        try { return localStorage.getItem('alpha_reduce_motion') === 'true'; } catch (_) { return false; }
+    };
     const smoothstep = (from, to, value) => {
         const t = clamp01((value - from) / Math.max(0.0001, to - from));
         return t * t * (3 - 2 * t);
@@ -3180,6 +3538,32 @@ const focusTransition = (() => {
 
         state = 'scrubbing';
         direction = 'to-focus';
+
+        /* 减弱动态效果: 简单下沉 —— 整页 transform 直落出屏 (手机负一屏式), 
+           无壁纸舞台/模糊遮罩/时钟克隆/代理玻璃层, 也无逐帧图层同步 */
+        if (reduceMotionEnabled()) {
+            document.body.classList.add('focus-transitioning');
+            reduceSinkActive = true;
+            try {
+                const bg = document.documentElement.style.backgroundImage
+                    || getComputedStyle(wallpaper).backgroundImage;
+                document.documentElement.style.backgroundImage = bg;
+                document.documentElement.style.backgroundPosition = 'center';
+                document.documentElement.style.backgroundSize = 'cover';
+                document.documentElement.style.backgroundRepeat = 'no-repeat';
+            } catch (_) {}
+            const sink = document.body.animate([
+                { transform: 'translate3d(0, 0, 0)' },
+                { transform: 'translate3d(0, 100vh, 0)' }
+            ], { duration: DURATION, easing: 'linear', fill: 'both' });
+            sink.pause();
+            animations = [sink];
+            stageElements = null;
+            targetProgress = renderedProgress = 0;
+            renderProgress(0);
+            return true;
+        }
+
         document.body.classList.add('focus-transitioning');
         const hasClock = !wallpaper.classList.contains('no-clock') && localStorage.getItem('alpha_show_clock') !== 'false';
         const { stage, scrim, edge, heroHeight } = makeStage(wallpaper, false, hasClock);
@@ -3232,6 +3616,10 @@ const focusTransition = (() => {
         settleRaf = 0;
         animations.forEach(animation => animation.cancel());
         animations = [];
+        if (reduceSinkActive) {
+            reduceSinkActive = false;
+            document.documentElement.style.removeProperty('background-image');
+        }
         removeTransitionLayers();
         stageElements?.stage?.remove();
         stageElements = null;
@@ -3304,6 +3692,21 @@ const focusTransition = (() => {
         const wallpaper = document.getElementById('heroWallpaper');
         const homeLayout = document.querySelector('.home-layout');
         if (!wallpaper) return;
+
+        /* 减弱动态效果: Focus 上滑离场后, Home 只做一次轻量整体上移进场,
+           不再播放 760ms 的返回时间轴。
+           alpha-rm-return 必须保留到文档销毁: 移除它会重启上移进场动画 */
+        if (reduceMotionEnabled()) {
+            sessionStorage.removeItem('alpha_from_focus');
+            document.body.classList.remove('from-focus', 'focus-transitioning');
+            document.documentElement.classList.remove('return-from-focus');
+            document.documentElement.style.removeProperty('background-image');
+            if (window.frameElement) {
+                window.frameElement.style.removeProperty('background-image');
+            }
+            try { sessionStorage.removeItem('alpha_transition_wallpaper_css'); } catch (_) {}
+            return;
+        }
 
         state = 'committing';
         direction = 'from-focus';
@@ -3495,6 +3898,8 @@ document.addEventListener('DOMContentLoaded', checkFirstLaunch);
 // ================== 层叠卡片 z-index 更新引擎 (rAF 防抖) ==================
 (function initCardStacking() {
     const stackItemSelector = '.task-card, .side-card, .task-card-wrap';
+    /* Home 当前没有层叠任务卡；不为一组不存在的元素监听整棵 DOM。 */
+    if (!document.querySelector(stackItemSelector)) return;
     let stackingRafPending = false;
     function updateStacking() {
         const stackContainers = new Set();
@@ -3609,6 +4014,24 @@ document.addEventListener('DOMContentLoaded', checkFirstLaunch);
     let isIdle = false;
     let idleTimer = null;
     const IDLE_TIMEOUT_MS = 2500;
+    let lastActivityAt = performance.now();
+
+    /* pointermove 可能每秒触发上百次。只保留一个计时器；到期时再根据
+       最后活动时间补足剩余等待，避免不停 clearTimeout/setTimeout。 */
+    function scheduleIdleCheck(delay = IDLE_TIMEOUT_MS) {
+        if (idleTimer || isSleeping) return;
+        idleTimer = setTimeout(() => {
+            idleTimer = null;
+            if (isSleeping) return;
+            const remaining = IDLE_TIMEOUT_MS - (performance.now() - lastActivityAt);
+            if (remaining > 0) {
+                scheduleIdleCheck(remaining);
+                return;
+            }
+            isIdle = true;
+            applyVisualFreeze(true);
+        }, Math.max(0, delay));
+    }
 
     function applyVisualFreeze(freeze) {
         const docEl = document.documentElement;
@@ -3617,7 +4040,7 @@ document.addEventListener('DOMContentLoaded', checkFirstLaunch);
         if (freeze) {
             docEl.classList.add('pause-bg-motion', 'pause-clock-breath');
             if (bodyEl) bodyEl.classList.add('pause-bg-motion', 'pause-clock-breath');
-        } else if (!isSleeping) {
+        } else {
             docEl.classList.remove('pause-bg-motion', 'pause-clock-breath');
             if (bodyEl) bodyEl.classList.remove('pause-bg-motion', 'pause-clock-breath');
         }
@@ -3625,27 +4048,30 @@ document.addEventListener('DOMContentLoaded', checkFirstLaunch);
 
     function onUserActive() {
         if (isSleeping) return;
+        lastActivityAt = performance.now();
         if (isIdle) {
             isIdle = false;
             applyVisualFreeze(false);
+            if (typeof resumeHomeClockScheduler === 'function') resumeHomeClockScheduler();
         }
-        if (idleTimer) clearTimeout(idleTimer);
-        idleTimer = setTimeout(() => {
-            isIdle = true;
-            applyVisualFreeze(true);
-        }, IDLE_TIMEOUT_MS);
+        scheduleIdleCheck();
     }
 
     function onSleep() {
         isSleeping = true;
+        document.documentElement.classList.add('alpha-sleep');
         if (idleTimer) {
             clearTimeout(idleTimer);
             idleTimer = null;
         }
+        if (typeof pauseHomeClockScheduler === 'function') pauseHomeClockScheduler();
         applyVisualFreeze(true);
         try {
             if (window.AlphaCardGlow && typeof window.AlphaCardGlow.sleep === 'function') {
                 window.AlphaCardGlow.sleep(document);
+            }
+            if (window.AlphaInputGlow && typeof window.AlphaInputGlow.sleep === 'function') {
+                window.AlphaInputGlow.sleep(document);
             }
             if (window.AlphaLiquidGlass && typeof window.AlphaLiquidGlass.releaseAll === 'function') {
                 window.AlphaLiquidGlass.releaseAll();
@@ -3656,14 +4082,19 @@ document.addEventListener('DOMContentLoaded', checkFirstLaunch);
     function onWake() {
         isSleeping = false;
         isIdle = false;
+        lastActivityAt = performance.now();
+        document.documentElement.classList.remove('alpha-sleep');
         applyVisualFreeze(false);
         try {
             if (window.AlphaCardGlow && typeof window.AlphaCardGlow.wake === 'function') {
                 window.AlphaCardGlow.wake(document);
             }
+            if (window.AlphaInputGlow && typeof window.AlphaInputGlow.wake === 'function') {
+                window.AlphaInputGlow.wake(document);
+            }
         } catch (_) {}
-        if (typeof updateHomeClock === 'function') updateHomeClock();
-        onUserActive();
+        if (typeof resumeHomeClockScheduler === 'function') resumeHomeClockScheduler();
+        scheduleIdleCheck();
     }
 
     const activityEvents = ['pointermove', 'pointerdown', 'keydown', 'scroll', 'wheel', 'touchstart'];
@@ -3673,12 +4104,15 @@ document.addEventListener('DOMContentLoaded', checkFirstLaunch);
 
     window.addEventListener('AlphaSleep', onSleep);
     window.addEventListener('AlphaWake', onWake);
+    window.addEventListener('focus', onUserActive);
     window.addEventListener('blur', () => {
-        if (idleTimer) clearTimeout(idleTimer);
+        if (idleTimer) {
+            clearTimeout(idleTimer);
+            idleTimer = null;
+        }
         isIdle = true;
         applyVisualFreeze(true);
     });
-    window.addEventListener('focus', onUserActive);
     document.addEventListener('visibilitychange', () => {
         if (document.hidden) onSleep();
         else onWake();
@@ -3692,6 +4126,7 @@ document.addEventListener('DOMContentLoaded', checkFirstLaunch);
             applyVisualFreeze(true);
         } else if (!isIdle && !isSleeping) {
             applyVisualFreeze(false);
+            if (typeof resumeHomeClockScheduler === 'function') resumeHomeClockScheduler();
         }
     }
 

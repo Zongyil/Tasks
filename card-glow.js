@@ -98,6 +98,7 @@
       this.rafId = null;
       this.observer = null;
       this.lastRectCacheTime = 0;
+      this.isRectCacheDirty = true;
 
       this.boundOnPointerMove = this.onPointerMove.bind(this);
       this.boundOnPointerLeave = this.onPointerLeave.bind(this);
@@ -186,7 +187,6 @@
           -webkit-mask-composite: xor !important;
           mask-composite: exclude !important;
           opacity: var(--cg-border-opacity, 0) !important;
-          filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.85)) drop-shadow(0 0 10px rgba(185, 225, 255, 0.45)) !important;
           transition: opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
           will-change: opacity;
           z-index: 2 !important;
@@ -215,7 +215,6 @@
               rgba(255, 255, 255, 0.02) 72%,
               transparent 82%
             ) !important;
-            filter: drop-shadow(0 0 2.5px rgba(255, 255, 255, 0.35)) drop-shadow(0 0 6px rgba(185, 225, 255, 0.18)) !important;
             opacity: calc(var(--cg-border-opacity, 0) * 0.68) !important;
           }
         }
@@ -386,18 +385,18 @@
     }
 
     invalidateRectCache() {
-      this.lastRectCacheTime = 0;
+      this.isRectCacheDirty = true;
       if (this.isPointerInView) {
         this.requestUpdate();
       }
     }
 
     updateRectCache(force = false) {
-      const now = performance.now();
-      if (!force && now - this.lastRectCacheTime < CONFIG.rectCacheDuration) {
+      if (!force && !this.isRectCacheDirty) {
         return;
       }
-      this.lastRectCacheTime = now;
+      this.isRectCacheDirty = false;
+      this.lastRectCacheTime = performance.now();
 
       const viewportH = (this.doc.defaultView || window).innerHeight || 800;
       const viewportW = (this.doc.defaultView || window).innerWidth || 1200;
@@ -482,6 +481,9 @@
         return;
       }
       if (this.isSleeping) return;
+      if (Math.abs(e.clientX - this.pointerX) < 1 && Math.abs(e.clientY - this.pointerY) < 1) {
+        return;
+      }
       this.pointerX = e.clientX;
       this.pointerY = e.clientY;
       this.isPointerInView = true;
@@ -535,7 +537,7 @@
     }
 
     processGlowPhysics() {
-      if (!this.isPointerInView) return;
+      if (!this.isPointerInView || this.isSleeping) return;
 
       this.updateRectCache();
 
@@ -569,7 +571,8 @@
         }
       }
 
-      // 2. 跨卡片计算所有视口内卡片的边框高光 (Proximity Border Glow)
+      // 2. 跨卡片计算边框高光 (Proximity Border Glow) - 仅更新最邻近的至多 2 张卡片，避免多卡片重绘
+      const inRangeCards = [];
       this.trackedCards.forEach(card => {
         const data = this.cardDataMap.get(card);
         if (!data || !data.isInView || !data.rect) return;
@@ -577,58 +580,13 @@
         const rect = data.rect;
         if (rect.width === 0 || rect.height === 0) return;
 
-        // 计算点到卡片矩形的几何最短距离
         const dx = Math.max(rect.left - cx, 0, cx - rect.right);
         const dy = Math.max(rect.top - cy, 0, cy - rect.bottom);
         const dist = Math.hypot(dx, dy);
 
         if (dist < lightRadius) {
-          // 在光照影响范围内
-          const bx = cx - rect.left;
-          const by = cy - rect.top;
-
-          let borderOpacity = 0;
-
-          if (dist === 0) {
-            // 光标位于卡片内部: 依据光标距离卡片内边缘的距离计算强度
-            const distToEdge = Math.min(
-              cx - rect.left,
-              rect.right - cx,
-              cy - rect.top,
-              rect.bottom - cy
-            );
-
-            // 当光标接近边缘 180px 区域内时边框明显发亮，深居中心时自然让位给表面高光
-            if (distToEdge < 180) {
-              borderOpacity = clamp(1 - (distToEdge - 20) / 140, 0.50, 1.0);
-            } else {
-              borderOpacity = 0.30;
-            }
-          } else {
-            // 光标位于卡片外部 (如卡片之间缝隙): 按距离自然平滑衰减
-            const normDist = dist / lightRadius;
-            borderOpacity = Math.pow(Math.max(0, 1 - normDist), 1.1) * 0.98;
-          }
-
-          const bxStr = `${bx.toFixed(1)}px`;
-          const byStr = `${by.toFixed(1)}px`;
-          const borderOpacityStr = borderOpacity.toFixed(3);
-
-          if (data.lastBxStr !== bxStr) {
-            card.style.setProperty('--cg-border-x', bxStr);
-            data.lastBxStr = bxStr;
-          }
-          if (data.lastByStr !== byStr) {
-            card.style.setProperty('--cg-border-y', byStr);
-            data.lastByStr = byStr;
-          }
-          if (data.lastBorderOpacityStr !== borderOpacityStr) {
-            card.style.setProperty('--cg-border-opacity', borderOpacityStr);
-            data.lastBorderOpacityStr = borderOpacityStr;
-          }
-          data.borderOpacity = borderOpacity;
+          inRangeCards.push({ card, data, rect, dist });
         } else {
-          // 超出光照范围
           if (data.borderOpacity !== 0) {
             card.style.setProperty('--cg-border-opacity', '0');
             data.borderOpacity = 0;
@@ -636,6 +594,62 @@
           }
         }
       });
+
+      // 仅保留距离最近的 2 张卡片
+      if (inRangeCards.length > 2) {
+        inRangeCards.sort((a, b) => a.dist - b.dist);
+        for (let i = 2; i < inRangeCards.length; i++) {
+          const item = inRangeCards[i];
+          if (item.data.borderOpacity !== 0) {
+            item.card.style.setProperty('--cg-border-opacity', '0');
+            item.data.borderOpacity = 0;
+            item.data.lastBorderOpacityStr = '0';
+          }
+        }
+        inRangeCards.length = 2;
+      }
+
+      for (let i = 0; i < inRangeCards.length; i++) {
+        const { card, data, rect, dist } = inRangeCards[i];
+        const bx = cx - rect.left;
+        const by = cy - rect.top;
+
+        let borderOpacity = 0;
+        if (dist === 0) {
+          const distToEdge = Math.min(
+            cx - rect.left,
+            rect.right - cx,
+            cy - rect.top,
+            rect.bottom - cy
+          );
+          if (distToEdge < 180) {
+            borderOpacity = clamp(1 - (distToEdge - 20) / 140, 0.50, 1.0);
+          } else {
+            borderOpacity = 0.30;
+          }
+        } else {
+          const normDist = dist / lightRadius;
+          borderOpacity = Math.pow(Math.max(0, 1 - normDist), 1.1) * 0.98;
+        }
+
+        const bxStr = `${bx.toFixed(1)}px`;
+        const byStr = `${by.toFixed(1)}px`;
+        const borderOpacityStr = borderOpacity.toFixed(3);
+
+        if (data.lastBxStr !== bxStr) {
+          card.style.setProperty('--cg-border-x', bxStr);
+          data.lastBxStr = bxStr;
+        }
+        if (data.lastByStr !== byStr) {
+          card.style.setProperty('--cg-border-y', byStr);
+          data.lastByStr = byStr;
+        }
+        if (data.lastBorderOpacityStr !== borderOpacityStr) {
+          card.style.setProperty('--cg-border-opacity', borderOpacityStr);
+          data.lastBorderOpacityStr = borderOpacityStr;
+        }
+        data.borderOpacity = borderOpacity;
+      }
     }
   }
 
