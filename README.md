@@ -7,3 +7,6 @@
 
 ![License](https://img.shields.io/github/license/Zongyil/Tasks)
 ![Release](https://img.shields.io/github/v/release/Zongyil/Tasks)
+
+<img width="1602" height="901" alt="image" src="https://github.com/user-attachments/assets/0222db48-ef89-4884-8117-7158f017f12f" />
+<img width="1602" height="901" alt="image" src="https://github.com/user-attachments/assets/a1a2359b-84fc-48cc-a122-466236c4e546" />
