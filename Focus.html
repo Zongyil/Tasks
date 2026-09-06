@@ -328,6 +328,11 @@ html.alpha-sleep #timeMain .clock-digit-slot.colon .clock-time-node,
 body.is-idle #timeMain .clock-digit-slot.colon .clock-time-node {
     animation-play-state: paused !important;
 }
+html.alpha-sleep input:focus,
+html.alpha-sleep textarea:focus,
+html.alpha-sleep [contenteditable]:focus {
+    caret-color: auto !important;
+}
 
 @keyframes pulse-colon {
     0%, 100% { 
@@ -1288,7 +1293,10 @@ window.addEventListener('keydown', (e) => {
     }
 
     function onUserActive() {
-        if (isSleeping) return;
+        if (isSleeping) {
+            onWake();
+            return;
+        }
         if (isIdle) {
             isIdle = false;
             applyVisualFreeze(false);
@@ -1339,7 +1347,7 @@ window.addEventListener('keydown', (e) => {
         onUserActive();
     }
 
-    const activityEvents = ['pointermove', 'pointerdown', 'keydown', 'scroll', 'wheel', 'touchstart'];
+    const activityEvents = ['pointermove', 'pointerdown', 'keydown', 'scroll', 'wheel', 'touchstart', 'focusin', 'input'];
     activityEvents.forEach(evt => {
         window.addEventListener(evt, onUserActive, { passive: true, capture: true });
     });

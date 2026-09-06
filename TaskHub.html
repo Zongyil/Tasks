@@ -79,6 +79,7 @@
     --radius-element: 16px; /* L3: 按钮、输入框、视图切换器 */
     --radius-sub: 14px;
     --radius-sm: 10px;      /* L4: 内部小标签、下拉项 */
+    --radius-xsm: 8px;      /* L5: 微型操作按钮、角标 */
 
     --ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -460,10 +461,10 @@ body::after {
     box-shadow: 0 4px 12px rgba(0,0,0,0.3), inset 0 2px 4px rgba(255, 255, 255, 0.10); 
     pointer-events: none;
 }
-.hand { position: absolute; left: 50%; top: 50%; border-radius: 999px; transition: transform 0.05s cubic-bezier(0.4, 2.08, 0.55, 0.44); backdrop-filter: blur(12px) saturate(130%); -webkit-backdrop-filter: blur(12px) saturate(130%); pointer-events: none; }
+.hand { position: absolute; left: 50%; top: 50%; border-radius: 999px; transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1); backdrop-filter: blur(12px) saturate(130%); -webkit-backdrop-filter: blur(12px) saturate(130%); pointer-events: none; }
 .hour-hand { width: 6px; height: 65px; margin-left: -3px; margin-top: -45px; transform-origin: 50% 45px; z-index: 5; background: rgba(47, 53, 79, 0.7); box-shadow: 0 12px 24px rgba(15, 23, 42, 0.25), 0 4px 8px rgba(15, 23, 42, 0.15), inset 1px 1px 2px rgba(255, 255, 255, 0.15); }
 .minute-hand { width: 4px; height: 95px; margin-left: -2px; margin-top: -75px; transform-origin: 50% 75px; z-index: 6; background: rgba(120, 130, 158, 0.6); box-shadow: 0 12px 24px rgba(15, 23, 42, 0.2), 0 4px 8px rgba(15, 23, 42, 0.1), inset 1px 1px 2px rgba(255, 255, 255, 0.15); }
-.second-hand { width: 2px; height: 110px; margin-left: -1px; margin-top: -85px; transform-origin: 50% 85px; z-index: 7; background: rgba(255, 59, 48, 0.7); box-shadow: 0 8px 20px rgba(255, 59, 48, 0.4), 0 4px 8px rgba(255, 59, 48, 0.2), inset 0.5px 0.5px 1px rgba(255, 255, 255, 0.2); }
+.second-hand { width: 2px; height: 110px; margin-left: -1px; margin-top: -85px; transform-origin: 50% 85px; z-index: 7; background: rgba(255, 59, 48, 0.7); box-shadow: 0 8px 20px rgba(255, 59, 48, 0.4), 0 4px 8px rgba(255, 59, 48, 0.2), inset 0.5px 0.5px 1px rgba(255, 255, 255, 0.2); transition: transform 0.12s cubic-bezier(0.25, 1.6, 0.5, 1); backdrop-filter: none !important; -webkit-backdrop-filter: none !important; will-change: transform; }
 .tick { position: absolute; left: 50%; top: 50%; width: 3px; height: 8px; margin-left: -1.5px; margin-top: -4px; background: #cbd5e1; border-radius: 4px; pointer-events: none; }
 .tick.major { width: 4px; height: 14px; margin-left: -2px; margin-top: -7px; background: #94a3b8; }
 .digital-clock { 
@@ -597,6 +598,11 @@ html.alpha-sleep .digital-clock .hub-digit-slot.colon .hub-time-node,
 body.is-idle .digital-clock .hub-digit-slot.colon .hub-time-node {
     animation-play-state: paused !important;
 }
+html.alpha-sleep input:focus,
+html.alpha-sleep textarea:focus,
+html.alpha-sleep [contenteditable]:focus {
+    caret-color: auto !important;
+}
 
 .current-date { font-size: 15px; color: var(--sub); font-weight: 600; margin-top: -8px; }
 
@@ -656,8 +662,7 @@ label { font-size: 14px; font-weight: 700; color: #334155; }
     padding: 10px 18px; 
     border-radius: var(--radius-sub);
     
-    /* 性能优化: 彻底弃用 transition: all */
-    transition: transform 0.3s var(--ease), background-color 0.3s var(--ease), box-shadow 0.3s var(--ease), border-color 0.3s var(--ease); 
+    transition: transform 0.16s cubic-bezier(0.16, 1, 0.3, 1), background 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, color 0.2s ease; 
     
     font-size: 14px; font-weight: 700; color: #475569; /* 未选中时字体稍微变灰 */
     cursor: pointer; user-select: none;
@@ -684,66 +689,176 @@ label { font-size: 14px; font-weight: 700; color: #334155; }
     transition-duration: 0.1s; 
 }
 
-/* 选中态 (Checked): 弃用渐变, 改用高亮单色配合环境光晕 (保持 1px 边框与未选中态完全一致, 防止布局抖动) */
+/* 选中态 (Checked): 晶透莫奈流体冷光玻璃 (学科框: 莫奈蓝) — 丰富层级微冷暖 */
+.subject-item:not(.priority-item) input:checked + span,
 .subject-item input:checked + span {
-    background-color: rgba(157, 210, 255, 0.15) !important;
-    border-top: 2px solid rgba(187, 223, 255, 0.75) !important;
-    border-left: 1px solid rgba(197, 228, 255, 0.6) !important;
-    border-right: 1px solid rgba(197, 228, 255, 0.6) !important;
-    border-bottom: 1px solid rgba(197, 228, 255, 0.51) !important;
+    background: radial-gradient(ellipse at 52% 40%, rgba(180, 222, 255, 0.52) 0%, rgba(186, 225, 255, 0.28) 16%, rgba(195, 230, 255, 0.19) 32%, rgba(205, 234, 255, 0.11) 48%, rgba(218, 240, 255, 0.055) 64%, rgba(232, 245, 255, 0.022) 80%, rgba(255, 255, 255, 0.010) 92%, transparent 96%) !important;
+    border: 0.5px solid rgba(147, 197, 253, 0.28) !important;
+    border-top: 0.75px solid rgba(210, 235, 255, 0.50) !important;
     color: #17436b !important;
-    box-shadow: 
-        0 8px 20px rgba(157, 210, 255, 0.2), 
-        inset 0 2px 4px rgba(255, 255, 255, 0.95),
-        inset 0 -1px 3px rgba(157, 210, 255, 0.15) !important;
+    box-shadow: inset 0 0 0 0.25px rgba(147, 197, 253, 0.35),
+                0 8px 20px rgba(15, 23, 42, 0.06), 
+                0 0 12px rgba(147, 197, 253, 0.20), 
+                inset 1.5px 2px 5px rgba(255, 255, 255, 0.55), 
+                inset -1px -2px 6px rgba(147, 197, 253, 0.16), 
+                inset 0 0 12px rgba(186, 230, 253, 0.18) !important;
     transform: translateY(-2px) scale(1.02);
-    backdrop-filter: blur(12px) saturate(130%);
-    -webkit-backdrop-filter: blur(12px) saturate(130%);
+    backdrop-filter: blur(16px) saturate(140%) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(140%) !important;
 }
 
-/* 🔴 高 (High): 莫奈淡红选中态 */
-.subject-item input[value="High"]:checked + span {
-    background-color: rgba(255, 194, 194, 0.15) !important; 
-    border-top: 2px solid rgba(255, 194, 194, 0.7) !important; 
-    border-left: 1px solid rgba(255, 194, 194, 0.6) !important;
-    border-right: 1px solid rgba(255, 194, 194, 0.6) !important;
-    border-bottom: 1px solid rgba(255, 194, 194, 0.51) !important;
+.subject-item:not(.priority-item):hover input:checked + span {
+    background: radial-gradient(ellipse at 52% 40%, rgba(180, 222, 255, 0.60) 0%, rgba(186, 225, 255, 0.33) 16%, rgba(195, 230, 255, 0.22) 32%, rgba(205, 234, 255, 0.13) 48%, rgba(218, 240, 255, 0.065) 64%, rgba(232, 245, 255, 0.030) 80%, rgba(255, 255, 255, 0.015) 92%, transparent 96%) !important;
+    border: 0.5px solid rgba(147, 197, 253, 0.35) !important;
+    border-top: 0.75px solid rgba(225, 240, 255, 0.60) !important;
+    box-shadow: inset 0 0 0 0.25px rgba(147, 197, 253, 0.45),
+                0 10px 24px rgba(147, 197, 253, 0.20), 
+                0 0 14px rgba(147, 197, 253, 0.22), 
+                inset 1.5px 2px 6px rgba(255, 255, 255, 0.70), 
+                inset -1px -2px 6px rgba(147, 197, 253, 0.20), 
+                inset 0 0 14px rgba(186, 230, 253, 0.22) !important;
+    color: #17436b !important;
+}
+
+.subject-item:not(.priority-item):active input:checked + span {
+    background: radial-gradient(ellipse at 52% 40%, rgba(180, 222, 255, 0.52) 0%, rgba(186, 225, 255, 0.26) 16%, rgba(195, 230, 255, 0.16) 32%, rgba(205, 234, 255, 0.08) 48%, rgba(218, 240, 255, 0.035) 64%, transparent 82%) !important;
+    border: 0.5px solid rgba(147, 197, 253, 0.28) !important;
+    border-top: 0.75px solid rgba(210, 235, 255, 0.50) !important;
+    box-shadow: inset 0 0 0 0.25px rgba(147, 197, 253, 0.35),
+                0 2px 8px rgba(147, 197, 253, 0.15), 
+                inset 1px 1.5px 4px rgba(255, 255, 255, 0.50), 
+                inset 0 0 10px rgba(186, 230, 253, 0.16) !important;
+    color: #17436b !important;
+    transform: translateY(0) scale(0.98);
+}
+
+/* 🔴 高 (High): 莫奈淡红光晕选中态 — 丰富层级微冷暖（冲色略淡） */
+.subject-item input[value="High"]:checked + span,
+.priority-item input[value="High"]:checked + .priority-choice {
+    background: radial-gradient(ellipse at 52% 40%, rgba(255, 185, 185, 0.44) 0%, rgba(255, 198, 198, 0.28) 16%, rgba(255, 210, 210, 0.19) 32%, rgba(255, 222, 222, 0.11) 48%, rgba(255, 232, 232, 0.055) 64%, rgba(255, 242, 242, 0.022) 80%, rgba(255, 255, 255, 0.010) 92%, transparent 96%) !important;
+    border: 0.35px solid rgba(253, 164, 175, 0.24) !important;
+    border-top: 0.5px solid rgba(254, 205, 211, 0.48) !important;
     color: #581f1f !important;
-    box-shadow: 
-        0 8px 20px rgba(255, 150, 150, 0.15), 
-        inset 0 2px 4px rgba(255, 255, 255, 0.95),
-        inset 0 -1px 3px rgba(255, 150, 150, 0.1) !important;
+    box-shadow: inset 0 0 0 0.2px rgba(253, 164, 175, 0.20),
+                0 8px 20px rgba(15, 23, 42, 0.035), 
+                0 0 12px rgba(251, 113, 133, 0.13), 
+                inset 1.5px 2px 5px rgba(255, 255, 255, 0.55), 
+                inset -1px -2px 6px rgba(251, 113, 133, 0.11), 
+                inset 0 0 12px rgba(254, 205, 211, 0.13) !important;
     transform: translateY(-2px) scale(1.02);
+    backdrop-filter: blur(16px) saturate(140%) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(140%) !important;
 }
 
-/* 🟡 中 (Medium): 莫奈淡黄选中态 */
-.subject-item input[value="Medium"]:checked + span {
-    background-color: rgba(255, 231, 160, 0.15) !important; 
-    border-top: 2px solid rgba(255, 231, 160, 0.7) !important;
-    border-left: 1px solid rgba(255, 231, 160, 0.6) !important;
-    border-right: 1px solid rgba(255, 231, 160, 0.6) !important;
-    border-bottom: 1px solid rgba(255, 231, 160, 0.51) !important;
+.priority-item:hover input[value="High"]:checked + .priority-choice {
+    background: radial-gradient(ellipse at 52% 40%, rgba(255, 185, 185, 0.52) 0%, rgba(255, 198, 198, 0.33) 16%, rgba(255, 210, 210, 0.22) 32%, rgba(255, 222, 222, 0.13) 48%, rgba(255, 232, 232, 0.065) 64%, rgba(255, 242, 242, 0.030) 80%, rgba(255, 255, 255, 0.015) 92%, transparent 96%) !important;
+    border: 0.35px solid rgba(253, 164, 175, 0.32) !important;
+    border-top: 0.5px solid rgba(255, 228, 230, 0.58) !important;
+    box-shadow: inset 0 0 0 0.2px rgba(253, 164, 175, 0.28),
+                0 10px 24px rgba(251, 113, 133, 0.14), 
+                0 0 14px rgba(251, 113, 133, 0.15), 
+                inset 1.5px 2px 6px rgba(255, 255, 255, 0.68), 
+                inset -1px -2px 6px rgba(251, 113, 133, 0.14), 
+                inset 0 0 14px rgba(254, 205, 211, 0.15) !important;
+    color: #581f1f !important;
+}
+
+.priority-item:active input[value="High"]:checked + .priority-choice {
+    background: radial-gradient(ellipse at 52% 40%, rgba(255, 185, 185, 0.44) 0%, rgba(255, 198, 198, 0.26) 16%, rgba(255, 210, 210, 0.16) 32%, rgba(255, 222, 222, 0.08) 48%, rgba(255, 232, 232, 0.035) 64%, transparent 82%) !important;
+    border: 0.35px solid rgba(253, 164, 175, 0.24) !important;
+    border-top: 0.5px solid rgba(254, 205, 211, 0.48) !important;
+    box-shadow: inset 0 0 0 0.2px rgba(253, 164, 175, 0.20),
+                0 2px 8px rgba(251, 113, 133, 0.10), 
+                inset 1px 1.5px 4px rgba(255, 255, 255, 0.45), 
+                inset 0 0 10px rgba(254, 205, 211, 0.11) !important;
+    color: #581f1f !important;
+    transform: translateY(0) scale(0.98);
+}
+
+/* 🟡 中 (Medium): 莫奈淡黄光晕选中态 — 丰富层级微冷暖 */
+.subject-item input[value="Medium"]:checked + span,
+.priority-item input[value="Medium"]:checked + .priority-choice {
+    background: radial-gradient(ellipse at 52% 40%, rgba(255, 225, 140, 0.44) 0%, rgba(255, 230, 155, 0.28) 16%, rgba(255, 235, 170, 0.19) 32%, rgba(255, 240, 185, 0.11) 48%, rgba(255, 245, 200, 0.055) 64%, rgba(255, 248, 220, 0.022) 80%, rgba(255, 255, 255, 0.010) 92%, transparent 96%) !important;
+    border: 0.35px solid rgba(250, 204, 21, 0.22) !important;
+    border-top: 0.5px solid rgba(254, 240, 138, 0.50) !important;
     color: #4b3700 !important;
-    box-shadow: 
-        0 8px 20px rgba(245, 158, 11, 0.05), 
-        inset 0 2px 4px rgba(255, 255, 255, 0.95),
-        inset 0 -1px 3px rgba(245, 158, 11, 0.05) !important;
+    box-shadow: inset 0 0 0 0.2px rgba(250, 204, 21, 0.20),
+                0 8px 20px rgba(15, 23, 42, 0.035), 
+                0 0 12px rgba(245, 190, 40, 0.13), 
+                inset 1.5px 2px 5px rgba(255, 255, 255, 0.55), 
+                inset -1px -2px 6px rgba(234, 179, 8, 0.11), 
+                inset 0 0 12px rgba(254, 240, 138, 0.13) !important;
     transform: translateY(-2px) scale(1.02);
+    backdrop-filter: blur(16px) saturate(140%) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(140%) !important;
 }
 
-/* 🟢 低 (Low): 莫奈淡绿选中态 */
-.subject-item input[value="Low"]:checked + span {
-    background-color: rgba(184, 230, 201, 0.15) !important; 
-    border-top: 2px solid rgba(184, 230, 201, 0.7) !important; 
-    border-left: 1px solid rgba(184, 230, 201, 0.6) !important;
-    border-right: 1px solid rgba(184, 230, 201, 0.6) !important;
-    border-bottom: 1px solid rgba(184, 230, 201, 0.51) !important;
+.priority-item:hover input[value="Medium"]:checked + .priority-choice {
+    background: radial-gradient(ellipse at 52% 40%, rgba(255, 225, 140, 0.52) 0%, rgba(255, 230, 155, 0.33) 16%, rgba(255, 235, 170, 0.22) 32%, rgba(255, 240, 185, 0.13) 48%, rgba(255, 245, 200, 0.065) 64%, rgba(255, 248, 220, 0.030) 80%, rgba(255, 255, 255, 0.015) 92%, transparent 96%) !important;
+    border: 0.35px solid rgba(250, 204, 21, 0.30) !important;
+    border-top: 0.5px solid rgba(254, 249, 195, 0.60) !important;
+    box-shadow: inset 0 0 0 0.2px rgba(250, 204, 21, 0.26),
+                0 10px 24px rgba(245, 190, 40, 0.14), 
+                0 0 14px rgba(245, 190, 40, 0.15), 
+                inset 1.5px 2px 6px rgba(255, 255, 255, 0.68), 
+                inset -1px -2px 6px rgba(234, 179, 8, 0.14), 
+                inset 0 0 14px rgba(254, 240, 138, 0.15) !important;
+    color: #4b3700 !important;
+}
+
+.priority-item:active input[value="Medium"]:checked + .priority-choice {
+    background: radial-gradient(ellipse at 52% 40%, rgba(255, 225, 140, 0.44) 0%, rgba(255, 230, 155, 0.26) 16%, rgba(255, 235, 170, 0.16) 32%, rgba(255, 240, 185, 0.08) 48%, rgba(255, 245, 200, 0.035) 64%, transparent 82%) !important;
+    border: 0.35px solid rgba(250, 204, 21, 0.22) !important;
+    border-top: 0.5px solid rgba(254, 240, 138, 0.50) !important;
+    box-shadow: inset 0 0 0 0.2px rgba(250, 204, 21, 0.20),
+                0 2px 8px rgba(245, 190, 40, 0.10), 
+                inset 1px 1.5px 4px rgba(255, 255, 255, 0.45), 
+                inset 0 0 10px rgba(254, 240, 138, 0.11) !important;
+    color: #4b3700 !important;
+    transform: translateY(0) scale(0.98);
+}
+
+/* 🟢 低 (Low): 莫奈淡绿光晕选中态 — 丰富层级微冷暖 */
+.subject-item input[value="Low"]:checked + span,
+.priority-item input[value="Low"]:checked + .priority-choice {
+    background: radial-gradient(ellipse at 52% 40%, rgba(167, 243, 208, 0.44) 0%, rgba(175, 245, 213, 0.28) 16%, rgba(187, 247, 208, 0.19) 32%, rgba(205, 249, 218, 0.11) 48%, rgba(220, 252, 231, 0.055) 64%, rgba(235, 253, 240, 0.022) 80%, rgba(255, 255, 255, 0.010) 92%, transparent 96%) !important;
+    border: 0.35px solid rgba(110, 231, 183, 0.22) !important;
+    border-top: 0.5px solid rgba(187, 247, 208, 0.48) !important;
     color: #164128 !important;
-    box-shadow: 
-        0 8px 20px rgba(16, 185, 129, 0.1), 
-        inset 0 2px 4px rgba(255, 255, 255, 0.95),
-        inset 0 -1px 3px rgba(16, 185, 129, 0.1) !important;
-    transform: translateY(-2px) scale(1.02);
+    box-shadow: inset 0 0 0 0.2px rgba(110, 231, 183, 0.20),
+                0 8px 20px rgba(15, 23, 42, 0.035), 
+                0 0 12px rgba(16, 185, 129, 0.13), 
+                inset 1.5px 2px 5px rgba(255, 255, 255, 0.55), 
+                inset -1px -2px 6px rgba(16, 185, 129, 0.11), 
+                inset 0 0 12px rgba(187, 247, 208, 0.13) !important;
+    transform: translate3d(0, -2px, 0) scale(1.02);
+    backdrop-filter: blur(16px) saturate(140%) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(140%) !important;
+}
+
+.priority-item:hover input[value="Low"]:checked + .priority-choice {
+    background: radial-gradient(ellipse at 52% 40%, rgba(167, 243, 208, 0.52) 0%, rgba(175, 245, 213, 0.33) 16%, rgba(187, 247, 208, 0.22) 32%, rgba(205, 249, 218, 0.13) 48%, rgba(220, 252, 231, 0.065) 64%, rgba(235, 253, 240, 0.030) 80%, rgba(255, 255, 255, 0.015) 92%, transparent 96%) !important;
+    border: 0.35px solid rgba(110, 231, 183, 0.30) !important;
+    border-top: 0.5px solid rgba(220, 252, 231, 0.58) !important;
+    box-shadow: inset 0 0 0 0.2px rgba(110, 231, 183, 0.26),
+                0 10px 24px rgba(16, 185, 129, 0.14), 
+                0 0 14px rgba(16, 185, 129, 0.15), 
+                inset 1.5px 2px 6px rgba(255, 255, 255, 0.68), 
+                inset -1px -2px 6px rgba(16, 185, 129, 0.14), 
+                inset 0 0 14px rgba(187, 247, 208, 0.15) !important;
+    color: #164128 !important;
+}
+
+.priority-item:active input[value="Low"]:checked + .priority-choice {
+    background: radial-gradient(ellipse at 52% 40%, rgba(167, 243, 208, 0.44) 0%, rgba(175, 245, 213, 0.26) 16%, rgba(187, 247, 208, 0.16) 32%, rgba(205, 249, 218, 0.08) 48%, rgba(220, 252, 231, 0.035) 64%, transparent 82%) !important;
+    border: 0.35px solid rgba(110, 231, 183, 0.22) !important;
+    border-top: 0.5px solid rgba(187, 247, 208, 0.48) !important;
+    box-shadow: inset 0 0 0 0.2px rgba(110, 231, 183, 0.20),
+                0 2px 8px rgba(16, 185, 129, 0.10), 
+                inset 1px 1.5px 4px rgba(255, 255, 255, 0.45), 
+                inset 0 0 10px rgba(187, 247, 208, 0.11) !important;
+    color: #164128 !important;
+    transform: translateY(0) scale(0.98);
 }
 
 input[type="text"], input[type="number"] {
@@ -1628,7 +1743,7 @@ body.is-idle .flatpickr-time .flatpickr-time-separator {
     position: fixed; right: 40px; bottom: 40px; width: 64px; height: 64px;
     border-radius: 50%; cursor: grab; z-index: 9999;
     display: flex; align-items: center; justify-content: center;
-    background: radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0.15) 55%, transparent 92%) !important;
+    background: radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.38) 0%, rgba(255, 255, 255, 0.10) 55%, transparent 92%);
     border-top: 2px solid rgba(255, 255, 255, 0.95) !important;
     border-left: 1px solid rgba(255, 255, 255, 0.8) !important;
     border-right: 1px solid rgba(255, 255, 255, 0.35) !important;
@@ -1636,20 +1751,19 @@ body.is-idle .flatpickr-time .flatpickr-time-separator {
     backdrop-filter: blur(40px) saturate(130%); -webkit-backdrop-filter: blur(40px) saturate(130%);
     
     box-shadow: 0 16px 36px rgba(15, 23, 42, 0.15), inset 0 0 0 1px rgba(255, 255, 255, 0.12), inset 2px 3px 10px rgba(255, 255, 255, 0.5), inset -2px -3px 10px rgba(0, 0, 0, 0.04), inset 5px 6px 20px rgba(255, 255, 255, 0.2) !important;
-    transition: transform 0.2s cubic-bezier(0.4, 2.08, 0.55, 0.44), backdrop-filter 0.2s ease, -webkit-backdrop-filter 0.2s ease, background 0.2s ease;
+    transition: transform 0.36s cubic-bezier(0.34, 1.6, 0.64, 1);
     user-select: none; touch-action: none;
 }
 .glass-sphere:hover {
     transform: scale(1.05);
-    backdrop-filter: blur(40px) saturate(130%) brightness(1.08);
-    -webkit-backdrop-filter: blur(40px) saturate(130%) brightness(1.08);
 }
 .glass-sphere:active {
-    cursor: grabbing; transform: scale(0.95);
-    backdrop-filter: blur(40px) saturate(130%);
-    -webkit-backdrop-filter: blur(40px) saturate(130%);
-    background: radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.35) 0%, rgba(255, 255, 255, 0.05) 55%, transparent 92%) !important;
-    transition: transform 0.1s;
+    cursor: grabbing; transform: scale(0.92);
+    transition: transform 0.12s cubic-bezier(0.25, 1, 0.5, 1);
+}
+.glass-sphere.is-dragging {
+    cursor: grabbing !important;
+    will-change: left, top;
 }
 .sphere-icon { width: 34px; height: 34px; object-fit: contain; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.1)); pointer-events: none;}
 
@@ -2092,8 +2206,7 @@ body.is-idle .flatpickr-time .flatpickr-time-separator {
     transform: translate(-50%, -50%);
 }
 
-.form-collapse-btn,
-.list-trigger-container {
+.form-collapse-btn {
     width: 100%;
     display: inline-flex;
     align-items: center;
@@ -2119,8 +2232,7 @@ body.is-idle .flatpickr-time .flatpickr-time-separator {
     will-change: transform;
 }
 
-.form-collapse-btn:hover,
-.list-trigger-container:hover { 
+.form-collapse-btn:hover { 
     background: linear-gradient(135deg, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0.12) 100%); 
     border-color: rgba(255, 255, 255, 0.85);
     transform: translateY(-2px);
@@ -2130,11 +2242,90 @@ body.is-idle .flatpickr-time .flatpickr-time-separator {
         inset 0 -1px 2px rgba(255, 255, 255, 0.15);
 }
 
-.form-collapse-btn:active,
-.list-trigger-container:active {
+.form-collapse-btn:active {
     transform: scale(0.97);
     background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.12) 100%);
     box-shadow: inset 0 2px 5px rgba(15, 23, 42, 0.04), inset 0 1px 1px rgba(255, 255, 255, 0.30);
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+/* “添加到表单”选择卡片材质：轻透玻璃基底、上层厚重高光调轻调淡、保留顶部犀利高光、无凹陷点按 */
+.list-trigger-container {
+    width: 100%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    box-sizing: border-box;
+    border-radius: var(--radius-element);
+    --ig-x: 50%;
+    --ig-y: 50%;
+    --ig-opacity: 0;
+    --ig-radius: 140px;
+    background-image: radial-gradient(
+        circle var(--ig-radius, 140px) at var(--ig-x, 50%) var(--ig-y, 50%),
+        rgba(255, 255, 255, calc(var(--ig-opacity, 0) * 0.8)) 0%,
+        rgba(255, 255, 255, calc(var(--ig-opacity, 0) * 0.54)) 20%,
+        rgba(255, 255, 255, calc(var(--ig-opacity, 0) * 0.22)) 48%,
+        rgba(255, 255, 255, calc(var(--ig-opacity, 0) * 0.05)) 72%,
+        transparent 86%
+    ), linear-gradient(135deg, rgba(255, 255, 255, 0.38) 0%, rgba(255, 255, 255, 0.24) 100%) !important;
+    background-repeat: no-repeat !important;
+    border-top: 2px solid rgba(255, 255, 255, 0.95) !important;
+    border-left: 1px solid rgba(255, 255, 255, 0.75) !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.35) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.25) !important;
+    backdrop-filter: blur(32px) saturate(130%);
+    -webkit-backdrop-filter: blur(32px) saturate(130%);
+    box-shadow: 
+        0 6px 18px rgba(15, 23, 42, 0.04), 
+        inset 0 0 0 1px rgba(255, 255, 255, 0.08), 
+        inset 0 1px 1px rgba(255, 255, 255, 0.25), 
+        inset 0 -1px 1.5px rgba(255, 255, 255, 0.15) !important;
+    color: var(--monet-text, #2F354F);
+    font-weight: 700;
+    cursor: pointer; 
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), 
+                box-shadow 0.3s ease,
+                border-color 0.3s ease !important;
+    will-change: transform;
+}
+
+.list-trigger-container:hover { 
+    background-image: radial-gradient(
+        circle var(--ig-radius, 140px) at var(--ig-x, 50%) var(--ig-y, 50%),
+        rgba(255, 255, 255, calc(var(--ig-opacity, 0) * 0.8)) 0%,
+        rgba(255, 255, 255, calc(var(--ig-opacity, 0) * 0.54)) 20%,
+        rgba(255, 255, 255, calc(var(--ig-opacity, 0) * 0.22)) 48%,
+        rgba(255, 255, 255, calc(var(--ig-opacity, 0) * 0.05)) 72%,
+        transparent 86%
+    ), linear-gradient(135deg, rgba(255, 255, 255, 0.46) 0%, rgba(255, 255, 255, 0.30) 100%) !important; 
+    border-top: 2px solid rgba(255, 255, 255, 1) !important;
+    border-left: 1px solid rgba(255, 255, 255, 0.85) !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.40) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.28) !important;
+    transform: translateY(-2px);
+    box-shadow: 
+        0 10px 24px rgba(15, 23, 42, 0.06), 
+        inset 0 0 0 1px rgba(255, 255, 255, 0.12), 
+        inset 0 1px 1px rgba(255, 255, 255, 0.35), 
+        inset 0 -1px 1.5px rgba(255, 255, 255, 0.20) !important;
+}
+
+.list-trigger-container:active {
+    transform: scale(0.98);
+    background-image: radial-gradient(
+        circle var(--ig-radius, 140px) at var(--ig-x, 50%) var(--ig-y, 50%),
+        rgba(255, 255, 255, calc(var(--ig-opacity, 0) * 0.8)) 0%,
+        rgba(255, 255, 255, calc(var(--ig-opacity, 0) * 0.54)) 20%,
+        rgba(255, 255, 255, calc(var(--ig-opacity, 0) * 0.22)) 48%,
+        rgba(255, 255, 255, calc(var(--ig-opacity, 0) * 0.05)) 72%,
+        transparent 86%
+    ), linear-gradient(135deg, rgba(255, 255, 255, 0.38) 0%, rgba(255, 255, 255, 0.24) 100%) !important;
+    box-shadow: 
+        0 3px 10px rgba(15, 23, 42, 0.04), 
+        inset 0 0 0 1px rgba(255, 255, 255, 0.08), 
+        inset 0 1px 1px rgba(255, 255, 255, 0.20) !important;
     transition: transform 0.1s ease, box-shadow 0.1s ease;
 }
 
@@ -2481,20 +2672,34 @@ body.alpha-menu-open #clockFace {
     -webkit-backdrop-filter: none !important;
 }
 
-/* 升级: 「📁 管理表单」中的删除按钮高亮放大特效 */
+/* 升级: 「📁 管理表单」中的删除按钮高亮放大特效 (Lucide trash 图标版) */
 .pop-del-list-action {
-    cursor: pointer; font-size: 12px; font-weight: 700; 
-    color: var(--monet-danger); background: rgba(227, 96, 93, 0.1); 
-    padding: 4px 10px; border-radius: var(--radius-sm); 
+    cursor: pointer;
+    color: var(--monet-danger, #e3605d);
+    background: rgba(227, 96, 93, 0.1);
+    width: 38px;
+    height: 24px;
+    min-width: 38px;
+    min-height: 24px;
+    padding: 0;
+    border-radius: var(--radius-xsm, 8px);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
     transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.25s ease, color 0.25s ease !important;
+}
+.pop-del-list-action svg {
+    display: block;
+    pointer-events: none;
 }
 .pop-del-list-action:hover {
     background: rgba(227, 96, 93, 0.18); 
     color: #e3605d;
-    transform: scale(1.1); /* 同款悬浮放大 */
+    transform: scale(1.08); /* 同款悬浮放大 */
 }
 .pop-del-list-action:active {
-    transform: scale(0.92); /* 同款按压回弹 */
+    transform: scale(0.94); /* 同款按压回弹 */
     background: rgba(227, 96, 93, 0.25); 
 }
 
@@ -2528,13 +2733,8 @@ body.alpha-menu-open #clockFace {
 }
 
 #popListContainer > div {
-    /* 补全平滑过渡, 并开启 GPU 硬件加速 */
-    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.25s ease, box-shadow 0.25s ease !important;
-    border-radius: var(--radius-element) !important;
-    cursor: pointer;
-    background-color: rgba(255, 255, 255, 0.30); /* 默认半透白玻璃底色 */
-    border: 1px solid rgba(255, 255, 255, 0.75);
-    padding: 8px 12px; /* 确保卡片有一定的内边距 */
+    /* 补全平滑过渡与基础盒模型 */
+    box-sizing: border-box;
 }
 
 /* ================== TaskHub 高级管理与筛选引擎 ================== */
@@ -3036,16 +3236,6 @@ input:not(:checked) + .alpha-switch::after {
     animation: pageOutToHome 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards !important;
 }
 
-/* TaskHub Icon 尺寸校准 */
-.logo-icon-box img[src*="TaskHub.png"],
-.mini-app-icon img[src*="TaskHub.png"] {
-    transform: scale(1.12);
-}
-.mini-app-icon:hover img[src*="TaskHub.png"],
-.mini-app-icon.is-anchor img[src*="TaskHub.png"],
-.mini-app-icon.is-folding-back img[src*="TaskHub.png"] {
-    transform: scale(1.12) !important;
-}
 
 /* ===========================
    全天复盘专属排版与字体优化
@@ -3078,10 +3268,15 @@ input:not(:checked) + .alpha-switch::after {
     will-change: transform;
 }
 
-/* 新增: 鼠标悬停时的物理上浮与阴影下钻 */
+/* 保证卡片内文字、进度条处于高光层之上，防止 mix-blend-mode 覆盖冲淡文字 */
+.progress-item > *:not(.alpha-card-glow-host) {
+    position: relative;
+    z-index: 2;
+}
+
+/* 鼠标悬停时优雅微浮，光效交由统一的光影引擎 card-glow.js 处理 */
 .progress-item:hover {
     transform: translateY(-4px); /* 向上浮动 */
-    /* 已统一在 .task-card:hover 等通用类中处理阴影和高光 */
 }
 
 .progress-header {
@@ -3232,27 +3427,40 @@ input:not(:checked) + .alpha-switch::after {
     width: 56px !important;
     height: 56px !important;
     margin: 0 !important;
-    background: rgba(255, 255, 255, 0.25);
-    border: 1px solid rgba(255, 255, 255, 0.8);
+    background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.08) 45%, transparent 75%) !important;
+    border-top: 2px solid rgba(255, 255, 255, 0.95) !important;
+    border-left: 1px solid rgba(255, 255, 255, 0.80) !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.35) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.25) !important;
     border-radius: var(--radius-sub) !important;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    backdrop-filter: blur(40px) saturate(130%);
-    -webkit-backdrop-filter: blur(40px) saturate(130%);
+    backdrop-filter: blur(32px) saturate(135%);
+    -webkit-backdrop-filter: blur(32px) saturate(135%);
     box-shadow: 
-        0 8px 24px rgba(15, 23, 42, 0.08), 
-        inset 0 2px 4px rgba(255, 255, 255, 0.95),
-        inset 0 -1.5px 2px rgba(157, 210, 255, 0.2) !important;
+        0 12px 32px rgba(15, 23, 42, 0.08),
+        0 4px 12px -2px rgba(15, 23, 42, 0.04),
+        inset 0 1.5px 2px 0 rgba(255, 255, 255, 0.85),
+        inset 2px 3px 10px rgba(255, 255, 255, 0.35),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.10),
+        inset 4px 6px 20px rgba(255, 255, 255, 0.15),
+        inset -2px -3px 8px rgba(0, 0, 0, 0.02) !important;
     cursor: pointer;
-    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.4s ease !important;
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.4s ease, border-color 0.4s ease !important;
 }
 .logo-icon-box:hover {
     transform: scale(1.05);
+    border-top: 2px solid rgba(255, 255, 255, 1) !important;
+    border-left: 1px solid rgba(255, 255, 255, 1) !important;
     box-shadow: 
-        0 14px 32px rgba(15, 23, 42, 0.15), 
-        inset 0 2px 5px rgba(255, 255, 255, 1) !important;
+        0 18px 40px rgba(15, 23, 42, 0.16), 
+        0 0 22px rgba(255, 255, 255, 0.65),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.30), 
+        inset 2px 3px 14px rgba(255, 255, 255, 0.85), 
+        inset 0 2px 4px rgba(255, 255, 255, 0.95),
+        inset 4px 6px 22px rgba(255, 255, 255, 0.35) !important;
 }
 .logo-icon-box:active {
     transform: scale(0.95);
@@ -3296,39 +3504,33 @@ input:not(:checked) + .alpha-switch::after {
 .app-switcher-overlay {
     position: fixed;
     inset: 0;
-    z-index: 9998;
+    z-index: 10001;
     background-color: rgba(148, 163, 184, 0.4);
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.04'/%3E%3C/svg%3E");
     backdrop-filter: blur(12px) saturate(140%);
     -webkit-backdrop-filter: blur(12px) saturate(140%);
-    
     opacity: 0;
     visibility: hidden;
-    transition: opacity 0.5s cubic-bezier(0.22, 1, 0.36, 1), visibility 0s 0.5s;
+    transition: opacity 0.28s cubic-bezier(0.22, 1, 0.36, 1), visibility 0s 0.28s;
     will-change: opacity;
+    pointer-events: none;
+    transform: translateZ(0);
 }
 
 .app-switcher-overlay::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    backdrop-filter: blur(40px);
-    -webkit-backdrop-filter: blur(40px);
-    -webkit-mask-image: linear-gradient(to bottom right, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 85%);
-    mask-image: linear-gradient(to bottom right, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 85%);
-    pointer-events: none;
+    display: none !important;
 }
 
 .app-switcher-overlay.open {
     opacity: 1;
     visibility: visible;
     pointer-events: auto;
-    transition: opacity 0.5s cubic-bezier(0.22, 1, 0.36, 1), visibility 0s 0s;
+    transition: opacity 0.28s cubic-bezier(0.22, 1, 0.36, 1), visibility 0s 0s;
 }
 
 .dynamic-switcher-track {
     position: fixed;
-    z-index: 9999;
+    z-index: 10002;
     display: flex;
     align-items: center;
     gap: 20px;
@@ -3351,73 +3553,128 @@ input:not(:checked) + .alpha-switch::after {
 }
 
 .mini-app-icon {
+    position: relative;
     width: 48px; height: 48px; 
     border-radius: calc(var(--radius-sub) / var(--icon-scale, 1)) !important;
-    background: rgba(255, 255, 255, 0.38); 
-    border: 1.5px solid rgba(255, 255, 255, 0.25);
+    background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.40) 0%, rgba(255, 255, 255, 0.26) 60%, rgba(255, 255, 255, 0.18) 100%) !important; 
+    border-top: 2px solid rgba(255, 255, 255, 0.75) !important;
+    border-left: 1px solid rgba(255, 255, 255, 0.60) !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.30) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.24) !important;
     display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-    backdrop-filter: blur(40px) saturate(130%); -webkit-backdrop-filter: blur(40px) saturate(130%);
-    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.05), inset 0 1px 1.5px rgba(255, 255, 255, 0.40), inset 0 -1px 1.5px rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(32px) saturate(130%); -webkit-backdrop-filter: blur(32px) saturate(130%);
+    box-shadow: 
+        0 12px 32px rgba(15, 23, 42, 0.1), 
+        inset 0 0 0 1px rgba(255, 255, 255, 0.08), 
+        inset 2px 3px 10px rgba(255, 255, 255, 0.35), 
+        inset -2px -3px 10px rgba(0, 0, 0, 0.03), 
+        inset 4px 6px 20px rgba(255, 255, 255, 0.15) !important;
     
     --icon-scale: 1;
     --unfold-x: 0px;
-    transform: translateX(var(--unfold-x)) scale(var(--icon-scale));
-    transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), 
-                background 0.4s cubic-bezier(0.22, 1, 0.36, 1), 
-                border-color 0.4s cubic-bezier(0.22, 1, 0.36, 1), 
-                box-shadow 0.4s cubic-bezier(0.22, 1, 0.36, 1), 
-                opacity 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+    --unfold-scale: 1;
+    --hover-scale: 1;
+    transform: translateX(var(--unfold-x)) scale(calc(var(--icon-scale) * var(--unfold-scale, 1) * var(--hover-scale, 1)));
+    transition: transform 0.34s cubic-bezier(0.34, 1.56, 0.64, 1), 
+                background 0.28s cubic-bezier(0.22, 1, 0.36, 1), 
+                border-color 0.28s cubic-bezier(0.22, 1, 0.36, 1), 
+                box-shadow 0.28s cubic-bezier(0.22, 1, 0.36, 1), 
+                opacity 0.24s cubic-bezier(0.22, 1, 0.36, 1);
     user-select: none; -webkit-user-drag: none; transform-origin: center center;
+    contain: layout style;
+    cursor: pointer;
+}
+
+.logo-icon-box img, .mini-app-icon img {
+    display: block;
+    flex: none;
 }
 
 .mini-app-icon img {
-    width: 27.55px; height: 27.55px; object-fit: contain;
+    width: calc(32px * 48 / 56) !important;
+    height: calc(32px * 48 / 56) !important;
+    object-fit: contain;
     filter: drop-shadow(0 3px 6px rgba(0,0,0,0.12)); 
     pointer-events: none;
     opacity: 0.68;
-    transition: opacity 0.4s cubic-bezier(0.22, 1, 0.36, 1), filter 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+    transform: translateY(calc(-4px / 70)) scale(var(--artwork-scale, 1)) !important;
+    transition: opacity 0.28s cubic-bezier(0.22, 1, 0.36, 1), filter 0.28s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.mini-app-icon:hover {
-    background: rgba(255, 255, 255, 0.48);
-    border-color: rgba(255, 255, 255, 0.30);
-    box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08), inset 0 2px 3px rgba(255, 255, 255, 0.9);
+.dynamic-switcher-track.is-preparing .mini-app-icon,
+.dynamic-switcher-track.is-preparing .mini-app-icon img {
+    transition: none !important;
+    transition-delay: 0s !important;
 }
 
-.mini-app-icon:hover img {
-    opacity: 0.88;
+.mini-app-icon:not(.is-anchor):hover {
+    --hover-scale: 1.08;
+    background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.62) 0%, rgba(255, 255, 255, 0.44) 60%, rgba(255, 255, 255, 0.30) 100%) !important;
+    border-top: 2px solid rgba(255, 255, 255, 1) !important;
+    border-left: 1px solid rgba(255, 255, 255, 0.95) !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.48) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.36) !important;
+    box-shadow: 
+        0 16px 36px rgba(15, 23, 42, 0.16), 
+        inset 0 0 0 1px rgba(255, 255, 255, 0.18), 
+        inset 2px 3px 12px rgba(255, 255, 255, 0.60), 
+        inset -2px -3px 10px rgba(0, 0, 0, 0.03), 
+        inset 4px 6px 20px rgba(255, 255, 255, 0.25) !important;
+    z-index: 6;
+}
+
+.mini-app-icon:not(.is-anchor):hover img {
+    opacity: 0.95;
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.16));
 }
 
 .mini-app-icon.is-anchor {
-    background: rgba(255, 255, 255, 0.82);
-    border-color: rgba(255, 255, 255, 0.95);
-    box-shadow: 0 16px 36px rgba(15, 23, 42, 0.16), inset 0 2px 4px rgba(255, 255, 255, 1);
+    background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.70) 0%, rgba(255, 255, 255, 0.52) 60%, rgba(255, 255, 255, 0.40) 100%) !important;
+    border-top: 2px solid rgba(255, 255, 255, 1) !important;
+    border-left: 1px solid rgba(255, 255, 255, 0.95) !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.65) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.55) !important;
+    box-shadow: 
+        0 16px 38px rgba(15, 23, 42, 0.16), 
+        inset 0 0 0 1px rgba(255, 255, 255, 0.15), 
+        inset 2px 3px 12px rgba(255, 255, 255, 0.55), 
+        inset -2px -3px 10px rgba(0, 0, 0, 0.03), 
+        inset 4px 6px 20px rgba(255, 255, 255, 0.25) !important;
+    z-index: 10;
 }
 
 .mini-app-icon.is-anchor img {
-    opacity: 1;
-    filter: drop-shadow(0 6px 12px rgba(0,0,0,0.2));
+    opacity: 1 !important;
+    filter: drop-shadow(0 6px 12px rgba(0,0,0,0.2)) !important;
 }
 
 .mini-app-icon.is-folding-back {
-    background: rgba(255, 255, 255, 0.25) !important;
-    border-color: rgba(255, 255, 255, 0.8) !important;
+    background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.08) 45%, transparent 75%) !important;
+    border-top: 2px solid rgba(255, 255, 255, 0.95) !important;
+    border-left: 1px solid rgba(255, 255, 255, 0.80) !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.35) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.25) !important;
     box-shadow: 
-        0 8px 24px rgba(15, 23, 42, 0.08), 
-        inset 0 2px 4px rgba(255, 255, 255, 0.95),
-        inset 0 -1.5px 2px rgba(157, 210, 255, 0.2) !important;
-    transition: background 0.45s ease, border-color 0.45s ease, box-shadow 0.45s ease !important;
+        0 12px 32px rgba(15, 23, 42, 0.08),
+        0 4px 12px -2px rgba(15, 23, 42, 0.04),
+        inset 0 1.5px 2px 0 rgba(255, 255, 255, 0.85),
+        inset 2px 3px 10px rgba(255, 255, 255, 0.35),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.10),
+        inset 4px 6px 20px rgba(255, 255, 255, 0.15),
+        inset -2px -3px 8px rgba(0, 0, 0, 0.02) !important;
+    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), --ig-anchor 0.26s ease, background 0.28s ease, border-color 0.28s ease, box-shadow 0.28s ease, opacity 0.24s ease !important;
 }
 
 .mini-app-icon.is-folding-back img {
     opacity: 1 !important;
     filter: drop-shadow(0 4px 6px rgba(0,0,0,0.18)) !important;
-    transition: opacity 0.45s ease, filter 0.45s ease !important;
+    transition: opacity 0.28s ease, filter 0.28s ease !important;
 }
 
 .mini-app-icon:active {
-    transform: translateX(var(--unfold-x)) scale(calc(var(--icon-scale) * 0.95));
-    transition-duration: 0.1s;
+    --hover-scale: 0.92 !important;
+    transition: transform 0.12s cubic-bezier(0.25, 1, 0.5, 1) !important;
+    transition-delay: 0s !important;
 }
 
 /* ===========================
@@ -3696,20 +3953,18 @@ body.is-zoom-scaling .clock-container {
         document.querySelectorAll('.sidebar, .side-list').forEach(setContainerStacking);
 
         // 任务区只检查真正装载卡片的容器
-        document.querySelectorAll('#scheduleList > .hub-card-wrap, #scheduleList .list-cards-container')
-            .forEach(el => {
-                if (el.classList.contains('hub-card-wrap')) {
-                    const nextZ = String(
-                        el.parentElement.children.length -
-                        Array.prototype.indexOf.call(el.parentElement.children, el)
-                    );
-                    if (el.style.getPropertyValue('--card-z') !== nextZ) {
-                        el.style.setProperty('--card-z', nextZ);
-                    }
-                } else {
-                    setContainerStacking(el);
+        const scheduleList = document.getElementById('scheduleList');
+        if (scheduleList) {
+            const children = Array.from(scheduleList.children);
+            children.forEach((el, index) => {
+                if (!el.classList.contains('hub-card-wrap')) return;
+                const nextZ = String(children.length - index);
+                if (el.style.getPropertyValue('--card-z') !== nextZ) {
+                    el.style.setProperty('--card-z', nextZ);
                 }
             });
+            scheduleList.querySelectorAll('.list-cards-container').forEach(setContainerStacking);
+        }
     }
 
     function scheduleCardStacking() {
@@ -4397,7 +4652,7 @@ button:focus-visible,
     <aside class="panel sidebar">
         
         <div class="logo-area">
-    <div class="logo-icon-box" id="logoTrigger" onclick="openAppSwitcher()">
+    <div class="logo-icon-box" id="logoTrigger" data-input-glow onclick="openAppSwitcher()">
         <img src="./icons/TaskHub.png" alt="TaskHub">
     </div>
     <div class="logo-text-group">
@@ -4560,7 +4815,7 @@ button:focus-visible,
     <!-- ======================================================================
        02. Floating Widgets, Dialogs & App Switcher Layer
        ====================================================================== -->
-<div id="glassSphere" class="glass-sphere">
+<div id="glassSphere" class="glass-sphere" data-input-glow title="使用提示">
     <img class="sphere-icon" src="icons/Tips.png" alt="Tips">
 </div>
 
@@ -4592,16 +4847,16 @@ button:focus-visible,
 
 <div id="appSwitcherOverlay" class="app-switcher-overlay"></div>
 <div id="dynamicSwitcherTrack" class="dynamic-switcher-track">
-    <div class="mini-app-icon" data-href="./Home.html" title="主页">
+    <div class="mini-app-icon" data-input-glow data-href="./Home.html" title="主页">
         <img src="./Icon.png" alt="Home">
     </div>
-    <div class="mini-app-icon" data-href="./TaskHub.html" title="TaskHub">
+    <div class="mini-app-icon" data-input-glow data-href="./TaskHub.html" title="TaskHub">
         <img src="./icons/TaskHub.png" alt="TaskHub">
     </div>
-    <div class="mini-app-icon" data-href="./TaskTimer.html" title="TaskTimer">
+    <div class="mini-app-icon" data-input-glow data-href="./TaskTimer.html" title="TaskTimer">
         <img src="./icons/TaskTimer.png" alt="TaskTimer">
     </div>
-    <div class="mini-app-icon" data-href="./TaskFlow.html" title="TaskFlow">
+    <div class="mini-app-icon" data-input-glow data-href="./TaskFlow.html" title="TaskFlow">
         <img src="./icons/TaskFlow.png" alt="TaskFlow">
     </div>
 </div>
@@ -4621,7 +4876,6 @@ button:focus-visible,
  */
 .sidebar .clock-container,
 .sidebar .hand,
-.sidebar .logo-icon-box,
 .panel .task-card,
 .panel .hub-card-wrap:hover > .task-card,
 .panel .hub-card-wrap:active > .task-card,
@@ -4634,17 +4888,15 @@ button:focus-visible,
 .panel .view-toggle,
 .panel .glass-icon-btn,
 .alpha-modal-overlay .glass-icon-btn,
-.alpha-modal-overlay .pop-list-item,
-.dynamic-switcher-track .mini-app-icon {
+.alpha-modal-overlay .pop-list-item {
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
 }
 
-/* 静止／隐藏元素不永久预约 GPU 图层；交互期间再短暂提升。 */
+/* 静止／隐藏元素不永久预约 GPU 图层；交互期间再短暂提升 */
 .task-card,
 .progress-item,
 .subject-item span,
-.picker-icon,
 .glass-icon-btn,
 .logo-icon-box,
 .task-checkbox-wrap,
@@ -4681,7 +4933,7 @@ body.alpha-menu-open .nav-click-catcher {
     will-change: transform, opacity !important;
 }
 
-/* 全屏遮罩用固定模糊 + 整体淡入表达景深，避免逐帧重采样整个视口。 */
+/* 全屏遮罩用固定模糊 + 整体淡入表达景深，避免逐帧重采样整个视口 */
 .sphere-modal {
     transition: opacity 0.3s var(--ease), visibility 0s 0s !important;
 }
@@ -4697,7 +4949,7 @@ body.alpha-menu-open .nav-click-catcher {
     transition: opacity 0.3s var(--ease), visibility 0s 0s !important;
 }
 
-/* 用户停止操作或 iframe 休眠时冻结纯装饰循环；再次交互立即无缝续播。 */
+/* 用户停止操作或 iframe 休眠时冻结纯装饰循环；再次交互立即无缝续播 */
 body.pause-bg-motion .progress-bar::after,
 html.pause-bg-motion .progress-bar::after,
 html.taskhub-page-hidden .progress-bar::after,
@@ -4768,6 +5020,18 @@ window.dialogConfirmCallback = null;
 // ========== 滚动状态管理器 ==========
 let isFastScrolling = false;
 let scrollTimer = null;
+let lastScrollActivityAt = 0;
+
+function finishScrollActivity() {
+    scrollTimer = null;
+    const remaining = 120 - (performance.now() - lastScrollActivityAt);
+    if (remaining > 0) {
+        scrollTimer = setTimeout(finishScrollActivity, remaining);
+        return;
+    }
+    isFastScrolling = false;
+    document.body.classList.remove('scrolling');
+}
 
 // 所有滚动/滚轮事件都通过此函数触发
 function handleScrollEvent() {
@@ -4775,11 +5039,8 @@ function handleScrollEvent() {
         isFastScrolling = true;
         document.body.classList.add('scrolling');
     }
-    clearTimeout(scrollTimer);
-    scrollTimer = setTimeout(() => {
-        isFastScrolling = false;
-        document.body.classList.remove('scrolling');
-    }, 120);
+    lastScrollActivityAt = performance.now();
+    if (scrollTimer === null) scrollTimer = setTimeout(finishScrollActivity, 120);
 }
 
 // 统一绑定到 window 和所有可滚动容器
@@ -5088,7 +5349,11 @@ function updateClock() {
     // 机械指针更新（开启减弱动态效果时砍掉红色秒针）
     const isReduceMotion = (typeof localStorage !== 'undefined' && localStorage.getItem('alpha_reduce_motion') === 'true');
     if (!isReduceMotion && secondHand) {
-        secondHand.style.transition = s === 0 ? 'none' : 'transform 0.05s cubic-bezier(0.4, 2.08, 0.55, 0.44)';
+        if (s === 0) {
+            secondHand.style.transition = 'none';
+        } else if (secondHand.style.transition === 'none') {
+            secondHand.style.transition = '';
+        }
         secondHand.style.transform = `rotate(${s * 6}deg)`;
     }
     minuteHand.style.transform = `rotate(${m * 6 + s * 0.1}deg)`;
@@ -5508,7 +5773,6 @@ function renderSchedules() {
 
     if (list) {
         window.__flipState.oldHeight = list.offsetHeight;
-        list.style.height = window.__flipState.oldHeight + 'px';
 
         // 记录表单面板 (Panels) 的位置
         const oldPanels = Array.from(list.querySelectorAll('.list-section-panel'));
@@ -5523,6 +5787,7 @@ function renderSchedules() {
             const id = card.getAttribute('data-id');
             if (id) window.__flipState.oldCards.set(id, card.getBoundingClientRect());
         });
+        list.style.height = window.__flipState.oldHeight + 'px';
     }
 
     // 1. 读取当前滑块视图状态
@@ -5678,7 +5943,10 @@ function renderSchedules() {
             </div>`;
     });
 
-    list.innerHTML = htmlContent;
+    // Build task cards off-document. Grouping commits the final tree once, so
+    // layout and external glow observers never process an intermediate flat list.
+    const stagedCards = document.createElement('template');
+    stagedCards.innerHTML = htmlContent;
 
     if (list.dataset.detailDelegated !== 'true') {
         list.dataset.detailDelegated = 'true';
@@ -5699,7 +5967,9 @@ function renderSchedules() {
     }
 
     if (typeof window.groupRenderedCards === 'function') {
-        window.groupRenderedCards();
+        window.groupRenderedCards(stagedCards.content);
+    } else {
+        list.replaceChildren(stagedCards.content);
     }
 
     window.scheduleCardStacking?.();
@@ -6827,49 +7097,90 @@ window.addEventListener('DOMContentLoaded', () => {
     const modal = document.getElementById('sphereModal');
     if (!sphere || !modal) return;
 
-    let sphereStartX, sphereStartY, initialLeft, initialTop;
+    let sphereStartX = 0, sphereStartY = 0, initialLeft = 0, initialTop = 0;
     let isSphereDragging = false;
+    let latestSphereX = 0, latestSphereY = 0;
+    let sphereMoveFrame = 0;
+
+    const applySphereMove = () => {
+        sphereMoveFrame = 0;
+        const deltaX = latestSphereX - sphereStartX;
+        const deltaY = latestSphereY - sphereStartY;
+
+        if (!isSphereDragging && (Math.abs(deltaX) > 4 || Math.abs(deltaY) > 4)) {
+            isSphereDragging = true;
+            sphere.classList.add('is-dragging');
+            sphere.style.right = 'auto';
+            sphere.style.bottom = 'auto';
+        }
+
+        if (isSphereDragging) {
+            const sphereW = sphere.offsetWidth || 64;
+            const sphereH = sphere.offsetHeight || 64;
+            const newLeft = Math.max(0, Math.min(initialLeft + deltaX, window.innerWidth - sphereW));
+            const newTop = Math.max(0, Math.min(initialTop + deltaY, window.innerHeight - sphereH));
+            sphere.style.left = newLeft + 'px';
+            sphere.style.top = newTop + 'px';
+        }
+    };
+
+    const onSphereMove = (moveEvent) => {
+        latestSphereX = moveEvent.clientX;
+        latestSphereY = moveEvent.clientY;
+        if (!sphereMoveFrame) {
+            sphereMoveFrame = requestAnimationFrame(applySphereMove);
+        }
+    };
+
+    const onSphereUp = (upEvent) => {
+        latestSphereX = upEvent.clientX;
+        latestSphereY = upEvent.clientY;
+        if (sphereMoveFrame) {
+            cancelAnimationFrame(sphereMoveFrame);
+            sphereMoveFrame = 0;
+        }
+        if (isSphereDragging || Math.abs(latestSphereX - sphereStartX) > 4 || Math.abs(latestSphereY - sphereStartY) > 4) {
+            applySphereMove();
+        }
+        sphere.removeEventListener('pointermove', onSphereMove);
+        sphere.removeEventListener('pointerup', onSphereUp);
+        sphere.removeEventListener('pointercancel', onSphereCancel);
+        try { sphere.releasePointerCapture(upEvent.pointerId); } catch (_) {}
+        sphere.classList.remove('is-dragging');
+
+        if (!isSphereDragging) {
+            modal.classList.remove('hidden');
+        }
+    };
+
+    const onSphereCancel = (cancelEvent) => {
+        if (sphereMoveFrame) {
+            cancelAnimationFrame(sphereMoveFrame);
+            sphereMoveFrame = 0;
+        }
+        sphere.removeEventListener('pointermove', onSphereMove);
+        sphere.removeEventListener('pointerup', onSphereUp);
+        sphere.removeEventListener('pointercancel', onSphereCancel);
+        try { sphere.releasePointerCapture(cancelEvent.pointerId); } catch (_) {}
+        sphere.classList.remove('is-dragging');
+    };
 
     sphere.addEventListener('pointerdown', (e) => {
         isSphereDragging = false;
         sphereStartX = e.clientX;
         sphereStartY = e.clientY;
-        
+        latestSphereX = e.clientX;
+        latestSphereY = e.clientY;
+
         const rect = sphere.getBoundingClientRect();
         initialLeft = rect.left;
         initialTop = rect.top;
-        
-        sphere.setPointerCapture(e.pointerId);
-        
-        const onSphereMove = (moveEvent) => {
-            const deltaX = moveEvent.clientX - sphereStartX;
-            const deltaY = moveEvent.clientY - sphereStartY;
-            
-            if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) {
-                isSphereDragging = true;
-                sphere.style.right = 'auto'; 
-                sphere.style.bottom = 'auto';
-                
-                let newLeft = Math.max(0, Math.min(initialLeft + deltaX, window.innerWidth - 64));
-                let newTop = Math.max(0, Math.min(initialTop + deltaY, window.innerHeight - 64));
-                
-                sphere.style.left = newLeft + 'px';
-                sphere.style.top = newTop + 'px';
-            }
-        };
-        
-        const onSphereUp = (upEvent) => {
-            sphere.removeEventListener('pointermove', onSphereMove);
-            sphere.removeEventListener('pointerup', onSphereUp);
-            sphere.releasePointerCapture(e.pointerId);
-            
-            if (!isSphereDragging) {
-                modal.classList.remove('hidden');
-            }
-        };
-        
+
+        try { sphere.setPointerCapture(e.pointerId); } catch (_) {}
+
         sphere.addEventListener('pointermove', onSphereMove);
         sphere.addEventListener('pointerup', onSphereUp);
+        sphere.addEventListener('pointercancel', onSphereCancel);
     });
 });
 
@@ -7196,19 +7507,104 @@ document.addEventListener('wheel', function(e) {
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
-                    border: 1px solid rgba(255, 255, 255, 0.85);
-                    backdrop-filter: blur(16px) saturate(130%);
-                    -webkit-backdrop-filter: blur(16px) saturate(130%);
-                    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.03), inset 0 1.5px 2px rgba(255, 255, 255, 0.9), inset 0 -1px 2px rgba(255, 255, 255, 0.2);
-                    padding: 12px 14px;
+                    --ig-x: 50%;
+                    --ig-y: 50%;
+                    --ig-opacity: 0;
+                    --ig-radius: 140px;
+                    background-image: radial-gradient(
+                        circle var(--ig-radius, 140px) at var(--ig-x, 50%) var(--ig-y, 50%),
+                        rgba(255, 255, 255, calc(var(--ig-opacity, 0) * 0.8)) 0%,
+                        rgba(255, 255, 255, calc(var(--ig-opacity, 0) * 0.54)) 20%,
+                        rgba(255, 255, 255, calc(var(--ig-opacity, 0) * 0.22)) 48%,
+                        rgba(255, 255, 255, calc(var(--ig-opacity, 0) * 0.05)) 72%,
+                        transparent 86%
+                    ), linear-gradient(135deg, rgba(255, 255, 255, 0.32) 0%, rgba(255, 255, 255, 0.18) 100%) !important;
+                    background-repeat: no-repeat !important;
+                    border-top: 2px solid #ffffff !important;
+                    border-left: 1px solid rgba(255, 255, 255, 0.75) !important;
+                    border-right: 1px solid rgba(255, 255, 255, 0.35) !important;
+                    border-bottom: 1px solid rgba(255, 255, 255, 0.25) !important;
+                    backdrop-filter: blur(40px) saturate(130%) !important;
+                    -webkit-backdrop-filter: blur(40px) saturate(130%) !important;
+                    box-shadow: 
+                        0 6px 18px rgba(15, 23, 42, 0.04), 
+                        inset 0 0 0 1px rgba(255, 255, 255, 0.08), 
+                        inset 0 1px 1.5px rgba(255, 255, 255, 0.28), 
+                        inset 0 -1px 1.5px rgba(255, 255, 255, 0.12) !important;
+                    padding: 10px 12px !important;
                     border-radius: var(--radius-sub);
-                    transition: transform 0.25s var(--ease), box-shadow 0.25s var(--ease), border-color 0.25s var(--ease);
+                    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), 
+                                box-shadow 0.3s ease, 
+                                border-color 0.3s ease !important;
                     width: 100%;
+                    box-sizing: border-box;
+                    cursor: pointer;
                 }
                 #alphaListModalOverlay .pop-list-item:hover {
-                    border-color: rgba(255, 255, 255, 1);
-                    transform: translateY(-1.5px);
-                    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06), inset 0 1.5px 2px rgba(255, 255, 255, 1);
+                    background-image: radial-gradient(
+                        circle var(--ig-radius, 140px) at var(--ig-x, 50%) var(--ig-y, 50%),
+                        rgba(255, 255, 255, calc(var(--ig-opacity, 0) * 0.8)) 0%,
+                        rgba(255, 255, 255, calc(var(--ig-opacity, 0) * 0.54)) 20%,
+                        rgba(255, 255, 255, calc(var(--ig-opacity, 0) * 0.22)) 48%,
+                        rgba(255, 255, 255, calc(var(--ig-opacity, 0) * 0.05)) 72%,
+                        transparent 86%
+                    ), linear-gradient(135deg, rgba(255, 255, 255, 0.42) 0%, rgba(255, 255, 255, 0.24) 100%) !important;
+                    border-top-color: #ffffff !important;
+                    border-left-color: rgba(255, 255, 255, 0.90) !important;
+                    border-right-color: rgba(255, 255, 255, 0.45) !important;
+                    border-bottom-color: rgba(255, 255, 255, 0.30) !important;
+                    transform: translateY(-2px);
+                    box-shadow: 
+                        0 10px 24px rgba(15, 23, 42, 0.05), 
+                        inset 0 0 0 1px rgba(255, 255, 255, 0.12), 
+                        inset 0 1.5px 2px rgba(255, 255, 255, 0.38), 
+                        inset 0 -1px 1.5px rgba(255, 255, 255, 0.16) !important;
+                }
+                #alphaListModalOverlay .pop-list-item:active {
+                    transform: scale(0.985);
+                    background-image: radial-gradient(
+                        circle var(--ig-radius, 140px) at var(--ig-x, 50%) var(--ig-y, 50%),
+                        rgba(255, 255, 255, calc(var(--ig-opacity, 0) * 0.8)) 0%,
+                        rgba(255, 255, 255, calc(var(--ig-opacity, 0) * 0.54)) 20%,
+                        rgba(255, 255, 255, calc(var(--ig-opacity, 0) * 0.22)) 48%,
+                        rgba(255, 255, 255, calc(var(--ig-opacity, 0) * 0.05)) 72%,
+                        transparent 86%
+                    ), linear-gradient(135deg, rgba(255, 255, 255, 0.32) 0%, rgba(255, 255, 255, 0.18) 100%) !important;
+                    box-shadow: 
+                        0 3px 10px rgba(15, 23, 42, 0.04), 
+                        inset 0 0 0 1px rgba(255, 255, 255, 0.08), 
+                        inset 0 1px 1px rgba(255, 255, 255, 0.22) !important;
+                    transition-duration: 0.1s;
+                }
+                
+                #alphaListModalOverlay .pop-del-list-action {
+                    cursor: pointer !important;
+                    color: var(--monet-danger, #e3605d) !important;
+                    background: rgba(227, 96, 93, 0.1) !important;
+                    width: 38px !important;
+                    height: 24px !important;
+                    min-width: 38px !important;
+                    min-height: 24px !important;
+                    padding: 0 !important;
+                    border-radius: var(--radius-xsm, 8px) !important;
+                    display: inline-flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    flex-shrink: 0 !important;
+                    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.25s ease, color 0.25s ease !important;
+                }
+                #alphaListModalOverlay .pop-del-list-action svg {
+                    display: block !important;
+                    pointer-events: none !important;
+                }
+                #alphaListModalOverlay .pop-del-list-action:hover {
+                    background: rgba(227, 96, 93, 0.18) !important;
+                    color: #e3605d !important;
+                    transform: scale(1.08) !important;
+                }
+                #alphaListModalOverlay .pop-del-list-action:active {
+                    transform: scale(0.94) !important;
+                    background: rgba(227, 96, 93, 0.25) !important;
                 }
                 
                 #closeAlphaModalX {
@@ -7459,7 +7855,7 @@ document.addEventListener('wheel', function(e) {
         container.innerHTML = lists.map(list => {
             const isChecked = window.selectedListIds.includes(list.id);
             return `
-                <div class="pop-list-item">
+                <div class="pop-list-item" data-input-glow>
                     <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; flex: 1; font-weight: 600; font-size: 14px; color: #1e293b; user-select:none;">
                         <input type="checkbox" class="list-pop-cb" value="${list.id}" ${isChecked ? 'checked' : ''}>
                         <span style="display: flex; align-items: center; gap: 6px;">
@@ -7469,7 +7865,7 @@ document.addEventListener('wheel', function(e) {
                         <span style="font-size: 12px; color: var(--sub); font-weight: 500;">${list.deadline !== '无截止日期' ? list.deadline : ''}</span>
                     </label>
                     ${list.id !== 'default' ?
-                    `<span class="pop-del-list-action" data-id="${list.id}">删除</span>` : ''}
+                    `<span class="pop-del-list-action" data-id="${list.id}" title="删除表单" aria-label="删除表单"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash" aria-hidden="true"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-1-1-1-2V6"/><path d="M8 6V4c0-1 1-1 2-1h4c1 0 2 1 2 2v2"/></svg></span>` : ''}
                 </div>`;
         }).join('');
     }
@@ -7481,7 +7877,7 @@ document.addEventListener('wheel', function(e) {
             fieldDiv.className = 'field';
             fieldDiv.innerHTML = `
                 <label style="display: flex; align-items: center; height: 28px;">添加到表单</label>
-                <div id="listSelectorTrigger" class="list-trigger-container">
+                <div id="listSelectorTrigger" class="list-trigger-container" data-input-glow>
                     <span id="listSelectorText" style="font-size: 14px; font-weight: 600; color: var(--text);">默认</span>
                     <span class="list-trigger-action-btn">
                         管理 / 切换 
@@ -7529,7 +7925,7 @@ document.addEventListener('wheel', function(e) {
         }
     }, true);
 
-    function groupRenderedCards() {
+    function groupRenderedCards(stagedCards = null) {
         const container =
             document.getElementById('scheduleList') ||
             document.getElementById('taskList');
@@ -7537,7 +7933,7 @@ document.addEventListener('wheel', function(e) {
         if (!container || !container.isConnected) return;
 
             // 3. 获取所有原生任务卡片
-            const rawCards = Array.from(container.children).filter(el => 
+            const rawCards = Array.from((stagedCards || container).children).filter(el => 
                 el.classList.contains('task-card') || el.id?.startsWith('strike-container') || el.querySelector('.task-card')
             );
             
@@ -7585,9 +7981,10 @@ document.addEventListener('wheel', function(e) {
                 });
             });
 
-            container.innerHTML = "";
-            
             const fragment = document.createDocumentFragment();
+            // A task may belong to multiple lists: move its first occurrence,
+            // then clone additional occurrences with the original checked state.
+            const placedCards = new Set();
 
             lists.forEach(list => {
                 const listCards = cardsByListId.get(list.id) || [];
@@ -7731,7 +8128,7 @@ document.addEventListener('wheel', function(e) {
                 
                 const cardBox = listPanel.querySelector('.list-cards-container');
                 listCards.forEach(c => {
-                    if (c.parentNode) {
+                    if (placedCards.has(c)) {
                         const clonedCard = c.cloneNode(true);
                         const originInputs = c.querySelectorAll("input");
                         const cloneInputs = clonedCard.querySelectorAll("input");
@@ -7740,6 +8137,7 @@ document.addEventListener('wheel', function(e) {
                         });
                         cardBox.appendChild(clonedCard);
                     } else {
+                        placedCards.add(c);
                         cardBox.appendChild(c);
                     }
                 });
@@ -7926,7 +8324,7 @@ document.addEventListener('wheel', function(e) {
                 fragment.appendChild(listPanel);
             });
             
-            container.appendChild(fragment);
+            container.replaceChildren(fragment);
             
             // =========================================================
             // 双重 FLIP 引擎: STEP 2 - 相对位移抵消与物理动画 (Play)
@@ -8608,7 +9006,24 @@ function updateMarqueeOverflowState(container) {
 }
 
 function refreshMarqueeOverflowState() {
-    document.querySelectorAll('.marquee-container, .strike-container, .task-title, .title, .timeline-title, .task-name').forEach(updateMarqueeOverflowState);
+    const items = [];
+    document.querySelectorAll('.marquee-container, .strike-container, .task-title, .title, .timeline-title, .task-name').forEach(container => {
+        if (container.classList.contains('is-scrolling') || container.classList.contains('is-returning')) return;
+        const span = container.querySelector('span');
+        if (!span) return;
+        if (span.dataset.origText && span.textContent !== span.dataset.origText) {
+            span.textContent = span.dataset.origText;
+        }
+        container.classList.remove('is-overflowing');
+        items.push({ container, span, isOverflowing: false });
+    });
+    // One layout read phase; preserve the existing two-pixel tolerance and fade.
+    items.forEach(item => {
+        item.isOverflowing = item.span.scrollWidth > item.container.clientWidth + 2;
+    });
+    items.forEach(({ container, isOverflowing }) => {
+        container.classList.toggle('is-overflowing', isOverflowing);
+    });
 }
 
 document.addEventListener('mouseover', function(e) {
@@ -9214,7 +9629,7 @@ window.addEventListener('DOMContentLoaded', () => {
     let startDragY = 0;
     let startTrackY = 0;
 
-    let currentIndex = 0; 
+    let currentIndex = 1; 
     let currentPath = window.location.pathname.split('/').pop() || 'index.html';
     miniIcons.forEach((icon, i) => {
         const href = icon.getAttribute('data-href');
@@ -9223,38 +9638,84 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    function getUntransformedAnchorCenter(el) {
-        if (!el) return { x: 52, y: 52 };
-        const parent = el.parentElement;
-        if (parent) {
-            const parentRect = parent.getBoundingClientRect();
-            const left = parentRect.left + el.offsetLeft;
-            const top = parentRect.top + el.offsetTop;
-            const width = el.offsetWidth || 56;
-            const height = el.offsetHeight || 56;
-            return {
-                x: left + width / 2,
-                y: top + height / 2
-            };
+    const pageIndex = currentIndex;
+    currentPath = miniIcons[pageIndex].getAttribute('data-href').replace('./', '');
+    let BASE_Y = 0;
+    let openFrame = 0;
+    let dragFrame = 0;
+    let dragPointerId = null;
+    let suppressPointerClick = false;
+    let navigationStarted = false;
+    const navigationTimers = new Set();
+    const afterNavigationDelay = (callback, delay) => {
+        const timer = setTimeout(() => {
+            navigationTimers.delete(timer);
+            if (switcherState === 'opened') callback();
+        }, delay);
+        navigationTimers.add(timer);
+        return timer;
+    };
+    // Border widths stay constant: interpolating them moves the PNG containing block.
+    const handoffProperties = ['box-shadow', 'border-top-color',
+        'border-right-color', 'border-bottom-color', 'border-left-color'];
+    const scalePixels = (value, ratio) => value.replace(/(-?\d*\.?\d+)px/g,
+        (_, number) => `${Number(number) * ratio}px`);
+
+    function alignTrackToLogo() {
+        const rect = logoTrigger.getBoundingClientRect();
+        // Measure both coordinate spaces. offsetTop rounds and ignores ancestor transforms.
+        // Cancel the previous close transition BEFORE measuring the zero origin.
+        switcherTrack.style.transition = 'none';
+        switcherTrack.style.left = '0px';
+        switcherTrack.style.top = '0px';
+        switcherTrack.style.setProperty('--track-x', '0px');
+        switcherTrack.style.setProperty('--track-y', '0px');
+        const trackRect = switcherTrack.getBoundingClientRect();
+        const unitX = trackRect.width / (switcherTrack.offsetWidth || trackRect.width) || 1;
+        const unitY = trackRect.height / (switcherTrack.offsetHeight || trackRect.height) || 1;
+        BASE_X = (rect.left + rect.width / 2 - trackRect.left) / unitX - 24;
+        BASE_Y = (rect.top + rect.height / 2 - trackRect.top) / unitY - 24;
+        trackX = BASE_X - currentIndex * iconSpacing;
+        trackY = BASE_Y;
+    }
+
+    function transferGlow(from, to) {
+        if (window.AlphaInputGlow?.transferElement) {
+            window.AlphaInputGlow.transferElement(from, to);
         }
-        const rect = el.getBoundingClientRect();
-        return {
-            x: rect.left + rect.width / 2,
-            y: rect.top + rect.height / 2
-        };
+    }
+
+    function restoreLogo() {
+        if (!logoTrigger) return;
+        transferGlow(miniIcons[pageIndex], logoTrigger);
+        ['transition', 'transform', '--lq-hover-ty', '--lq-hover-scale', '--lq-tx',
+            '--lq-ty', '--lq-scale', '--lq-sx', '--lq-sy', '--lq-rot'].forEach(
+                property => logoTrigger.style.removeProperty(property));
+        logoTrigger.style.visibility = 'visible';
+        logoTrigger.style.opacity = '1';
+        logoTrigger.style.pointerEvents = 'auto';
     }
 
     function setIconUnfoldPositions(open) {
         miniIcons.forEach((icon, i) => {
+            const distFromAnchor = Math.abs(i - pageIndex);
             if (open) {
+                const delay = distFromAnchor * 26;
+                icon.style.transitionDelay = `${delay}ms`;
                 icon.style.setProperty('--unfold-x', '0px');
+                icon.style.setProperty('--unfold-scale', '1');
                 icon.style.opacity = '1';
+                icon.style.visibility = 'visible';
             } else {
                 const foldOffset = -(i - currentIndex) * iconSpacing;
+                const delay = distFromAnchor * 18;
+                icon.style.transitionDelay = `${delay}ms`;
                 icon.style.setProperty('--unfold-x', `${foldOffset}px`);
                 if (i !== currentIndex) {
+                    icon.style.setProperty('--unfold-scale', '0.85');
                     icon.style.opacity = '0';
                 } else {
+                    icon.style.setProperty('--unfold-scale', '1');
                     icon.style.opacity = '1';
                 }
             }
@@ -9268,10 +9729,23 @@ window.addEventListener('DOMContentLoaded', () => {
 
     window.openAppSwitcher = function() {
         if (switcherState === 'opened') return;
+        const wasVisible = switcherTrack.classList.contains('open');
         switcherState = 'opened';
         window.__switcherState = 'opened';
-
-        
+        navigationStarted = false;
+        currentIndex = pageIndex;
+        switcherTrack.style.pointerEvents = '';
+        switcherOverlay.style.pointerEvents = '';
+        switcherOverlay.style.removeProperty('background');
+        switcherOverlay.style.removeProperty('background-color');
+        switcherOverlay.style.removeProperty('backdrop-filter');
+        switcherOverlay.style.removeProperty('-webkit-backdrop-filter');
+        switcherOverlay.style.removeProperty('transition');
+        miniIcons.forEach(icon => {
+            icon.classList.remove('is-folding-back');
+            icon.style.removeProperty('transform');
+        });
+        if (openFrame) { cancelAnimationFrame(openFrame); openFrame = 0; }
         if (closeTimeoutTimer) {
             clearTimeout(closeTimeoutTimer);
             closeTimeoutTimer = null;
@@ -9281,55 +9755,52 @@ window.addEventListener('DOMContentLoaded', () => {
             openRecoilTimer = null;
         }
 
-        // 第一步: 弹出面板前, 流体图标归位
-        if (logoTrigger) {
-            if (window.AlphaLiquidGlass && typeof window.AlphaLiquidGlass.resetElement === 'function') {
-                window.AlphaLiquidGlass.resetElement(logoTrigger);
-            }
-            logoTrigger.style.setProperty('--lq-tx', '0px');
-            logoTrigger.style.setProperty('--lq-ty', '0px');
-            logoTrigger.style.setProperty('--lq-scale', '1');
-            logoTrigger.style.setProperty('--lq-sx', '1');
-            logoTrigger.style.setProperty('--lq-sy', '1');
-            logoTrigger.style.setProperty('--lq-rot', '0deg');
-            logoTrigger.style.setProperty('transition', 'transform 0.12s cubic-bezier(0.25, 1, 0.5, 1)', 'important');
-            logoTrigger.style.setProperty('transform', 'translate3d(0, 0, 0) scale(1)', 'important');
+        if (wasVisible) {
+            switcherOverlay.classList.add('open');
+            updateTrackPosition(true);
+            setIconUnfoldPositions(true);
+            return;
         }
 
-        // 第二步: 通过容器绝对坐标计算绝对原点, 彻底免疫任何拖拽残余变形
-        openRecoilTimer = setTimeout(() => {
+        // 零延迟瞬时几何接力 (0ms 极速响应)
+        const anchorIcon = miniIcons[pageIndex];
+        const sourceImage = logoTrigger.querySelector('img');
+        const targetImage = anchorIcon.querySelector('img');
+        const sourceStyle = getComputedStyle(logoTrigger);
+        const sourceImageStyle = getComputedStyle(sourceImage);
+        const ratio = 48 / 56;
+        const handoffStyles = handoffProperties.map(property =>
+            [property, scalePixels(sourceStyle.getPropertyValue(property), ratio)]);
+        const sourceFilter = scalePixels(sourceImageStyle.filter, ratio);
+
+        switcherTrack.classList.add('is-preparing');
+        anchorIcon.classList.add('is-launch-origin');
+        handoffStyles.forEach(([property, value]) => anchorIcon.style.setProperty(property, value, 'important'));
+        targetImage.style.setProperty('filter', sourceFilter, 'important');
+        alignTrackToLogo();
+        updateTrackPosition(false);
+        setIconUnfoldPositions(false);
+        transferGlow(logoTrigger, anchorIcon);
+
+        logoTrigger.style.visibility = 'hidden';
+        logoTrigger.style.opacity = '0';
+        logoTrigger.style.pointerEvents = 'none';
+        switcherOverlay.classList.add('open');
+        switcherTrack.classList.add('open');
+        switcherTrack.classList.remove('is-preparing');
+
+        // 首帧直接发起涟漪交错物理展开
+        openFrame = requestAnimationFrame(() => {
+            openFrame = 0;
             if (switcherState !== 'opened') return;
-
-            const center = getUntransformedAnchorCenter(logoTrigger);
-            const targetCenterX = center.x;
-            const targetCenterY = center.y;
-            
-            switcherTrack.style.top = `${targetCenterY - 24}px`;
-            switcherTrack.style.left = `0px`; 
-            
-            BASE_X = targetCenterX - 24; 
-            trackX = BASE_X - currentIndex * iconSpacing;
-            trackY = 0;
-            
-            if (logoTrigger) {
-                logoTrigger.style.visibility = 'hidden';
-                logoTrigger.style.opacity = '0';
-                logoTrigger.style.pointerEvents = 'none';
-            }
-
-            updateTrackPosition(false);
-            setIconUnfoldPositions(false);
-
-            void switcherTrack.offsetWidth;
-            
-            switcherOverlay.classList.add('open');
-            switcherTrack.classList.add('open');
-            
-            requestAnimationFrame(() => {
-                updateTrackPosition(true);
-                setIconUnfoldPositions(true);
-            });
-        }, 120);
+            updateTrackPosition(true);
+            setIconUnfoldPositions(true);
+            anchorIcon.classList.remove('is-launch-origin');
+            handoffProperties.forEach(property => anchorIcon.style.removeProperty(property));
+            anchorIcon.style.removeProperty('border-color');
+            anchorIcon.style.removeProperty('box-shadow');
+            targetImage.style.removeProperty('filter');
+        });
     };
 
     window.closeAppSwitcher = function() {
@@ -9337,7 +9808,6 @@ window.addEventListener('DOMContentLoaded', () => {
         switcherState = 'closed';
         window.__switcherState = 'closed';
 
-        
         if (openRecoilTimer) {
             clearTimeout(openRecoilTimer);
             openRecoilTimer = null;
@@ -9347,50 +9817,51 @@ window.addEventListener('DOMContentLoaded', () => {
             switchPageTimeout = null;
         }
 
-        switcherOverlay.classList.remove('open');
-        setIconUnfoldPositions(false);
-
-        const anchorIcon = miniIcons[currentIndex];
-        if (anchorIcon) {
-            anchorIcon.classList.remove('is-anchor');
-            anchorIcon.classList.add('is-folding-back');
+        if (openFrame) { cancelAnimationFrame(openFrame); openFrame = 0; }
+        if (dragFrame) { cancelAnimationFrame(dragFrame); dragFrame = 0; }
+        navigationTimers.forEach(clearTimeout);
+        navigationTimers.clear();
+        navigationStarted = false;
+        isDraggingSwitcher = false;
+        if (dragPointerId !== null) {
+            try { switcherTrack.releasePointerCapture(dragPointerId); } catch (_) {}
+            dragPointerId = null;
         }
-
+        switcherOverlay.classList.remove('open');
+        if (!switcherTrack.classList.contains('open')) { restoreLogo(); return; }
+        currentIndex = pageIndex;
+        trackX = BASE_X - currentIndex * iconSpacing;
+        trackY = BASE_Y;
+        switcherTrack.style.pointerEvents = 'none';
+        switcherTrack.style.removeProperty('background');
+        switcherOverlay.style.removeProperty('background');
+        switcherOverlay.style.removeProperty('background-color');
+        switcherOverlay.style.removeProperty('backdrop-filter');
+        switcherOverlay.style.removeProperty('-webkit-backdrop-filter');
+        updateTrackPosition(true);
+        setIconUnfoldPositions(false);
+        const anchorIcon = miniIcons[pageIndex];
+        anchorIcon.classList.remove('is-anchor', 'is-launch-origin');
+        anchorIcon.classList.add('is-folding-back');
+        handoffProperties.forEach(property => anchorIcon.style.removeProperty(property));
+        anchorIcon.style.removeProperty('border-color');
+        anchorIcon.style.removeProperty('box-shadow');
+        anchorIcon.querySelector('img').style.removeProperty('filter');
         if (closeTimeoutTimer) clearTimeout(closeTimeoutTimer);
-
         closeTimeoutTimer = setTimeout(() => {
-            if (switcherState === 'closed') {
-                switcherTrack.classList.remove('open');
-                if (anchorIcon) {
-                    anchorIcon.classList.remove('is-folding-back');
-                }
-                if (logoTrigger) {
-                    if (window.AlphaLiquidGlass && typeof window.AlphaLiquidGlass.resetElement === 'function') {
-                        window.AlphaLiquidGlass.resetElement(logoTrigger);
-                    }
-                    logoTrigger.style.removeProperty('transition');
-                    logoTrigger.style.removeProperty('transform');
-                    logoTrigger.style.removeProperty('--lq-hover-ty');
-                    logoTrigger.style.removeProperty('--lq-hover-scale');
-                    logoTrigger.style.removeProperty('--lq-tx');
-                    logoTrigger.style.removeProperty('--lq-ty');
-                    logoTrigger.style.removeProperty('--lq-scale');
-                    logoTrigger.style.removeProperty('--lq-sx');
-                    logoTrigger.style.removeProperty('--lq-sy');
-                    logoTrigger.style.removeProperty('--lq-rot');
-                    logoTrigger.style.visibility = 'visible';
-                    logoTrigger.style.opacity = '1';
-                    logoTrigger.style.pointerEvents = 'auto';
-                }
-            }
-        }, 420);
+            closeTimeoutTimer = null;
+            if (switcherState !== 'closed') return;
+            switcherTrack.classList.remove('open');
+            anchorIcon.classList.remove('is-folding-back');
+            restoreLogo();
+        }, 280);
     };
 
-switcherOverlay.addEventListener('click', closeAppSwitcher);
+    switcherOverlay.addEventListener('click', closeAppSwitcher);
 
     function updateTrackPosition(animate = false) {
         if (animate) {
-            switcherTrack.style.transition = 'transform 0.42s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.4s ease, visibility 0s 0s';
+            switcherTrack.style.transition = 'transform 0.32s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.28s ease, visibility 0s 0s';
         } else {
             switcherTrack.style.transition = 'none';
         }
@@ -9400,9 +9871,10 @@ switcherOverlay.addEventListener('click', closeAppSwitcher);
         
         miniIcons.forEach((icon, i) => {
             if (animate) {
-                icon.style.transition = 'transform 0.42s cubic-bezier(0.22, 1, 0.36, 1), background 0.4s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.4s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.4s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.4s ease';
+                icon.style.transition = '--ig-anchor 0.3s cubic-bezier(0.22, 1, 0.36, 1), transform 0.32s cubic-bezier(0.16, 1, 0.3, 1), background 0.28s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.28s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.28s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.24s cubic-bezier(0.22, 1, 0.36, 1)';
             } else {
-                icon.style.transition = 'transform 0s, background 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease, opacity 0.4s ease';
+                icon.style.transition = 'none';
+                icon.style.transitionDelay = '0s';
             }
             
             const iconCenterRelative = 24 + i * iconSpacing;
@@ -9428,6 +9900,7 @@ switcherOverlay.addEventListener('click', closeAppSwitcher);
     let switchPageTimeout = null;
 
     function switchToAppByIndex(targetIndex) {
+        if (switcherState !== 'opened' || navigationStarted) return;
         if (targetIndex < 0 || targetIndex >= miniIcons.length) return;
         if (targetIndex === currentIndex) {
             // 点击当前已激活的 App: 优雅回折收起切换器
@@ -9457,14 +9930,17 @@ switcherOverlay.addEventListener('click', closeAppSwitcher);
     miniIcons.forEach((icon, i) => {
         icon.addEventListener('click', (e) => {
             e.stopPropagation();
-            if (switcherState !== 'opened') return;
+            if (switcherState !== 'opened' || (e.detail !== 0 && suppressPointerClick)) return;
             switchToAppByIndex(i);
         });
     });
 
     // Drag & Tap Logic with 2D elastic vertical recoil (下沉归位)
     switcherTrack.addEventListener('pointerdown', (e) => {
+        if (switcherState !== 'opened' || navigationStarted || isDraggingSwitcher || e.button !== 0) return;
         isDraggingSwitcher = true;
+        suppressPointerClick = false;
+        dragPointerId = e.pointerId;
         startDragX = e.clientX;
         startDragY = e.clientY;
         startTrackX = trackX;
@@ -9473,7 +9949,7 @@ switcherOverlay.addEventListener('click', closeAppSwitcher);
     });
 
     switcherTrack.addEventListener('pointermove', (e) => {
-        if (!isDraggingSwitcher) return;
+        if (!isDraggingSwitcher || e.pointerId !== dragPointerId) return;
         const deltaX = e.clientX - startDragX;
         const deltaY = e.clientY - startDragY;
         
@@ -9488,12 +9964,18 @@ switcherOverlay.addEventListener('click', closeAppSwitcher);
             trackX = minTrackX + (trackX - minTrackX) * 0.3;
         }
         
-        updateTrackPosition(false);
+        if (!dragFrame) dragFrame = requestAnimationFrame(() => {
+            dragFrame = 0;
+            if (isDraggingSwitcher) updateTrackPosition(false);
+        });
     });
 
     switcherTrack.addEventListener('pointerup', (e) => {
-        if (!isDraggingSwitcher) return;
+        if (!isDraggingSwitcher || e.pointerId !== dragPointerId) return;
         isDraggingSwitcher = false;
+        suppressPointerClick = true;
+        dragPointerId = null;
+        if (dragFrame) { cancelAnimationFrame(dragFrame); dragFrame = 0; }
         try { switcherTrack.releasePointerCapture(e.pointerId); } catch (_) {}
         
         const deltaX = e.clientX - startDragX;
@@ -9519,11 +10001,16 @@ switcherOverlay.addEventListener('click', closeAppSwitcher);
         snapToClosest();
     });
 
-    switcherTrack.addEventListener('pointercancel', () => {
-        if (!isDraggingSwitcher) return;
+    switcherTrack.addEventListener('pointercancel', (e) => {
+        if (!isDraggingSwitcher || e.pointerId !== dragPointerId) return;
         isDraggingSwitcher = false;
-        trackY = 0;
-        snapToClosest();
+        suppressPointerClick = true;
+        dragPointerId = null;
+        if (dragFrame) { cancelAnimationFrame(dragFrame); dragFrame = 0; }
+        currentIndex = pageIndex;
+        trackX = BASE_X - currentIndex * iconSpacing;
+        trackY = BASE_Y;
+        updateTrackPosition(true);
     });
 
     function snapToClosest() {
@@ -9532,7 +10019,7 @@ switcherOverlay.addEventListener('click', closeAppSwitcher);
         
         currentIndex = closestIndex;
         trackX = BASE_X - currentIndex * iconSpacing;
-        trackY = 0; // 确保彻底下沉归位
+        trackY = BASE_Y; // 回到展开时的实际纵坐标
         updateTrackPosition(true);
         
         if (switchPageTimeout) clearTimeout(switchPageTimeout);
@@ -9547,6 +10034,8 @@ switcherOverlay.addEventListener('click', closeAppSwitcher);
         
         const targetPath = href.replace('./', '');
         if (currentPath !== targetPath) {
+            if (navigationStarted || switcherState !== 'opened') return;
+            navigationStarted = true;
             switcherTrack.style.pointerEvents = 'none';
             switcherOverlay.style.pointerEvents = 'none';
             
@@ -9555,14 +10044,14 @@ switcherOverlay.addEventListener('click', closeAppSwitcher);
                 sessionStorage.setItem('nav_from_home', 'true');
             }
 
-            setTimeout(() => {
+            afterNavigationDelay(() => {
                 miniIcons.forEach((ic, idx) => {
                     if (idx !== currentIndex) {
                         ic.style.transition = 'opacity 0.38s cubic-bezier(0.22, 1, 0.36, 1), transform 0.38s cubic-bezier(0.22, 1, 0.36, 1)';
                         ic.style.opacity = '0';
                         ic.style.transform = `translateX(${-(idx - currentIndex) * iconSpacing}px) scale(0.8)`;
                     } else {
-                        setTimeout(() => {
+                        afterNavigationDelay(() => {
                             ic.style.transition = 'opacity 0.28s ease, transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1)';
                             ic.style.opacity = '0';
                             ic.style.transform = 'scale(1.15)';
@@ -9585,7 +10074,7 @@ switcherOverlay.addEventListener('click', closeAppSwitcher);
                     }
                 });
                 
-                setTimeout(() => {
+                afterNavigationDelay(() => {
                     const alphaNav = (window.parent && window.parent.ALPHA && typeof window.parent.ALPHA.navigate === 'function')
                         ? window.parent.ALPHA
                         : (window.ALPHA && typeof window.ALPHA.navigate === 'function' ? window.ALPHA : null);
@@ -9593,7 +10082,7 @@ switcherOverlay.addEventListener('click', closeAppSwitcher);
                         const openNewTab = localStorage.getItem('alpha_open_new_tab') !== 'false';
                         alphaNav.navigate(href, 'auto');
                         if (openNewTab) {
-                            setTimeout(() => {
+                            afterNavigationDelay(() => {
                                 closeAppSwitcher();
                                 animTargets.forEach(el => el.classList.remove('page-transition-leave', 'page-leave-to-home'));
                             }, 100);
@@ -9608,6 +10097,10 @@ switcherOverlay.addEventListener('click', closeAppSwitcher);
             switcherOverlay.style.pointerEvents = 'auto';
         }
     }
+    document.addEventListener('keydown', event => {
+        if (event.key === 'Escape' && switcherState === 'opened') closeAppSwitcher();
+    });
+
 });
 </script>
 
@@ -9729,7 +10222,10 @@ switcherOverlay.addEventListener('click', closeAppSwitcher);
     }
 
     function onUserActive() {
-        if (isSleeping) return;
+        if (isSleeping) {
+            onWake();
+            return;
+        }
         lastActivityAt = performance.now();
         if (isIdle) {
             isIdle = false;
@@ -9776,7 +10272,7 @@ switcherOverlay.addEventListener('click', closeAppSwitcher);
         scheduleIdleCheck();
     }
 
-    const activityEvents = ['pointermove', 'pointerdown', 'keydown', 'scroll', 'wheel', 'touchstart'];
+    const activityEvents = ['pointermove', 'pointerdown', 'keydown', 'scroll', 'wheel', 'touchstart', 'focusin', 'input'];
     activityEvents.forEach(evt => {
         window.addEventListener(evt, onUserActive, { passive: true, capture: true });
     });
@@ -9859,34 +10355,49 @@ switcherOverlay.addEventListener('click', closeAppSwitcher);
     let currentGroup = null;
     let frameId = 0;
 
+    // Geometry still updates every frame, including the full release tail.
+    // Skip identical writes so unchanged paths do not invalidate SVG filters.
+    function setAttributeIfChanged(node, name, value) {
+        const text = String(value);
+        if (node.getAttribute(name) !== text) node.setAttribute(name, text);
+    }
+
+    function setStyleIfChanged(node, name, value) {
+        if (node.style[name] !== value) node.style[name] = value;
+    }
+
+    function toggleClassIfChanged(node, name, enabled) {
+        if (node.classList.contains(name) !== enabled) node.classList.toggle(name, enabled);
+    }
+
     const SVG_NS = 'http://www.w3.org/2000/svg';
     const svgElement = name => document.createElementNS(SVG_NS, name);
     const union = svgElement('svg');
     union.classList.add('taskhub-tag-union-surface');
-    union.setAttribute('aria-hidden', 'true');
+    setAttributeIfChanged(union, 'aria-hidden', 'true');
 
     const defs = svgElement('defs');
     const materialGradient = svgElement('linearGradient');
     materialGradient.id = 'taskhubTagUnionMaterialV4';
-    materialGradient.setAttribute('gradientUnits', 'userSpaceOnUse');
+    setAttributeIfChanged(materialGradient, 'gradientUnits', 'userSpaceOnUse');
     const materialStops = [0, 0.42, 0.58, 1].map(offset => {
         const stop = svgElement('stop');
-        stop.setAttribute('offset', String(offset));
+        setAttributeIfChanged(stop, 'offset', String(offset));
         materialGradient.appendChild(stop);
         return stop;
     });
     const unionMask = svgElement('mask');
     unionMask.id = 'taskhubTagUnionMaskV4';
-    unionMask.setAttribute('maskUnits', 'userSpaceOnUse');
-    unionMask.setAttribute('maskContentUnits', 'userSpaceOnUse');
+    setAttributeIfChanged(unionMask, 'maskUnits', 'userSpaceOnUse');
+    setAttributeIfChanged(unionMask, 'maskContentUnits', 'userSpaceOnUse');
     unionMask.style.maskType = 'luminance';
     const maskPath = svgElement('path');
-    maskPath.setAttribute('fill', 'white');
-    maskPath.setAttribute('fill-rule', 'nonzero');
+    setAttributeIfChanged(maskPath, 'fill', 'white');
+    setAttributeIfChanged(maskPath, 'fill-rule', 'nonzero');
     const notchNegative = svgElement('circle');
     const notchPositive = svgElement('circle');
-    notchNegative.setAttribute('fill', 'black');
-    notchPositive.setAttribute('fill', 'black');
+    setAttributeIfChanged(notchNegative, 'fill', 'black');
+    setAttributeIfChanged(notchPositive, 'fill', 'black');
     unionMask.append(maskPath, notchNegative, notchPositive);
 
     /* Build the rim from the alpha of the already-masked combined silhouette.
@@ -9894,47 +10405,47 @@ switcherOverlay.addEventListener('click', closeAppSwitcher);
        around either original pill and with both liquid notches included. */
     const outlineFilter = svgElement('filter');
     outlineFilter.id = 'taskhubTagUnionOutlineV4';
-    outlineFilter.setAttribute('color-interpolation-filters', 'sRGB');
+    setAttributeIfChanged(outlineFilter, 'color-interpolation-filters', 'sRGB');
     const outlineErode = svgElement('feMorphology');
-    outlineErode.setAttribute('in', 'SourceAlpha');
-    outlineErode.setAttribute('operator', 'erode');
-    outlineErode.setAttribute('radius', '0.82');
-    outlineErode.setAttribute('result', 'taskhubUnionInner');
+    setAttributeIfChanged(outlineErode, 'in', 'SourceAlpha');
+    setAttributeIfChanged(outlineErode, 'operator', 'erode');
+    setAttributeIfChanged(outlineErode, 'radius', '0.82');
+    setAttributeIfChanged(outlineErode, 'result', 'taskhubUnionInner');
     const outlineEdge = svgElement('feComposite');
-    outlineEdge.setAttribute('in', 'SourceAlpha');
-    outlineEdge.setAttribute('in2', 'taskhubUnionInner');
-    outlineEdge.setAttribute('operator', 'out');
-    outlineEdge.setAttribute('result', 'taskhubUnionEdge');
+    setAttributeIfChanged(outlineEdge, 'in', 'SourceAlpha');
+    setAttributeIfChanged(outlineEdge, 'in2', 'taskhubUnionInner');
+    setAttributeIfChanged(outlineEdge, 'operator', 'out');
+    setAttributeIfChanged(outlineEdge, 'result', 'taskhubUnionEdge');
     const outlineFlood = svgElement('feFlood');
-    outlineFlood.setAttribute('flood-color', 'rgb(255,255,255)');
-    outlineFlood.setAttribute('flood-opacity', '0.70');
-    outlineFlood.setAttribute('result', 'taskhubUnionRimColor');
+    setAttributeIfChanged(outlineFlood, 'flood-color', 'rgb(255,255,255)');
+    setAttributeIfChanged(outlineFlood, 'flood-opacity', '0.70');
+    setAttributeIfChanged(outlineFlood, 'result', 'taskhubUnionRimColor');
     const outlinePaint = svgElement('feComposite');
-    outlinePaint.setAttribute('in', 'taskhubUnionRimColor');
-    outlinePaint.setAttribute('in2', 'taskhubUnionEdge');
-    outlinePaint.setAttribute('operator', 'in');
+    setAttributeIfChanged(outlinePaint, 'in', 'taskhubUnionRimColor');
+    setAttributeIfChanged(outlinePaint, 'in2', 'taskhubUnionEdge');
+    setAttributeIfChanged(outlinePaint, 'operator', 'in');
     outlineFilter.append(outlineErode, outlineEdge, outlineFlood, outlinePaint);
 
     defs.append(materialGradient, unionMask, outlineFilter);
 
     const materialGroup = svgElement('g');
-    materialGroup.setAttribute('fill', 'url(#taskhubTagUnionMaterialV4)');
-    materialGroup.setAttribute('mask', 'url(#taskhubTagUnionMaskV4)');
+    setAttributeIfChanged(materialGroup, 'fill', 'url(#taskhubTagUnionMaterialV4)');
+    setAttributeIfChanged(materialGroup, 'mask', 'url(#taskhubTagUnionMaskV4)');
     const materialPath = svgElement('path');
-    materialPath.setAttribute('fill-rule', 'nonzero');
+    setAttributeIfChanged(materialPath, 'fill-rule', 'nonzero');
     materialGroup.append(materialPath);
     /* Keep the material unfiltered: its separate outline is generated from the
        final union alpha rather than from either original tag. */
-    materialGroup.style.filter = 'none';
+    setStyleIfChanged(materialGroup, 'filter', 'none');
 
     const outlineGroup = svgElement('g');
-    outlineGroup.setAttribute('filter', 'url(#taskhubTagUnionOutlineV4)');
-    outlineGroup.setAttribute('pointer-events', 'none');
+    setAttributeIfChanged(outlineGroup, 'filter', 'url(#taskhubTagUnionOutlineV4)');
+    setAttributeIfChanged(outlineGroup, 'pointer-events', 'none');
     const outlineMaskedGroup = svgElement('g');
-    outlineMaskedGroup.setAttribute('mask', 'url(#taskhubTagUnionMaskV4)');
+    setAttributeIfChanged(outlineMaskedGroup, 'mask', 'url(#taskhubTagUnionMaskV4)');
     const outlineSource = svgElement('path');
-    outlineSource.setAttribute('fill', 'white');
-    outlineSource.setAttribute('fill-rule', 'nonzero');
+    setAttributeIfChanged(outlineSource, 'fill', 'white');
+    setAttributeIfChanged(outlineSource, 'fill-rule', 'nonzero');
     outlineMaskedGroup.append(outlineSource);
     outlineGroup.append(outlineMaskedGroup);
 
@@ -9948,29 +10459,24 @@ switcherOverlay.addEventListener('click', closeAppSwitcher);
     }
 
     function clearEdge(surface) {
-        if (surface) surface.classList.remove(
-            ...EDGE_CLASSES,
-            'taskhub-union-member',
-            'taskhub-selected-union-member'
-        );
+        if (!surface) return;
+        [...EDGE_CLASSES, 'taskhub-union-member', 'taskhub-selected-union-member']
+            .forEach(name => toggleClassIfChanged(surface, name, false));
     }
 
     function markFacingEdges(a, b, ux, uy, useUnifiedSelectedOutline) {
-        clearEdge(a);
-        clearEdge(b);
-        a.classList.add('taskhub-union-member');
-        b.classList.add('taskhub-union-member');
-        if (useUnifiedSelectedOutline) {
-            a.classList.add('taskhub-selected-union-member');
-            b.classList.add('taskhub-selected-union-member');
-        }
-        if (Math.abs(ux) >= Math.abs(uy)) {
-            a.classList.add(ux >= 0 ? 'taskhub-overlap-right' : 'taskhub-overlap-left');
-            b.classList.add(ux >= 0 ? 'taskhub-overlap-left' : 'taskhub-overlap-right');
-        } else {
-            a.classList.add(uy >= 0 ? 'taskhub-overlap-bottom' : 'taskhub-overlap-top');
-            b.classList.add(uy >= 0 ? 'taskhub-overlap-top' : 'taskhub-overlap-bottom');
-        }
+        const horizontal = Math.abs(ux) >= Math.abs(uy);
+        const edgeA = horizontal
+            ? (ux >= 0 ? 'taskhub-overlap-right' : 'taskhub-overlap-left')
+            : (uy >= 0 ? 'taskhub-overlap-bottom' : 'taskhub-overlap-top');
+        const edgeB = horizontal
+            ? (ux >= 0 ? 'taskhub-overlap-left' : 'taskhub-overlap-right')
+            : (uy >= 0 ? 'taskhub-overlap-top' : 'taskhub-overlap-bottom');
+        [[a, edgeA], [b, edgeB]].forEach(([surface, facingEdge]) => {
+            EDGE_CLASSES.forEach(name => toggleClassIfChanged(surface, name, name === facingEdge));
+            toggleClassIfChanged(surface, 'taskhub-union-member', true);
+            toggleClassIfChanged(surface, 'taskhub-selected-union-member', useUnifiedSelectedOutline);
+        });
     }
 
     function fusionColor(surface) {
@@ -9980,7 +10486,7 @@ switcherOverlay.addEventListener('click', closeAppSwitcher);
 
     function suppressSharedTagBridge(suppress) {
         document.querySelectorAll('.__lq-fusion-bridge.__lq-fusion-tag-pair').forEach(bridge => {
-            bridge.classList.toggle('taskhub-union-suppressed', suppress);
+            toggleClassIfChanged(bridge, 'taskhub-union-suppressed', suppress);
         });
     }
 
@@ -9999,11 +10505,11 @@ switcherOverlay.addEventListener('click', closeAppSwitcher);
     function setStopColor(stop, color) {
         const match = String(color).match(/rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)(?:\s*[,/]\s*([\d.]+))?\s*\)/i);
         if (match) {
-            stop.style.stopColor = `rgb(${match[1]}, ${match[2]}, ${match[3]})`;
-            stop.style.stopOpacity = match[4] === undefined ? '1' : match[4];
+            setStyleIfChanged(stop, 'stopColor', `rgb(${match[1]}, ${match[2]}, ${match[3]})`);
+            setStyleIfChanged(stop, 'stopOpacity', match[4] === undefined ? '1' : match[4]);
         } else {
-            stop.style.stopColor = color;
-            stop.style.stopOpacity = '1';
+            setStyleIfChanged(stop, 'stopColor', color);
+            setStyleIfChanged(stop, 'stopOpacity', '1');
         }
     }
 
@@ -10091,10 +10597,10 @@ switcherOverlay.addEventListener('click', closeAppSwitcher);
     }
 
     function hideLens() {
-        union.classList.remove('is-visible');
-        union.style.opacity = '0';
+        toggleClassIfChanged(union, 'is-visible', false);
+        setStyleIfChanged(union, 'opacity', '0');
         suppressSharedTagBridge(false);
-        if (currentGroup) currentGroup.classList.remove('taskhub-union-active');
+        if (currentGroup) toggleClassIfChanged(currentGroup, 'taskhub-union-active', false);
         clearEdge(activeSurface);
         clearEdge(currentPeer);
         currentPeer = null;
@@ -10147,8 +10653,6 @@ switcherOverlay.addEventListener('click', closeAppSwitcher);
             return false;
         }
 
-        if (currentPeer && currentPeer !== best.candidate) clearEdge(currentPeer);
-        currentPeer = best.candidate;
         const minEdge = Math.min(a.width, a.height, best.b.width, best.b.height);
         const normalized = Math.max(0, Math.min(1, best.overlap / Math.max(4, minEdge * 0.56)));
         const eased = normalized * normalized * (3 - 2 * normalized);
@@ -10181,31 +10685,33 @@ switcherOverlay.addEventListener('click', closeAppSwitcher);
             colorB = selectedColor;
         }
 
+        if (currentPeer && currentPeer !== best.candidate) clearEdge(currentPeer);
+        currentPeer = best.candidate;
         if (union.parentNode !== group) group.insertBefore(union, group.firstChild);
         currentGroup = group;
-        group.classList.add('taskhub-union-active');
+        toggleClassIfChanged(group, 'taskhub-union-active', true);
         suppressSharedTagBridge(true);
         markFacingEdges(surface, best.candidate, best.ux, best.uy, hasSelectedMember);
-        union.style.left = (originX - groupRect.left).toFixed(2) + 'px';
-        union.style.top = (originY - groupRect.top).toFixed(2) + 'px';
-        union.style.width = svgWidth.toFixed(2) + 'px';
-        union.style.height = svgHeight.toFixed(2) + 'px';
-        union.setAttribute('width', svgWidth.toFixed(2));
-        union.setAttribute('height', svgHeight.toFixed(2));
-        union.setAttribute('viewBox', '0 0 ' + svgWidth.toFixed(2) + ' ' + svgHeight.toFixed(2));
+        setStyleIfChanged(union, 'left', (originX - groupRect.left).toFixed(2) + 'px');
+        setStyleIfChanged(union, 'top', (originY - groupRect.top).toFixed(2) + 'px');
+        setStyleIfChanged(union, 'width', svgWidth.toFixed(2) + 'px');
+        setStyleIfChanged(union, 'height', svgHeight.toFixed(2) + 'px');
+        setAttributeIfChanged(union, 'width', svgWidth.toFixed(2));
+        setAttributeIfChanged(union, 'height', svgHeight.toFixed(2));
+        setAttributeIfChanged(union, 'viewBox', '0 0 ' + svgWidth.toFixed(2) + ' ' + svgHeight.toFixed(2));
 
         const unionPathData = [
             roundedRectPath(a, originX, originY, radiusA),
             roundedRectPath(best.b, originX, originY, radiusB),
             neckPath
         ].join(' ');
-        materialPath.setAttribute('d', unionPathData);
-        maskPath.setAttribute('d', unionPathData);
-        outlineSource.setAttribute('d', unionPathData);
-        unionMask.setAttribute('x', '0');
-        unionMask.setAttribute('y', '0');
-        unionMask.setAttribute('width', svgWidth.toFixed(2));
-        unionMask.setAttribute('height', svgHeight.toFixed(2));
+        setAttributeIfChanged(materialPath, 'd', unionPathData);
+        setAttributeIfChanged(maskPath, 'd', unionPathData);
+        setAttributeIfChanged(outlineSource, 'd', unionPathData);
+        setAttributeIfChanged(unionMask, 'x', '0');
+        setAttributeIfChanged(unionMask, 'y', '0');
+        setAttributeIfChanged(unionMask, 'width', svgWidth.toFixed(2));
+        setAttributeIfChanged(unionMask, 'height', svgHeight.toFixed(2));
 
         /* Reference-like concave cusps: carve two shallow circular bites from
            the shared outline along the normal of the joining axis. They get
@@ -10218,30 +10724,30 @@ switcherOverlay.addEventListener('click', closeAppSwitcher);
         const notchRadius = minEdge * (0.22 - eased * 0.05);
         const notchOffset = minEdge * 0.5 + notchRadius * 0.36;
         const setNotch = (node, direction) => {
-            node.setAttribute('cx', (jointX + normalX * notchOffset * direction - originX).toFixed(2));
-            node.setAttribute('cy', (jointY + normalY * notchOffset * direction - originY).toFixed(2));
-            node.setAttribute('r', notchRadius.toFixed(2));
+            setAttributeIfChanged(node, 'cx', (jointX + normalX * notchOffset * direction - originX).toFixed(2));
+            setAttributeIfChanged(node, 'cy', (jointY + normalY * notchOffset * direction - originY).toFixed(2));
+            setAttributeIfChanged(node, 'r', notchRadius.toFixed(2));
         };
         setNotch(notchNegative, -1);
         setNotch(notchPositive, 1);
 
-        materialGradient.setAttribute('x1', (acx - originX).toFixed(2));
-        materialGradient.setAttribute('y1', (acy - originY).toFixed(2));
-        materialGradient.setAttribute('x2', (best.bcx - originX).toFixed(2));
-        materialGradient.setAttribute('y2', (best.bcy - originY).toFixed(2));
-        materialStops[0].setAttribute('offset', '0');
-        materialStops[1].setAttribute('offset', (mixStart / 100).toFixed(3));
-        materialStops[2].setAttribute('offset', (mixEnd / 100).toFixed(3));
-        materialStops[3].setAttribute('offset', '1');
+        setAttributeIfChanged(materialGradient, 'x1', (acx - originX).toFixed(2));
+        setAttributeIfChanged(materialGradient, 'y1', (acy - originY).toFixed(2));
+        setAttributeIfChanged(materialGradient, 'x2', (best.bcx - originX).toFixed(2));
+        setAttributeIfChanged(materialGradient, 'y2', (best.bcy - originY).toFixed(2));
+        setAttributeIfChanged(materialStops[0], 'offset', '0');
+        setAttributeIfChanged(materialStops[1], 'offset', (mixStart / 100).toFixed(3));
+        setAttributeIfChanged(materialStops[2], 'offset', (mixEnd / 100).toFixed(3));
+        setAttributeIfChanged(materialStops[3], 'offset', '1');
         setStopColor(materialStops[0], colorA);
         setStopColor(materialStops[1], colorA);
         setStopColor(materialStops[2], colorB);
         setStopColor(materialStops[3], colorB);
-        materialGroup.style.filter = 'none';
-        union.classList.toggle('has-selected-member', hasSelectedMember);
+        setStyleIfChanged(materialGroup, 'filter', 'none');
+        toggleClassIfChanged(union, 'has-selected-member', hasSelectedMember);
 
-        union.style.opacity = (0.86 + eased * 0.14).toFixed(3);
-        union.classList.add('is-visible');
+        setStyleIfChanged(union, 'opacity', (0.86 + eased * 0.14).toFixed(3));
+        toggleClassIfChanged(union, 'is-visible', true);
         return true;
     }
 
@@ -10266,28 +10772,24 @@ switcherOverlay.addEventListener('click', closeAppSwitcher);
             activeSurface = null;
         }
 
-        if (tracked.size || union.classList.contains('is-visible')) ensureLoop();
+        if (activeSurface && tracked.has(activeSurface)) ensureLoop();
     }
 
     document.addEventListener('pointerover', event => {
         const surface = surfaceFrom(event.target);
         if (!surface || (event.relatedTarget instanceof Node && surface.contains(event.relatedTarget))) return;
-        if (hoverSurface && hoverSurface !== surface && hoverSurface !== activeSurface) {
-            tracked.set(hoverSurface, performance.now() + 420);
-        }
         hoverSurface = surface;
-        tracked.set(surface, Infinity);
-        ensureLoop();
+        // Hover alone has no union geometry to update.
     }, true);
 
     document.addEventListener('pointerout', event => {
         const surface = surfaceFrom(event.target);
         if (!surface || (event.relatedTarget instanceof Node && surface.contains(event.relatedTarget))) return;
         if (hoverSurface === surface) hoverSurface = null;
-        if (surface !== activeSurface || !pointerIsDown) {
+        if (surface === activeSurface && !pointerIsDown) {
             tracked.set(surface, performance.now() + 520);
+            ensureLoop();
         }
-        ensureLoop();
     }, true);
 
     document.addEventListener('pointerdown', event => {

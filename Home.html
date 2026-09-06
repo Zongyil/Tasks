@@ -9,13 +9,13 @@ html { background-position: center; background-size: cover; background-repeat: n
 /* 首绘阶段禁用主题色补间，并以中性玻璃边缘接管卡片，避免壁纸取色完成前出现紫色描边闪烁。 */
 html.theme-booting {
     transition: none !important;
-    --dyn-panel-border: rgba(255, 255, 255, 0.42);
-    --dyn-card-border: rgba(255, 255, 255, 0.42);
-    --dyn-border-top: rgba(255, 255, 255, 0.72);
-    --dyn-border-left: rgba(255, 255, 255, 0.52);
-    --dyn-border-right: rgba(255, 255, 255, 0.28);
-    --dyn-border-bottom: rgba(255, 255, 255, 0.20);
-    --dyn-border-ring: rgba(255, 255, 255, 0.10);
+    --dyn-panel-border: hsla(270, 26%, 98%, 0.55);
+    --dyn-card-border: hsla(270, 26%, 98%, 0.55);
+    --dyn-border-top: hsla(270, 30%, 98.2%, 0.95);
+    --dyn-border-left: hsla(270, 26%, 98%, 0.78);
+    --dyn-border-right: hsla(270, 22%, 97.5%, 0.38);
+    --dyn-border-bottom: hsla(270, 18%, 97%, 0.25);
+    --dyn-border-ring: hsla(270, 28%, 98%, 0.14);
     --dyn-shadow: rgba(15, 23, 42, 0.04);
 }
 html.theme-booting body {
@@ -164,14 +164,14 @@ html.return-from-focus body { visibility: hidden; }
     /* 根据主题色生成的动态 Liquid Glass 颜色 */
     --dyn-bg: hsl(var(--theme-hue, 270), var(--theme-sat, 24%), 96%);
     --dyn-panel: hsla(var(--theme-hue, 270), var(--theme-sat, 24%), 98%, 0.45);
-    /* 亮度极高、近似于白但不等于白色的壁纸取色动态描边体系（全层级内置安全 Fallback，杜绝加载瞬间 currentColor 闪烁） */
-    --dyn-panel-border: hsla(var(--theme-hue, 270), 30%, 96%, 0.55);
-    --dyn-card-border: hsla(var(--theme-hue, 270), 30%, 96%, 0.55);
-    --dyn-border-top: hsla(var(--theme-hue, 270), 36%, 96%, 0.88);
-    --dyn-border-left: hsla(var(--theme-hue, 270), 30%, 95%, 0.68);
-    --dyn-border-right: hsla(var(--theme-hue, 270), 26%, 94%, 0.35);
-    --dyn-border-bottom: hsla(var(--theme-hue, 270), 22%, 93%, 0.25);
-    --dyn-border-ring: hsla(var(--theme-hue, 270), 32%, 96%, 0.14);
+    /* 亮度极高（达到 250/255 级 98%+ 白度）的壁纸自适应动态液体玻璃描边体系：以高白度主题色透光，顶部强反射塑造立体玻璃质感 */
+    --dyn-panel-border: hsla(var(--theme-hue, 270), 26%, 98%, 0.55);
+    --dyn-card-border: hsla(var(--theme-hue, 270), 26%, 98%, 0.55);
+    --dyn-border-top: hsla(var(--theme-hue, 270), 30%, 98.2%, 0.95);
+    --dyn-border-left: hsla(var(--theme-hue, 270), 26%, 98%, 0.78);
+    --dyn-border-right: hsla(var(--theme-hue, 270), 22%, 97.5%, 0.38);
+    --dyn-border-bottom: hsla(var(--theme-hue, 270), 18%, 97%, 0.25);
+    --dyn-border-ring: hsla(var(--theme-hue, 270), 28%, 98%, 0.14);
     --dyn-primary: linear-gradient(135deg, hsla(calc(var(--theme-hue, 270) - 8), 34%, 93%, 0.88) 0%, hsla(var(--theme-hue, 270), 38%, 88%, 0.85) 50%, hsla(calc(var(--theme-hue, 270) + 12), 42%, 86%, 0.87) 100%);
     --dyn-primary-hover: linear-gradient(135deg, hsla(calc(var(--theme-hue, 270) - 8), 38%, 94%, 0.95) 0%, hsla(var(--theme-hue, 270), 42%, 89%, 0.93) 50%, hsla(calc(var(--theme-hue, 270) + 12), 46%, 87%, 0.94) 100%);
     --dyn-shadow: hsla(var(--theme-hue, 270), 25%, 55%, 0.08);
@@ -619,20 +619,20 @@ body.focus-transitioning .panel {
     background: linear-gradient(135deg, hsla(var(--theme-hue, 270), var(--theme-sat, 24%), 96%, 0.75) 0%, hsla(var(--theme-hue, 270), var(--theme-sat, 24%), 96%, 0.5) 100%) !important;
 
     box-shadow:
-        0 0 0 1px var(--dyn-border-ring, hsla(270, 32%, 96%, 0.14)),
+        0 0 0 1px var(--dyn-border-ring, hsla(270, 28%, 98%, 0.14)),
         0 8px 24px rgba(15, 23, 42, 0.038),
         0 20px 48px rgba(15, 23, 42, 0.030),
-        inset 0 2px 6px hsla(var(--theme-hue, 270), 32%, 96%, 0.40),
-        inset 0 1px 1px hsla(var(--theme-hue, 270), 36%, 96%, 0.80),
-        inset 1.5px 0 2px hsla(var(--theme-hue, 270), 28%, 96%, 0.12) !important;
+        inset 0 2px 6px hsla(var(--theme-hue, 270), 26%, 98%, 0.45),
+        inset 0 1px 1px hsla(var(--theme-hue, 270), 30%, 98.2%, 0.85),
+        inset 1.5px 0 2px hsla(var(--theme-hue, 270), 22%, 97.5%, 0.15) !important;
 
     backdrop-filter: blur(40px) saturate(130%) !important; -webkit-backdrop-filter: blur(40px) saturate(130%) !important;
     /* 采用更具液态光泽的渐变半透明, 代替单一的纯色 */
     
-    border-top: 1.5px solid var(--dyn-border-top, hsla(270, 36%, 96%, 0.88));
-    border-left: 1px solid var(--dyn-border-left, hsla(270, 30%, 95%, 0.68));
-    border-right: 1px solid var(--dyn-border-right, hsla(270, 26%, 94%, 0.35));
-    border-bottom: 1px solid var(--dyn-border-bottom, hsla(270, 22%, 93%, 0.25));
+    border-top: 1.5px solid var(--dyn-border-top, hsla(270, 30%, 98.2%, 0.95));
+    border-left: 1px solid var(--dyn-border-left, hsla(270, 26%, 98%, 0.78));
+    border-right: 1px solid var(--dyn-border-right, hsla(270, 22%, 97.5%, 0.38));
+    border-bottom: 1px solid var(--dyn-border-bottom, hsla(270, 18%, 97%, 0.25));
                 
     border-radius: var(--radius-panel); 
     padding: 32px;
@@ -682,11 +682,11 @@ textarea#todoInput {
     overflow-y: hidden; 
 
     /* 彻底剥除 4px 的白色软包常驻外圈, 仅保留内阴影, 把双圈效果留给 focus 状态 */
-    border-top: 2px solid var(--dyn-border-top, hsla(270, 36%, 96%, 0.88)) !important;
-      border-left: 1px solid var(--dyn-border-left, hsla(270, 30%, 95%, 0.68)) !important;
-      border-right: 1px solid var(--dyn-border-right, hsla(270, 26%, 94%, 0.35)) !important;
-      border-bottom: 1px solid var(--dyn-border-bottom, hsla(270, 22%, 93%, 0.25)) !important;
-    box-shadow: inset 0 2px 5px rgba(15, 23, 42, 0.05), inset 0 -1px 1.5px hsla(var(--theme-hue, 270), 30%, 96%, 0.45) !important;
+    border-top: 2px solid var(--dyn-border-top, hsla(270, 30%, 98.2%, 0.95)) !important;
+      border-left: 1px solid var(--dyn-border-left, hsla(270, 26%, 98%, 0.78)) !important;
+      border-right: 1px solid var(--dyn-border-right, hsla(270, 22%, 97.5%, 0.38)) !important;
+      border-bottom: 1px solid var(--dyn-border-bottom, hsla(270, 18%, 97%, 0.25)) !important;
+    box-shadow: inset 0 2px 5px rgba(15, 23, 42, 0.05), inset 0 -1px 1.5px hsla(var(--theme-hue, 270), 26%, 98%, 0.50) !important;
 }
 
 /* 2 右侧「普通单行输入框」: 彻底删除多余的白色软包, 保持 Liquid Glass 干净隐形状态 */
@@ -801,11 +801,11 @@ button, upload-label {
 ------------------------------------------------ */
 .secondary {
     background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.08) 45%, transparent 75%) !important;
-    border-top: 2px solid var(--dyn-border-top, hsla(270, 36%, 96%, 0.88)) !important;
-    border-left: 1px solid var(--dyn-border-left, hsla(270, 30%, 95%, 0.68)) !important;
-    border-right: 1px solid var(--dyn-border-right, hsla(270, 26%, 94%, 0.35)) !important;
-    border-bottom: 1px solid var(--dyn-border-bottom, hsla(270, 22%, 93%, 0.25)) !important;
-    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.1), inset 0 0 0 1px hsla(var(--theme-hue, 270), 30%, 96%, 0.08), inset 2px 3px 10px hsla(var(--theme-hue, 270), 32%, 96%, 0.35), inset -2px -3px 10px rgba(0, 0, 0, 0.03), inset 4px 6px 20px hsla(var(--theme-hue, 270), 32%, 96%, 0.15) !important;
+    border-top: 2px solid var(--dyn-border-top, hsla(270, 30%, 98.2%, 0.95)) !important;
+    border-left: 1px solid var(--dyn-border-left, hsla(270, 26%, 98%, 0.78)) !important;
+    border-right: 1px solid var(--dyn-border-right, hsla(270, 22%, 97.5%, 0.38)) !important;
+    border-bottom: 1px solid var(--dyn-border-bottom, hsla(270, 18%, 97%, 0.25)) !important;
+    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.1), inset 0 0 0 1px hsla(var(--theme-hue, 270), 26%, 98%, 0.10), inset 2px 3px 10px hsla(var(--theme-hue, 270), 28%, 98%, 0.38), inset -2px -3px 10px rgba(0, 0, 0, 0.03), inset 4px 6px 20px hsla(var(--theme-hue, 270), 28%, 98%, 0.16) !important;
     backdrop-filter: blur(20px) saturate(130%) !important; -webkit-backdrop-filter: blur(20px) saturate(130%) !important;
     color: var(--monet-text, #2F354F);
 
@@ -814,12 +814,12 @@ button, upload-label {
 
 .secondary:hover {
     background: linear-gradient(135deg, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0.3) 100%) !important;
-    border-color: hsla(var(--theme-hue, 270), 32%, 96%, 0.50); border-width: 1.5px;
+    border-color: hsla(var(--theme-hue, 270), 26%, 98%, 0.60); border-width: 1.5px;
     box-shadow: 
         0 12px 28px rgba(15, 23, 42, 0.07), 
-        inset 0 2px 3.5px hsla(var(--theme-hue, 270), 36%, 96%, 0.95), 
-        inset 0 -1px 2px hsla(var(--theme-hue, 270), 25%, 94%, 0.20), 
-        0 0 0 1.25px var(--dyn-border-top, hsla(270, 36%, 96%, 0.88));
+        inset 0 2px 3.5px hsla(var(--theme-hue, 270), 30%, 98.2%, 0.95), 
+        inset 0 -1px 2px hsla(var(--theme-hue, 270), 22%, 97.5%, 0.25), 
+        0 0 0 1.25px var(--dyn-border-top, hsla(270, 30%, 98.2%, 0.95));
 }
 
 .secondary:active { 
@@ -986,6 +986,11 @@ html.alpha-sleep .home-clock .colon,
 body.is-idle .home-clock .colon {
     animation-play-state: paused !important;
 }
+html.alpha-sleep input:focus,
+html.alpha-sleep textarea:focus,
+html.alpha-sleep [contenteditable]:focus {
+    caret-color: auto !important;
+}
 
 /* ================== 弹性动画 ================== */
 /* 进入前: 在右侧 40px 处待命并缩小 */
@@ -1050,7 +1055,7 @@ body.is-idle .home-clock .colon {
       border-left: 1px solid var(--dyn-border-left) !important;
       border-right: 1px solid var(--dyn-border-right) !important;
       border-bottom: 1px solid var(--dyn-border-bottom) !important;
-    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.1), inset 0 0 0 1px hsla(var(--theme-hue), calc(var(--theme-sat) + 12%), 96%, 0.08), inset 2px 3px 10px hsla(var(--theme-hue), calc(var(--theme-sat) + 14%), 96%, 0.35), inset -2px -3px 10px rgba(0, 0, 0, 0.03), inset 4px 6px 20px hsla(var(--theme-hue), calc(var(--theme-sat) + 14%), 96%, 0.15) !important;
+    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.1), inset 0 0 0 1px hsla(var(--theme-hue), calc(var(--theme-sat) + 6%), 98.0%, 0.10), inset 2px 3px 10px hsla(var(--theme-hue), calc(var(--theme-sat) + 8%), 98.0%, 0.38), inset -2px -3px 10px rgba(0, 0, 0, 0.03), inset 4px 6px 20px hsla(var(--theme-hue), calc(var(--theme-sat) + 8%), 98.0%, 0.16) !important;
     backdrop-filter: blur(40px) saturate(130%) !important; -webkit-backdrop-filter: blur(40px) saturate(130%) !important;
     /* 彻底锁定绝对定位与顶级图层, 防止计算坐标时发生弹跳 (滚哪里去了) */
     position: absolute !important; 
@@ -1124,9 +1129,9 @@ body.is-idle .home-clock .colon {
     box-shadow:
         0 16px 38px rgba(15, 23, 42, 0.09),
         0 3px 10px rgba(15, 23, 42, 0.035),
-        inset 3px 3px 10px hsla(var(--theme-hue), calc(var(--theme-sat) + 15%), 96%, 0.48),
+        inset 3px 3px 10px hsla(var(--theme-hue), calc(var(--theme-sat) + 8%), 98.0%, 0.48),
         inset -3px -3px 10px rgba(15, 23, 42, 0.035),
-        inset 0 0 0 1px hsla(var(--theme-hue), calc(var(--theme-sat) + 12%), 96%, 0.12) !important;
+        inset 0 0 0 1px hsla(var(--theme-hue), calc(var(--theme-sat) + 6%), 98.0%, 0.12) !important;
     backface-visibility: hidden !important;
     -webkit-backface-visibility: hidden !important;
 }
@@ -1340,12 +1345,12 @@ body.is-idle .flatpickr-time .flatpickr-time-separator {
     -webkit-backdrop-filter: blur(40px) saturate(130%);
     
     box-shadow: var(--shadow-sm), 
-                inset 0 2px 4px hsla(var(--theme-hue), calc(var(--theme-sat) + 16%), 96%, 0.95), 
-                inset 0 -2px 4px hsla(var(--theme-hue), calc(var(--theme-sat) + 10%), 94%, 0.4);
+                inset 0 2px 4px hsla(var(--theme-hue), calc(var(--theme-sat) + 8%), 98.2%, 0.95), 
+                inset 0 -2px 4px hsla(var(--theme-hue), calc(var(--theme-sat) + 4%), 97.5%, 0.35);
 }
 .nav-card:hover {
     background: linear-gradient(135deg, hsla(var(--theme-hue), var(--theme-sat), 97%, 0.75) 0%, hsla(var(--theme-hue), var(--theme-sat), 96%, 0.4) 100%);
-    box-shadow: 0 16px 32px var(--dyn-shadow), 0 0 0 1px hsla(var(--theme-hue), calc(var(--theme-sat) + 20%), 96%, 0.95);
+    box-shadow: 0 16px 32px var(--dyn-shadow), 0 0 0 1px hsla(var(--theme-hue), calc(var(--theme-sat) + 10%), 98.2%, 0.95);
 }
 @keyframes navCardBounce {
     0% { transform: translateY(0) scale(0.94); }
@@ -1366,7 +1371,7 @@ body.is-idle .flatpickr-time .flatpickr-time-separator {
     border: 1px solid var(--dyn-card-border);
     border-top: 1.5px solid var(--dyn-border-top);
     padding: 16px 20px;
-    box-shadow: 0 4px 12px rgba(15,23,42,0.06), inset 0 2px 4px hsla(var(--theme-hue), calc(var(--theme-sat) + 16%), 96%, 0.90);
+    box-shadow: 0 4px 12px rgba(15,23,42,0.06), inset 0 2px 4px hsla(var(--theme-hue), calc(var(--theme-sat) + 8%), 98.2%, 0.90);
     border-radius: var(--radius-element);
     margin-bottom: 12px; 
     
@@ -1507,7 +1512,7 @@ body.is-idle .flatpickr-time .flatpickr-time-separator {
     width: 360px; 
     max-width: calc(100vw - 32px);
     
-    box-shadow: 0 24px 64px rgba(15,23,42,0.12), inset 0 2px 5px hsla(var(--theme-hue), calc(var(--theme-sat) + 16%), 96%, 0.85), inset 0 -1.5px 3px hsla(var(--theme-hue), calc(var(--theme-sat) + 8%), 94%, 0.10);
+    box-shadow: 0 24px 64px rgba(15,23,42,0.12), inset 0 2px 5px hsla(var(--theme-hue), calc(var(--theme-sat) + 8%), 98.2%, 0.85), inset 0 -1.5px 3px hsla(var(--theme-hue), calc(var(--theme-sat) + 4%), 97.5%, 0.15);
     
     will-change: transform, opacity;
     transform: translateY(0) scale(1) translateZ(0); 
@@ -1541,7 +1546,7 @@ body.is-idle .flatpickr-time .flatpickr-time-separator {
       border-right: 1px solid var(--dyn-border-right) !important;
       border-bottom: 1px solid var(--dyn-border-bottom) !important;
     
-    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.1), inset 0 0 0 1px hsla(var(--theme-hue), calc(var(--theme-sat) + 12%), 96%, 0.10), inset 2px 3px 10px hsla(var(--theme-hue), calc(var(--theme-sat) + 15%), 96%, 0.35), inset -2px -3px 10px rgba(0, 0, 0, 0.03), inset 4px 6px 20px hsla(var(--theme-hue), calc(var(--theme-sat) + 15%), 96%, 0.15) !important;
+    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.1), inset 0 0 0 1px hsla(var(--theme-hue), calc(var(--theme-sat) + 6%), 98.0%, 0.10), inset 2px 3px 10px hsla(var(--theme-hue), calc(var(--theme-sat) + 8%), 98.0%, 0.38), inset -2px -3px 10px rgba(0, 0, 0, 0.03), inset 4px 6px 20px hsla(var(--theme-hue), calc(var(--theme-sat) + 8%), 98.0%, 0.16) !important;
     backdrop-filter: blur(32px) saturate(130%) !important;
     -webkit-backdrop-filter: blur(32px) saturate(130%) !important;
 }
@@ -1557,7 +1562,7 @@ body.is-idle .flatpickr-time .flatpickr-time-separator {
     backdrop-filter: blur(24px) saturate(120%) !important;
     border-radius: var(--radius-element, 16px) !important;
     border: 1px solid var(--dyn-border-top) !important;
-    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05), inset 0 2px 8px hsla(var(--theme-hue), calc(var(--theme-sat) + 16%), 96%, 0.5), inset 0 0 0 1px hsla(var(--theme-hue), calc(var(--theme-sat) + 12%), 96%, 0.3) !important;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05), inset 0 2px 8px hsla(var(--theme-hue), calc(var(--theme-sat) + 8%), 98.0%, 0.55), inset 0 0 0 1px hsla(var(--theme-hue), calc(var(--theme-sat) + 6%), 98.0%, 0.32) !important;
 }
 
 .flatpickr-time-legacy-theme-disabled,
@@ -1566,13 +1571,13 @@ body.is-idle .flatpickr-time .flatpickr-time-separator {
     backdrop-filter: blur(24px) saturate(120%) !important;
     border: 1px solid var(--dyn-card-border) !important;
     border-radius: var(--radius-element, 16px) !important;
-    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05), inset 0 2px 6px hsla(var(--theme-hue), calc(var(--theme-sat) + 12%), 96%, 0.4) !important;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05), inset 0 2px 6px hsla(var(--theme-hue), calc(var(--theme-sat) + 6%), 98.0%, 0.45) !important;
 }
 .flatpickr-time-legacy-theme-disabled:focus,
 .flatpickr-time-legacy-theme-disabled .numInputWrapper:focus-within {
     background: linear-gradient(135deg, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0.2) 100%) !important;
     border-color: var(--dyn-border-top) !important;
-    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.1), inset 0 2px 8px hsla(var(--theme-hue), calc(var(--theme-sat) + 16%), 96%, 0.7) !important;
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.1), inset 0 2px 8px hsla(var(--theme-hue), calc(var(--theme-sat) + 8%), 98.2%, 0.72) !important;
 }
 
 /* 动态卡片层叠与悬浮顶置 */
@@ -2191,6 +2196,7 @@ function updateHomeClock() {
     ];
 
     const isReduceMotion = (typeof localStorage !== 'undefined' && localStorage.getItem('alpha_reduce_motion') === 'true');
+    const enteringNodes = [];
 
     timeMappings.forEach(item => {
         if (homeDigitsState[item.id] !== item.val) {
@@ -2234,17 +2240,20 @@ function updateHomeClock() {
                 newNode.classList.add('clock-enter');
                 slot.appendChild(newNode);
 
-                // 强行触发浏览器重排 (Reflow), 剥离连续渲染帧
-                void newNode.offsetWidth;
-
-                // 移除初始态, 触发向左物理回弹动画
-                newNode.classList.remove('clock-enter');
-                newNode.classList.add('clock-enter-active');
+                enteringNodes.push(newNode);
             }
             
             homeDigitsState[item.id] = item.val;
         }
     });
+    // 所有初态先落入同一次布局，随后一起启动原有动画。
+    if (enteringNodes.length) {
+        void homeClock.offsetWidth;
+        enteringNodes.forEach(node => {
+            node.classList.remove('clock-enter');
+            node.classList.add('clock-enter-active');
+        });
+    }
 }
 
 // 2. 启动引擎
@@ -2997,6 +3006,18 @@ const workerPromises = new Map();
 function getDataWorker() {
   if (!dataWorkerInstance) {
     dataWorkerInstance = new Worker('data_worker.js');
+    const worker = dataWorkerInstance;
+    const fail = () => {
+      if (dataWorkerInstance === worker) dataWorkerInstance = null;
+      worker.terminate();
+      workerPromises.forEach((task, id) => {
+        if (task.worker !== worker) return;
+        workerPromises.delete(id);
+        task.reject(new Error('后台解析失败，请重试并检查 data_worker.js 是否可用'));
+      });
+    };
+    worker.onerror = fail;
+    worker.onmessageerror = fail;
     dataWorkerInstance.onmessage = function(e) {
       const { taskId, success, result, error } = e.data;
       if (workerPromises.has(taskId)) {
@@ -3013,8 +3034,13 @@ function getDataWorker() {
 function runWebWorker(worker, action, payload = {}) {
   return new Promise((resolve, reject) => {
     const taskId = ++workerTaskId;
-    workerPromises.set(taskId, { resolve, reject });
-    worker.postMessage({ taskId, action, payload });
+    workerPromises.set(taskId, { resolve, reject, worker });
+    try {
+      worker.postMessage({ taskId, action, payload });
+    } catch (error) {
+      workerPromises.delete(taskId);
+      reject(error);
+    }
   });
 }
 
@@ -3022,11 +3048,11 @@ async function parseToDo() {
     const text = DOM.todoInput.value.trim();
     if (!text) { customAlert("请先粘贴 To Do 列表文本!", "内容为空", "Write_In"); return; }
 
-    const existingHubData = JSON.parse(localStorage.getItem('taskhub_data') || '[]');
-    const existingFlowData = JSON.parse(localStorage.getItem('taskflow_data') || '{}');
-    const existingMapping = JSON.parse(localStorage.getItem('alpha_task_mapping') || '{}');
-
     try {
+        const existingHubData = JSON.parse(localStorage.getItem('taskhub_data') || '[]');
+        const existingFlowData = JSON.parse(localStorage.getItem('taskflow_data') || '{}');
+        const existingMapping = JSON.parse(localStorage.getItem('alpha_task_mapping') || '{}');
+
         const res = await runWebWorker(getDataWorker(), 'parse_todo', {
             text,
             existingHubData,
@@ -3084,9 +3110,10 @@ function renderAlarms() {
     // 增量 DOM 渲染: 不销毁已有元素, 防止已存在的闹钟重新播放入场动画
     
     // 1. 安全移除已不存在的数据节点
+    const alarmIds = new Set(alarms.map(al => String(al.id)));
     Array.from(list.children).forEach(child => {
         const id = child.id.replace('alarm-', '');
-        if (!alarms.find(a => String(a.id) === String(id)) && !child.classList.contains('removing')) {
+        if (!alarmIds.has(id) && !child.classList.contains('removing')) {
             child.remove();
         }
     });
@@ -3246,7 +3273,9 @@ function applyTextareaHeight(el) {
 }
 
 const pendingAdjustments = new Set();
+let textareaAdjustRaf = 0;
 function flushTextareaAdjustments() {
+    textareaAdjustRaf = 0;
     for (const el of pendingAdjustments) {
         adjustTextareaHeight(el);
     }
@@ -3256,8 +3285,8 @@ function flushTextareaAdjustments() {
 // 使用 rAF 防抖: 同一帧内的多次 input 合并为一次布局计算
 function scheduleTextareaAdjust(el) {
     pendingAdjustments.add(el);
-    if (pendingAdjustments.size === 1) {
-        requestAnimationFrame(flushTextareaAdjustments);
+    if (!textareaAdjustRaf) {
+        textareaAdjustRaf = requestAnimationFrame(flushTextareaAdjustments);
     }
 }
 
@@ -3952,24 +3981,11 @@ document.addEventListener('DOMContentLoaded', checkFirstLaunch);
     const pendingOverflowChecks = new Set();
     let overflowCheckRaf = 0;
 
-    function updateInputOverflowState(el) {
-        if (!el || (el.tagName !== 'INPUT' && el.tagName !== 'TEXTAREA')) return;
-        if (['radio', 'checkbox', 'file', 'hidden'].includes(el.type)) return;
-        if (el.closest('.flatpickr-time') || el.closest('.flatpickr-calendar')) return;
-
-        const isOverflowing = el.scrollWidth > el.clientWidth;
-        const isScrolledRight = el.scrollLeft > 2;
-
-        if (!isOverflowing) {
-            el.classList.remove('input-overflowing', 'input-scrolled-right');
-        } else {
-            el.classList.add('input-overflowing');
-            if (isScrolledRight) {
-                el.classList.add('input-scrolled-right');
-            } else {
-                el.classList.remove('input-scrolled-right');
-            }
-        }
+    function readInputOverflowState(el) {
+        if (!el || (el.tagName !== 'INPUT' && el.tagName !== 'TEXTAREA')) return null;
+        if (['radio', 'checkbox', 'file', 'hidden'].includes(el.type)) return null;
+        if (el.closest('.flatpickr-time') || el.closest('.flatpickr-calendar')) return null;
+        return { el, overflowing: el.scrollWidth > el.clientWidth, scrolled: el.scrollLeft > 2 };
     }
 
     function scheduleInputOverflowCheck(el) {
@@ -3977,8 +3993,14 @@ document.addEventListener('DOMContentLoaded', checkFirstLaunch);
         if (overflowCheckRaf) return;
         overflowCheckRaf = requestAnimationFrame(() => {
             overflowCheckRaf = 0;
-            pendingOverflowChecks.forEach(updateInputOverflowState);
+            const measurements = Array.from(pendingOverflowChecks, readInputOverflowState);
             pendingOverflowChecks.clear();
+            measurements.forEach(measurement => {
+                if (!measurement) return;
+                const { el, overflowing, scrolled } = measurement;
+                el.classList.toggle('input-overflowing', overflowing);
+                el.classList.toggle('input-scrolled-right', overflowing && scrolled);
+            });
         });
     }
 
@@ -4047,7 +4069,10 @@ document.addEventListener('DOMContentLoaded', checkFirstLaunch);
     }
 
     function onUserActive() {
-        if (isSleeping) return;
+        if (isSleeping) {
+            onWake();
+            return;
+        }
         lastActivityAt = performance.now();
         if (isIdle) {
             isIdle = false;
@@ -4097,7 +4122,7 @@ document.addEventListener('DOMContentLoaded', checkFirstLaunch);
         scheduleIdleCheck();
     }
 
-    const activityEvents = ['pointermove', 'pointerdown', 'keydown', 'scroll', 'wheel', 'touchstart'];
+    const activityEvents = ['pointermove', 'pointerdown', 'keydown', 'scroll', 'wheel', 'touchstart', 'focusin', 'input'];
     activityEvents.forEach(evt => {
         window.addEventListener(evt, onUserActive, { passive: true, capture: true });
     });

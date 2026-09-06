@@ -246,6 +246,11 @@ body.pause-bg-motion .alpha-ambient-bg .ambient-motion-stage,
 html.pause-bg-motion .alpha-ambient-bg .ambient-motion-stage {
     animation-play-state: paused !important;
 }
+html.alpha-sleep input:focus,
+html.alpha-sleep textarea:focus,
+html.alpha-sleep [contenteditable]:focus {
+    caret-color: auto !important;
+}
 
 /* Glass Reflection - 液态高光微折射层 */
 body::after {
@@ -429,11 +434,11 @@ textarea {
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
     isolation: isolate;
-    transition: transform 0.3s var(--ease, cubic-bezier(0.16, 1, 0.3, 1)), 
-                background-color 0.3s var(--ease, cubic-bezier(0.16, 1, 0.3, 1)), 
-                box-shadow 0.3s var(--ease, cubic-bezier(0.16, 1, 0.3, 1)), 
-                border-color 0.3s var(--ease, cubic-bezier(0.16, 1, 0.3, 1)),
-                color 0.3s var(--ease, cubic-bezier(0.16, 1, 0.3, 1));
+    transition: transform 0.16s cubic-bezier(0.16, 1, 0.3, 1), 
+                background 0.2s ease, 
+                box-shadow 0.2s ease, 
+                border-color 0.2s ease, 
+                color 0.2s ease;
     font-size: 14px; font-weight: 700; color: #475569;
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif !important;
     letter-spacing: 0.04em !important;
@@ -458,57 +463,139 @@ textarea {
     transition-duration: 0.1s; 
 }
 
-/* 已选中的 radio 再次点击不会改变状态, 因此也不播放按压反馈 */
-.gender-item:active input:checked + span {
-    transition-duration: 0.3s;
-}
-
-/* 男: 莫奈蓝 */
+/* 男: 晶透莫奈天蓝流体光晕选中态 — 丰富层级微冷暖 */
 .gender-item input[value="male"]:checked + span { 
-    background-color: rgba(157, 210, 255, 0.25) !important;
+    background: radial-gradient(ellipse at 52% 40%, rgba(180, 222, 255, 0.40) 0%, rgba(186, 225, 255, 0.28) 16%, rgba(195, 230, 255, 0.19) 32%, rgba(205, 234, 255, 0.11) 48%, rgba(218, 240, 255, 0.055) 64%, rgba(232, 245, 255, 0.022) 80%, rgba(255, 255, 255, 0.010) 92%, transparent 96%) !important;
     color: #0f172a !important; 
-    border-top: 2px solid rgba(157, 210, 255, 0.7) !important;
-    border-left: 1px solid rgba(157, 210, 255, 0.5) !important;
-    border-right: 1px solid rgba(157, 210, 255, 0.5) !important;
-    border-bottom: 1px solid rgba(157, 210, 255, 0.41) !important;
+    border: 0.5px solid rgba(147, 197, 253, 0.28) !important;
+    border-top: 0.75px solid rgba(210, 235, 255, 0.50) !important;
     box-shadow: 
-        inset 0 0 0 0.75px rgba(157, 210, 255, 0.42),
-        0 8px 20px rgba(140, 185, 225, 0.15),
-        inset 0 2px 4px rgba(255, 255, 255, 0.95),
-        inset 0 -2px 6px rgba(140, 185, 225, 0.2) !important;
+        inset 0 0 0 0.25px rgba(147, 197, 253, 0.35),
+        0 8px 20px rgba(15, 23, 42, 0.06), 
+        0 0 12px rgba(147, 197, 253, 0.20), 
+        inset 1.5px 2px 5px rgba(255, 255, 255, 0.55), 
+        inset -1px -2px 6px rgba(147, 197, 253, 0.16), 
+        inset 0 0 12px rgba(186, 230, 253, 0.18) !important;
     transform: translate3d(0, -2px, 0) scale(1.02);
+    backdrop-filter: blur(40px) saturate(140%) !important;
+    -webkit-backdrop-filter: blur(40px) saturate(140%) !important;
 }
 
-/* 女: 莫奈红 */
+.gender-item:hover input[value="male"]:checked + span {
+    background: radial-gradient(ellipse at 52% 40%, rgba(180, 222, 255, 0.48) 0%, rgba(186, 225, 255, 0.33) 16%, rgba(195, 230, 255, 0.22) 32%, rgba(205, 234, 255, 0.13) 48%, rgba(218, 240, 255, 0.065) 64%, rgba(232, 245, 255, 0.030) 80%, rgba(255, 255, 255, 0.015) 92%, transparent 96%) !important;
+    border: 0.5px solid rgba(147, 197, 253, 0.35) !important;
+    border-top: 0.75px solid rgba(225, 240, 255, 0.60) !important;
+    box-shadow: 
+        inset 0 0 0 0.25px rgba(147, 197, 253, 0.45),
+        0 10px 24px rgba(147, 197, 253, 0.20), 
+        0 0 14px rgba(147, 197, 253, 0.22), 
+        inset 1.5px 2px 6px rgba(255, 255, 255, 0.70), 
+        inset -1px -2px 6px rgba(147, 197, 253, 0.20), 
+        inset 0 0 14px rgba(186, 230, 253, 0.22) !important;
+    color: #0f172a !important;
+}
+
+.gender-item:active input[value="male"]:checked + span {
+    background: radial-gradient(ellipse at 52% 40%, rgba(180, 222, 255, 0.40) 0%, rgba(186, 225, 255, 0.26) 16%, rgba(195, 230, 255, 0.16) 32%, rgba(205, 234, 255, 0.08) 48%, rgba(218, 240, 255, 0.035) 64%, transparent 82%) !important;
+    border: 0.5px solid rgba(147, 197, 253, 0.28) !important;
+    border-top: 0.75px solid rgba(210, 235, 255, 0.50) !important;
+    box-shadow: 
+        inset 0 0 0 0.25px rgba(147, 197, 253, 0.35),
+        0 2px 8px rgba(147, 197, 253, 0.15), 
+        inset 1px 1.5px 4px rgba(255, 255, 255, 0.50), 
+        inset 0 0 10px rgba(186, 230, 253, 0.16) !important;
+    color: #0f172a !important;
+    transform: translate3d(0, 0, 0) scale(0.98);
+}
+
+/* 女: 晶透莫奈粉/玫瑰红流体光晕选中态 — 丰富层级微冷暖 */
 .gender-item input[value="female"]:checked + span { 
-    background-color: rgba(243, 184, 221, 0.25) !important;
+    background: radial-gradient(ellipse at 52% 40%, rgba(243, 184, 221, 0.40) 0%, rgba(245, 192, 225, 0.28) 16%, rgba(248, 205, 230, 0.19) 32%, rgba(250, 218, 237, 0.11) 48%, rgba(253, 232, 245, 0.055) 64%, rgba(254, 242, 248, 0.022) 80%, rgba(255, 255, 255, 0.010) 92%, transparent 96%) !important;
     color: #0f172a !important; 
-    border-top: 2px solid rgba(243, 184, 221, 0.7) !important; 
-    border-left: 1px solid rgba(243, 184, 221, 0.5) !important;
-    border-right: 1px solid rgba(243, 184, 221, 0.5) !important;
-    border-bottom: 1px solid rgba(243, 184, 221, 0.41) !important;
+    border: 0.35px solid rgba(249, 168, 212, 0.22) !important;
+    border-top: 0.5px solid rgba(255, 228, 242, 0.48) !important; 
     box-shadow: 
-        inset 0 0 0 0.75px rgba(243, 184, 221, 0.42),
-        0 8px 20px rgba(255, 142, 180, 0.15), 
-        inset 0 2px 4px rgba(255, 255, 255, 0.95), 
-        inset 0 -2px 6px rgba(255, 114, 161, 0.2) !important;
+        inset 0 0 0 0.2px rgba(249, 168, 212, 0.20),
+        0 8px 20px rgba(15, 23, 42, 0.035), 
+        0 0 12px rgba(244, 114, 182, 0.14), 
+        inset 1.5px 2px 5px rgba(255, 255, 255, 0.55), 
+        inset -1px -2px 6px rgba(244, 114, 182, 0.12), 
+        inset 0 0 12px rgba(255, 215, 238, 0.14) !important;
     transform: translate3d(0, -2px, 0) scale(1.02);
+    backdrop-filter: blur(40px) saturate(140%) !important;
+    -webkit-backdrop-filter: blur(40px) saturate(140%) !important;
 }
 
-/* 其他: 莫奈紫 */
-.gender-item input[value*="custom"]:checked + span { 
-    background-color: rgba(190, 170, 240, 0.25) !important;
-    color: #0f172a !important; 
-    border-top: 2px solid rgba(190, 170, 240, 0.7) !important;
-    border-left: 1px solid rgba(190, 170, 240, 0.5) !important;
-    border-right: 1px solid rgba(190, 170, 240, 0.5) !important;
-    border-bottom: 1px solid rgba(190, 170, 240, 0.41) !important;
+.gender-item:hover input[value="female"]:checked + span {
+    background: radial-gradient(ellipse at 52% 40%, rgba(243, 184, 221, 0.48) 0%, rgba(245, 192, 225, 0.33) 16%, rgba(248, 205, 230, 0.22) 32%, rgba(250, 218, 237, 0.13) 48%, rgba(253, 232, 245, 0.065) 64%, rgba(254, 242, 248, 0.030) 80%, rgba(255, 255, 255, 0.015) 92%, transparent 96%) !important;
+    border: 0.35px solid rgba(249, 168, 212, 0.30) !important;
+    border-top: 0.5px solid rgba(255, 238, 248, 0.58) !important;
     box-shadow: 
-        inset 0 0 0 0.75px rgba(190, 170, 240, 0.42),
-        0 8px 20px rgba(190, 170, 240, 0.15), 
-        inset 0 2px 4px rgba(255, 255, 255, 0.95), 
-        inset 0 -2px 6px rgba(190, 170, 240, 0.2) !important;
+        inset 0 0 0 0.2px rgba(249, 168, 212, 0.26),
+        0 10px 24px rgba(244, 114, 182, 0.15), 
+        0 0 14px rgba(244, 114, 182, 0.16), 
+        inset 1.5px 2px 6px rgba(255, 255, 255, 0.68), 
+        inset -1px -2px 6px rgba(244, 114, 182, 0.14), 
+        inset 0 0 14px rgba(255, 215, 238, 0.16) !important;
+    color: #0f172a !important;
+}
+
+.gender-item:active input[value="female"]:checked + span {
+    background: radial-gradient(ellipse at 52% 40%, rgba(243, 184, 221, 0.40) 0%, rgba(245, 192, 225, 0.26) 16%, rgba(248, 205, 230, 0.16) 32%, rgba(250, 218, 237, 0.08) 48%, rgba(253, 232, 245, 0.035) 64%, transparent 82%) !important;
+    border: 0.35px solid rgba(249, 168, 212, 0.22) !important;
+    border-top: 0.5px solid rgba(255, 228, 242, 0.48) !important;
+    box-shadow: 
+        inset 0 0 0 0.2px rgba(249, 168, 212, 0.20),
+        0 2px 8px rgba(244, 114, 182, 0.10), 
+        inset 1px 1.5px 4px rgba(255, 255, 255, 0.45), 
+        inset 0 0 10px rgba(255, 215, 238, 0.11) !important;
+    color: #0f172a !important;
+    transform: translate3d(0, 0, 0) scale(0.98);
+}
+
+/* 其他: 晶透莫奈紫/薰衣草紫流体光晕选中态 — 丰富层级微冷暖 */
+.gender-item input[value*="custom"]:checked + span { 
+    background: radial-gradient(ellipse at 52% 40%, rgba(190, 170, 240, 0.40) 0%, rgba(198, 180, 243, 0.28) 16%, rgba(210, 195, 248, 0.19) 32%, rgba(220, 208, 250, 0.11) 48%, rgba(230, 220, 252, 0.055) 64%, rgba(242, 232, 255, 0.022) 80%, rgba(255, 255, 255, 0.010) 92%, transparent 96%) !important;
+    color: #0f172a !important; 
+    border: 0.35px solid rgba(196, 181, 253, 0.22) !important;
+    border-top: 0.5px solid rgba(233, 223, 255, 0.48) !important;
+    box-shadow: 
+        inset 0 0 0 0.2px rgba(196, 181, 253, 0.20),
+        0 8px 20px rgba(15, 23, 42, 0.035), 
+        0 0 12px rgba(168, 130, 245, 0.14), 
+        inset 1.5px 2px 5px rgba(255, 255, 255, 0.55), 
+        inset -1px -2px 6px rgba(168, 130, 245, 0.12), 
+        inset 0 0 12px rgba(220, 205, 252, 0.14) !important;
     transform: translate3d(0, -2px, 0) scale(1.02);
+    backdrop-filter: blur(40px) saturate(140%) !important;
+    -webkit-backdrop-filter: blur(40px) saturate(140%) !important;
+}
+
+.gender-item:hover input[value*="custom"]:checked + span {
+    background: radial-gradient(ellipse at 52% 40%, rgba(190, 170, 240, 0.48) 0%, rgba(198, 180, 243, 0.33) 16%, rgba(210, 195, 248, 0.22) 32%, rgba(220, 208, 250, 0.13) 48%, rgba(230, 220, 252, 0.065) 64%, rgba(242, 232, 255, 0.030) 80%, rgba(255, 255, 255, 0.015) 92%, transparent 96%) !important;
+    border: 0.35px solid rgba(196, 181, 253, 0.30) !important;
+    border-top: 0.5px solid rgba(240, 232, 255, 0.58) !important;
+    box-shadow: 
+        inset 0 0 0 0.2px rgba(196, 181, 253, 0.26),
+        0 10px 24px rgba(168, 130, 245, 0.15), 
+        0 0 14px rgba(168, 130, 245, 0.16), 
+        inset 1.5px 2px 6px rgba(255, 255, 255, 0.68), 
+        inset -1px -2px 6px rgba(168, 130, 245, 0.14), 
+        inset 0 0 14px rgba(220, 205, 252, 0.16) !important;
+    color: #0f172a !important;
+}
+
+.gender-item:active input[value*="custom"]:checked + span {
+    background: radial-gradient(ellipse at 52% 40%, rgba(190, 170, 240, 0.40) 0%, rgba(198, 180, 243, 0.26) 16%, rgba(210, 195, 248, 0.16) 32%, rgba(220, 208, 250, 0.08) 48%, rgba(230, 220, 252, 0.035) 64%, transparent 82%) !important;
+    border: 0.35px solid rgba(196, 181, 253, 0.22) !important;
+    border-top: 0.5px solid rgba(233, 223, 255, 0.48) !important;
+    box-shadow: 
+        inset 0 0 0 0.2px rgba(196, 181, 253, 0.20),
+        0 2px 8px rgba(168, 130, 245, 0.10), 
+        inset 1px 1.5px 4px rgba(255, 255, 255, 0.45), 
+        inset 0 0 10px rgba(220, 205, 252, 0.11) !important;
+    color: #0f172a !important;
+    transform: translate3d(0, 0, 0) scale(0.98);
 }
 
 /* ================== 已保存静态 Tag 标签 ================== */
@@ -2518,6 +2605,7 @@ function getOrCreateToastContainer() {
 
 /* ================== Toast 实时背景深度检测与平滑自适应引擎 ================== */
 let toastDepthCheckTimer = null;
+let toastDepthCheckPending = false;
 
 function parseRgbaColor(str) {
     if (!str || str === 'transparent' || str === 'inherit') return null;
@@ -2533,7 +2621,7 @@ function parseRgbaColor(str) {
     return null;
 }
 
-function detectToastUnderlyingDepth(toastEl) {
+function detectToastUnderlyingDepth(toastEl, styleCache = new Map(), darkCache = new Map()) {
     if (!toastEl || !toastEl.isConnected) return false;
     const rect = toastEl.getBoundingClientRect();
     if (rect.width === 0 || rect.height === 0) return false;
@@ -2562,14 +2650,25 @@ function detectToastUnderlyingDepth(toastEl) {
             }
 
             // 1. 如果下层元素本身处于深色模式/深色壁纸容器中
-            if (el.closest && el.closest('.dark-wp, .dark-mode, .is-dark-bg, .dark-theme, [data-theme="dark"]')) {
+            if (!darkCache.has(el)) {
+                darkCache.set(el, Boolean(el.closest && el.closest('.dark-wp, .dark-mode, .is-dark-bg, .dark-theme, [data-theme="dark"]')));
+            }
+            if (darkCache.get(el)) {
                 pointIsDark = true;
                 foundOpaque = true;
                 break;
             }
 
             const win = el.ownerDocument ? el.ownerDocument.defaultView : window;
-            const style = win.getComputedStyle(el);
+            if (!styleCache.has(el)) {
+                const computed = win.getComputedStyle(el);
+                styleCache.set(el, {
+                    backgroundColor: computed.backgroundColor,
+                    color: computed.color,
+                    backgroundImage: computed.backgroundImage
+                });
+            }
+            const style = styleCache.get(el);
             const bg = parseRgbaColor(style.backgroundColor);
 
             // 2. 分析下层元素的实际背景色亮度
@@ -2620,15 +2719,13 @@ function checkAllActiveToastDepths() {
         return;
     }
 
-    activeToastStack.forEach(item => {
-        if (!item || !item.el) return;
-        const isDeep = detectToastUnderlyingDepth(item.el);
-        if (isDeep) {
-            item.el.classList.add('deep-bg');
-        } else {
-            item.el.classList.remove('deep-bg');
-        }
-    });
+    const styleCache = new Map();
+    const darkCache = new Map();
+    const measurements = activeToastStack.filter(item => item && item.el).map(item => ({
+        el: item.el, isDeep: detectToastUnderlyingDepth(item.el, styleCache, darkCache)
+    }));
+    // 背景采样全部完成后再写入类名，避免每条通知都强制刷新布局。
+    measurements.forEach(({ el, isDeep }) => el.classList.toggle('deep-bg', isDeep));
 
     updateToastStackPositions();
 }
@@ -2640,7 +2737,13 @@ function ensureToastDepthMonitor() {
         toastDepthCheckTimer = setInterval(checkAllActiveToastDepths, 1200);
     }
     // 异步微任务中执行单次首检，避免同步重入
-    Promise.resolve().then(checkAllActiveToastDepths);
+    if (!toastDepthCheckPending) {
+        toastDepthCheckPending = true;
+        Promise.resolve().then(() => {
+            toastDepthCheckPending = false;
+            if (!document.hidden) checkAllActiveToastDepths();
+        });
+    }
 }
 
 document.addEventListener('visibilitychange', () => {
@@ -2873,6 +2976,17 @@ function executeMainThreadDataAction(action, payload) {
   }
 }
 
+function retireFailedWorker(worker, error) {
+    if (syncWorkerInstance === worker) syncWorkerInstance = null;
+    if (dataWorkerInstance === worker) dataWorkerInstance = null;
+    worker.terminate();
+    workerPromises.forEach((task, taskId) => {
+        if (task.worker !== worker) return;
+        workerPromises.delete(taskId);
+        task.reject(error); // 使用原有主线程后备引擎，并清理任务定时器。
+    });
+}
+
 function getSyncWorker() {
   if (!syncWorkerInstance && typeof Worker !== 'undefined') {
     try {
@@ -2887,9 +3001,9 @@ function getSyncWorker() {
           else reject(new Error(error || 'Worker 处理失败'));
         }
       };
-      syncWorkerInstance.onerror = function(err) {
-        console.warn('SyncWorker onerror:', err);
-      };
+      const worker = syncWorkerInstance;
+      worker.onerror = err => retireFailedWorker(worker, err);
+      worker.onmessageerror = err => retireFailedWorker(worker, err);
     } catch (e) {
       console.warn('SyncWorker 实例化异常, 将使用主线程引擎:', e);
       syncWorkerInstance = null;
@@ -2912,9 +3026,9 @@ function getDataWorker() {
           else reject(new Error(error || 'Worker 处理失败'));
         }
       };
-      dataWorkerInstance.onerror = function(err) {
-        console.warn('DataWorker onerror:', err);
-      };
+      const worker = dataWorkerInstance;
+      worker.onerror = err => retireFailedWorker(worker, err);
+      worker.onmessageerror = err => retireFailedWorker(worker, err);
     } catch (e) {
       console.warn('DataWorker 实例化异常, 将使用主线程引擎:', e);
       dataWorkerInstance = null;
@@ -2971,6 +3085,7 @@ function runWebWorker(worker, action, payload = {}) {
         }
       },
       timeoutId,
+      worker,
       action,
       payload
     });
@@ -3371,7 +3486,10 @@ window.addEventListener('message', (e) => {
     }
 
     function onUserActive() {
-        if (isSleeping) return;
+        if (isSleeping) {
+            onWake();
+            return;
+        }
         if (isIdle) {
             isIdle = false;
             applyVisualFreeze(false);
@@ -3420,7 +3538,7 @@ window.addEventListener('message', (e) => {
         onUserActive();
     }
 
-    const activityEvents = ['pointermove', 'pointerdown', 'keydown', 'scroll', 'wheel', 'touchstart'];
+    const activityEvents = ['pointermove', 'pointerdown', 'keydown', 'scroll', 'wheel', 'touchstart', 'focusin', 'input'];
     activityEvents.forEach(evt => {
         window.addEventListener(evt, onUserActive, { passive: true, capture: true });
     });
@@ -3483,13 +3601,16 @@ window.addEventListener('message', (e) => {
 <script>
 
 // ======= 壁纸与背景颜色深度自动检测联动 =======
+let backgroundDepthRevision = 0;
 function checkBackgroundDepth() {
+    const revision = ++backgroundDepthRevision;
     try {
         const savedWp = localStorage.getItem('alpha_wallpaper');
         if (savedWp && savedWp !== './background.png') {
             const img = new Image();
             img.crossOrigin = "Anonymous";
             img.onload = () => {
+                if (revision !== backgroundDepthRevision) return;
                 try {
                     const canvas = document.createElement('canvas');
                     canvas.width = 40; canvas.height = 40;
@@ -3964,7 +4085,9 @@ window.addEventListener('keydown', (e) => {
             activeSurface = null;
         }
 
-        if (tracked.size || union.classList.contains('is-visible')) ensureLoop();
+        // 纯悬停没有融合几何需要更新；按压及松手回弹仍逐帧计算。
+        const hasReturnTail = Array.from(tracked.values()).some(until => until !== Infinity);
+        if (activeSurface || hasReturnTail || union.classList.contains('is-visible')) ensureLoop();
     }
 
     document.addEventListener('pointerover', event => {

@@ -1492,6 +1492,7 @@
       ensureTabVisible(tab, performance.now());
     }
 
+    let wrapperDisposed = false;
     let tabs = [];
     let activeTabId = null;
     const tabElementMap = new Map();
@@ -1511,6 +1512,7 @@
     const tabScrollRestoreJobs = new Map();
     const scrollElementKeyCache = new WeakMap();
     const scrollRestoreFrames = new WeakMap();
+    const frameScrollFlushers = new WeakMap();
     let tabScrollRestoreGeneration = 0;
 
     function escapeScrollSelector(value) {
@@ -1601,11 +1603,18 @@
         };
 
         saveElement(scrollTarget, !!options.preserveExistingOnZero);
+        if (options.scrollTargets) {
+          for (const target of options.scrollTargets) saveElement(target, !!options.preserveExistingOnZero);
+        }
         if (options.includeTracked) {
           for (const key of snapshot.elements.keys()) {
-            let element = null;
-            try { element = doc.querySelector(key); } catch (_) {}
+            let element = snapshot.elementRefs.get(key);
+            if (!element || !element.isConnected || element.ownerDocument !== doc) {
+              element = null;
+              try { element = doc.querySelector(key); } catch (_) {}
+            }
             if (element) saveElement(element, !!options.preserveExistingOnZero);
+            else snapshot.elementRefs.delete(key);
           }
         }
         snapshot.capturedAt = performance.now();
@@ -1709,7 +1718,10 @@
     }
     // 在隐藏帧之前捕获当前活动标签的滚动，切换后恢复目标标签的滚动
     function flushActiveTabScroll() {
-      if (activeTabId) captureTabScroll(activeTabId, null, { includeTracked: true });
+      if (activeTabId) {
+        frameScrollFlushers.get(iframeMap.get(activeTabId))?.();
+        captureTabScroll(activeTabId, null, { includeTracked: true });
+      }
     }
 
     // 缓存常用 DOM 元素（此时已解析完成, 可直接获取）
@@ -1741,9 +1753,9 @@
     function cancelFrameActivation(frame) {
       const job = frame && frameActivationJobs.get(frame);
       if (!job) return;
-      cancelAnimationFrame(job.rafId);
       if (job.timerId !== null) clearTimeout(job.timerId);
-      frame.removeEventListener('transitionend', job.onTransitionEnd);
+      frame.removeEventListener('animationend', job.onEnd);
+      frame.removeEventListener('transitionend', job.onEnd);
       frame.classList.remove('frame-transitioning');
       frameActivationJobs.delete(frame);
     }
@@ -1773,11 +1785,7 @@
       frameActivationJobs.set(frame, { timerId, onEnd: finalize });
       frame.addEventListener('animationend', finalize);
       frame.addEventListener('transitionend', finalize);
-      try {
-        if (frame.contentWindow) {
-          frame.contentWindow.dispatchEvent(new CustomEvent('AlphaWake', { detail: { isHomeTransition } }));
-        }
-      } catch (_) {}
+      notifyFrameWake(frame, { isHomeTransition });
     }
 
     function cancelFrameExit(frame) {
@@ -1802,7 +1810,7 @@
 
         finalized = true;
         cancelFrameExit(frame);
-        if (activeTabId === frameTabId || !frame.isConnected) return;
+        if (iframeMap.get(activeTabId) === frame || !frame.isConnected) return;
 
         frame.className = 'content-frame';
         frame.style.opacity = '';
@@ -1870,30 +1878,28 @@
       }
     }
 
-    // 所有 iframe 共用一个 readyState 调度器，避免多标签各自维持高频计时器。
-    const frameReadyProbes = new Map();
+    // 每个物理帧只有一份就绪任务。DOM 事件优先，单一低频计时器发现 document 更替。
+    const frameReadyProbes = new Map(); // iframe -> probe
     let frameReadyTimer = null;
     let frameReadyTimerDueAt = 0;
 
-    function getFrameProbeDelay(attempt) {
-      if (attempt < 6) return 25;
-      if (attempt < 18) return 60;
-      return 150;
-    }
-
     function scheduleFrameReadyPump(delay = 0) {
-      const normalizedDelay = Math.max(0, delay);
-      const dueAt = performance.now() + normalizedDelay;
+      if (wrapperDisposed) return;
+      const dueAt = performance.now() + Math.max(0, delay);
       if (frameReadyTimer !== null) {
         if (dueAt >= frameReadyTimerDueAt - 1) return;
         clearTimeout(frameReadyTimer);
       }
       frameReadyTimerDueAt = dueAt;
-      frameReadyTimer = setTimeout(runFrameReadyPump, normalizedDelay);
+      frameReadyTimer = setTimeout(runFrameReadyPump, Math.max(0, delay));
     }
 
-    function cancelFrameReadyProbe(tabId) {
-      frameReadyProbes.delete(tabId);
+    function removeFrameReadyProbe(frame) {
+      const probe = frameReadyProbes.get(frame);
+      if (!probe) return;
+      probe.doc?.removeEventListener('DOMContentLoaded', probe.onReady);
+      probe.doc?.removeEventListener('readystatechange', probe.onReady);
+      frameReadyProbes.delete(frame);
       if (!frameReadyProbes.size && frameReadyTimer !== null) {
         clearTimeout(frameReadyTimer);
         frameReadyTimer = null;
@@ -1901,54 +1907,62 @@
       }
     }
 
+    function cancelFrameReadyProbe(tabId, frame = null) {
+      if (frame) { removeFrameReadyProbe(frame); return; }
+      for (const [candidate, probe] of frameReadyProbes) {
+        if (probe.tabId !== tabId) continue;
+        // 关闭创建者不能取消仍由其他标签使用的物理帧初始化。
+        const linked = getFrameMeta(candidate)?.tabIds;
+        if (linked && [...linked].some(id => id !== tabId && tabDataMap.has(id))) continue;
+        removeFrameReadyProbe(candidate);
+      }
+    }
+
+    function checkFrameReady(frame, probe) {
+      if (frameReadyProbes.get(frame) !== probe) return;
+      if (!frame.isConnected || wrapperDisposed || performance.now() >= probe.deadline) {
+        removeFrameReadyProbe(frame);
+        return;
+      }
+      try {
+        const doc = frame.contentDocument;
+        if (!doc || doc.URL === 'about:blank') return;
+        if (probe.doc !== doc) {
+          probe.doc?.removeEventListener('DOMContentLoaded', probe.onReady);
+          probe.doc?.removeEventListener('readystatechange', probe.onReady);
+          probe.doc = doc;
+          doc.addEventListener('DOMContentLoaded', probe.onReady);
+          doc.addEventListener('readystatechange', probe.onReady);
+        }
+        if (doc.readyState !== 'loading') {
+          removeFrameReadyProbe(frame);
+          probe.init();
+        }
+      } catch (_) { removeFrameReadyProbe(frame); }
+    }
+
     function runFrameReadyPump() {
       frameReadyTimer = null;
       frameReadyTimerDueAt = 0;
-      if (!frameReadyProbes.size) return;
-
       const now = performance.now();
-      let nextDelay = 150;
-      for (const [tabId, probe] of frameReadyProbes) {
-        const { iframe, init } = probe;
-        if (!iframe.isConnected || !tabDataMap.has(tabId) || now >= probe.deadline) {
-          frameReadyProbes.delete(tabId);
-          continue;
+      let nextDelay = 250;
+      for (const [frame, probe] of frameReadyProbes) {
+        if (probe.nextAt <= now) {
+          checkFrameReady(frame, probe);
+          probe.attempt++;
+          probe.nextAt = now + (probe.doc ? 250 : probe.attempt < 6 ? 16 : 60);
         }
-        if (now < probe.nextAt) {
-          nextDelay = Math.min(nextDelay, probe.nextAt - now);
-          continue;
-        }
-
-        try {
-          const doc = iframe.contentDocument || (iframe.contentWindow ? iframe.contentWindow.document : null);
-          if (doc && doc.readyState !== 'loading' && doc.URL !== 'about:blank') {
-            frameReadyProbes.delete(tabId);
-            init();
-            continue;
-          }
-        } catch (_) {
-          frameReadyProbes.delete(tabId);
-          continue;
-        }
-
-        probe.attempt++;
-        const delay = getFrameProbeDelay(probe.attempt);
-        probe.nextAt = now + delay;
-        nextDelay = Math.min(nextDelay, delay);
+        if (frameReadyProbes.has(frame)) nextDelay = Math.min(nextDelay, probe.nextAt - now);
       }
-
-      if (frameReadyProbes.size) scheduleFrameReadyPump(Math.max(0, Math.ceil(nextDelay)));
+      if (frameReadyProbes.size) scheduleFrameReadyPump(Math.max(0, nextDelay));
     }
 
     function watchFrameReady(tabId, iframe, init) {
-      const now = performance.now();
-      frameReadyProbes.set(tabId, {
-        iframe,
-        init,
-        attempt: 0,
-        nextAt: now,
-        deadline: now + 10000
-      });
+      removeFrameReadyProbe(iframe);
+      const probe = { tabId, init, doc: null, attempt: 0, nextAt: 0,
+        deadline: performance.now() + 10000, onReady: null };
+      probe.onReady = () => checkFrameReady(iframe, probe);
+      frameReadyProbes.set(iframe, probe);
       scheduleFrameReadyPump(0);
     }
 
@@ -2079,11 +2093,16 @@
     }
 
     function playTabFlip(previousPositions) {
+      const measurements = [];
       for (const [el, previousLeft] of previousPositions) {
         if (!el.isConnected) continue;
         const previousAnimation = tabFlipAnimations.get(el);
         if (previousAnimation) previousAnimation.cancel();
-        const delta = previousLeft - el.getBoundingClientRect().left;
+      }
+      for (const [el, previousLeft] of previousPositions) {
+        if (el.isConnected) measurements.push([el, previousLeft - el.getBoundingClientRect().left]);
+      }
+      for (const [el, delta] of measurements) {
         if (Math.abs(delta) < 0.5) continue;
         const animation = el.animate(
           [{ translate: `${delta}px 0` }, { translate: '0 0' }],
@@ -2572,7 +2591,7 @@
 
       watchFrameReady(probeTabId, frame, init);
       frame.addEventListener('load', () => {
-        cancelFrameReadyProbe(probeTabId);
+        cancelFrameReadyProbe(probeTabId, frame);
         init();
       });
     }
@@ -2789,6 +2808,8 @@
           startedAt: performance.now()
         };
         liveMeta.navigationGuardUntil = performance.now() + 2200;
+        for (const timerId of liveMeta.navigationWakeTimers || []) clearTimeout(timerId);
+        liveMeta.navigationWakeTimers = [];
         if (liveMeta.uiCheckTimer !== null) clearTimeout(liveMeta.uiCheckTimer);
         if (liveMeta.uiObserver) liveMeta.uiObserver.disconnect();
         liveMeta.uiCheckTimer = null;
@@ -2847,6 +2868,21 @@
       // scroll 同时负责：共享帧即时分叉 + rAF 合并保存根滚动和内部滚动容器。
       const pendingScrollTargets = new Set();
       let scrollSaveRaf = null;
+      const flushScroll = () => {
+        if (scrollSaveRaf !== null) cancelAnimationFrame(scrollSaveRaf);
+        scrollSaveRaf = null;
+        if (activeTabId && iframeMap.get(activeTabId) === iframe && pendingScrollTargets.size) {
+          captureTabScroll(activeTabId, null, { scrollTargets: pendingScrollTargets });
+        }
+        pendingScrollTargets.clear();
+      };
+      frameScrollFlushers.set(iframe, flushScroll);
+      childWindow.addEventListener('pagehide', () => {
+        if (scrollSaveRaf !== null) cancelAnimationFrame(scrollSaveRaf);
+        scrollSaveRaf = null;
+        pendingScrollTargets.clear();
+        if (frameScrollFlushers.get(iframe) === flushScroll) frameScrollFlushers.delete(iframe);
+      }, { once: true });
       const handleScrollForSnapshotAndFork = (event) => {
         if (wrapperWindowSuspending && document.hasFocus()) {
           // 焦点只是进入同窗口 iframe，并非应用真正失焦。
@@ -2881,7 +2917,7 @@
           if (!pendingScrollTargets.size) {
             captureTabScroll(activeTabId);
           } else {
-            for (const scrollTarget of pendingScrollTargets) captureTabScroll(activeTabId, scrollTarget);
+            captureTabScroll(activeTabId, null, { scrollTargets: pendingScrollTargets });
           }
           pendingScrollTargets.clear();
         });
@@ -2993,115 +3029,107 @@
     // wrapper. Keep the old pool available only as an explicit diagnostic/legacy opt-in.
     const ENABLE_IFRAME_PREWARM = localStorage.getItem('alpha_enable_iframe_prewarm') === 'true';
     const PrewarmPool = {
-      pool: new Map(),           // safeUrl -> iframeElement
-      pendingQueue: [],          // Array<{ url: string, priority: string }>
-      inFlight: new Set(),       // Set of safeUrls currently loading
+      pool: new Map(),
+      pendingQueue: [],
+      inFlight: new Map(), // url -> cancelable load job
       isProcessing: false,
       idleTimerId: null,
+      cooldownTimerId: null,
+      generation: 0,
       started: false,
-
-      // 高频核心次级目标页列表 (按使用频率与加载复杂度排序)
+      maxWarmFrames: 2,
       CORE_TARGETS: ['TaskHub.html', 'TaskTimer.html', 'TaskFlow.html', 'settings.html', 'Account.html'],
 
       evictAll() {
-        for (const [url, iframe] of this.pool.entries()) {
-          try {
-            iframe.remove();
-          } catch (_) {}
-        }
-        this.pool.clear();
+        ++this.generation;
+        this.cancelPump();
+        for (const job of this.inFlight.values()) job.cancel();
         this.inFlight.clear();
+        for (const frame of this.pool.values()) disposeDetachedPhysicalFrame(frame);
+        this.pool.clear();
         this.pendingQueue = [];
+        this.isProcessing = false;
+        this.started = false;
+      },
+
+      cancelPump() {
         if (this.idleTimerId !== null) {
           if (typeof cancelIdleCallback === 'function') cancelIdleCallback(this.idleTimerId);
           else clearTimeout(this.idleTimerId);
           this.idleTimerId = null;
         }
-        this.isProcessing = false;
-        this.started = false;
+        if (this.cooldownTimerId !== null) clearTimeout(this.cooldownTimerId);
+        this.cooldownTimerId = null;
       },
 
       has(url) {
         const safeUrl = normalizeLocalPageUrl(url);
-        return safeUrl ? this.pool.has(safeUrl) : false;
+        return !!safeUrl && this.pool.has(safeUrl);
       },
 
-      // 从池中提取已就绪的 iframe (0ms DOM 构建与编译延迟)
       acquire(safeUrl, tabId) {
-        if (!safeUrl || !this.pool.has(safeUrl)) return null;
         const frame = this.pool.get(safeUrl);
+        if (!frame) return null;
         this.pool.delete(safeUrl);
-        
-        // 恢复 tab 专属 ID 与属性
         frame.id = `iframe-${tabId}`;
         frame.inert = false;
         frame.removeAttribute('aria-hidden');
         frame.removeAttribute('data-prewarmed');
+        this.schedulePump(350);
         return frame;
       },
 
-      // 预热指定页面 (支持 idle 空闲排队 与 high 意图悬停插队)
+      // 高优先级只调整队列顺序，不能突破单帧加载上限或在动画/输入期间抢占。
       prewarm(url, priority = 'idle') {
-        if (!ENABLE_IFRAME_PREWARM) return;
+        if (!ENABLE_IFRAME_PREWARM || wrapperDisposed) return;
         const safeUrl = normalizeLocalPageUrl(url);
-        if (!safeUrl) return;
-        
-        // 如果池中已有、正在预热、或者已有已打开标签页，则跳过
-        if (this.pool.has(safeUrl) || this.inFlight.has(safeUrl)) return;
-        if (tabs.some(t => t.url === safeUrl)) return;
-
-        if (priority === 'high') {
-          // 意图/悬停触发：插队到队列最前端并立即执行
-          this.pendingQueue = this.pendingQueue.filter(item => item.url !== safeUrl);
-          this.pendingQueue.unshift({ url: safeUrl, priority: 'high' });
-          this.processNext(true);
-        } else {
-          // 普通空闲预热
-          if (!this.pendingQueue.some(item => item.url === safeUrl)) {
-            this.pendingQueue.push({ url: safeUrl, priority: 'idle' });
-            this.schedulePump();
-          }
-        }
+        if (!safeUrl || this.pool.has(safeUrl) || this.inFlight.has(safeUrl) || tabs.some(t => t.url === safeUrl)) return;
+        const queued = this.pendingQueue.findIndex(item => item.url === safeUrl);
+        if (queued !== -1) this.pendingQueue.splice(queued, 1);
+        if (priority === 'high') this.pendingQueue.unshift({ url: safeUrl, priority });
+        else this.pendingQueue.push({ url: safeUrl, priority });
+        // 悬停意图队列有界；普通预热仍保留核心页顺序。
+        if (this.pendingQueue.length > 12) this.pendingQueue.length = 12;
+        this.schedulePump();
       },
 
-      schedulePump() {
-        if (this.isProcessing || !this.pendingQueue.length || this.idleTimerId !== null) return;
-
-        const runPump = (deadline) => {
-          this.idleTimerId = null;
-          if (deadline && typeof deadline.timeRemaining === 'function' && deadline.timeRemaining() < 5) {
+      schedulePump(delay = 0) {
+        if (wrapperDisposed || !ENABLE_IFRAME_PREWARM || !wrapperWindowActive || document.hidden ||
+            this.isProcessing || !this.pendingQueue.length || this.pool.size >= this.maxWarmFrames ||
+            this.idleTimerId !== null || this.cooldownTimerId !== null) return;
+        if (delay > 0) {
+          this.cooldownTimerId = setTimeout(() => {
+            this.cooldownTimerId = null;
             this.schedulePump();
+          }, delay);
+          return;
+        }
+        const run = deadline => {
+          this.idleTimerId = null;
+          if (wrapperDisposed || !wrapperWindowActive || document.hidden) return;
+          if (hasForegroundWork() || (deadline && !deadline.didTimeout && deadline.timeRemaining() < 5)) {
+            this.schedulePump(200);
             return;
           }
-          this.processNext(false);
+          this.processNext();
         };
-
-        if (typeof requestIdleCallback === 'function') {
-          this.idleTimerId = requestIdleCallback(runPump, { timeout: 1200 });
-        } else {
-          this.idleTimerId = setTimeout(() => runPump(null), 300);
-        }
+        this.idleTimerId = typeof requestIdleCallback === 'function'
+          ? requestIdleCallback(run, { timeout: 1200 })
+          : setTimeout(() => run(null), 300);
       },
 
-      processNext(immediate = false) {
-        if (!this.pendingQueue.length) {
-          this.isProcessing = false;
-          return;
+      processNext() {
+        if (this.isProcessing || wrapperDisposed || !wrapperWindowActive || document.hidden ||
+            this.pool.size >= this.maxWarmFrames) return;
+        let next;
+        while ((next = this.pendingQueue.shift())) {
+          if (!this.pool.has(next.url) && !this.inFlight.has(next.url) && !tabs.some(t => t.url === next.url)) break;
+          next = null;
         }
-
+        if (!next) return;
+        const safeUrl = next.url;
+        const generation = this.generation;
         this.isProcessing = true;
-        const nextItem = this.pendingQueue.shift();
-        const safeUrl = nextItem.url;
-
-        // 双重校验：避免重复
-        if (this.pool.has(safeUrl) || this.inFlight.has(safeUrl) || tabs.some(t => t.url === safeUrl)) {
-          this.isProcessing = false;
-          this.schedulePump();
-          return;
-        }
-
-        this.inFlight.add(safeUrl);
-
         const iframe = document.createElement('iframe');
         const prewarmId = 'prewarm-' + Math.random().toString(36).slice(2, 8);
         iframe.id = `iframe-${prewarmId}`;
@@ -3114,52 +3142,53 @@
         iframe.setAttribute('data-prewarmed', 'true');
         iframe.inert = true;
         iframe.style.display = 'none';
-
-        let prewarmFinalized = false;
-        const onPrewarmReady = () => {
-          if (prewarmFinalized) return;
-          prewarmFinalized = true;
+        let finalized = false;
+        let timeoutId = null;
+        const cleanup = () => {
+          if (timeoutId !== null) clearTimeout(timeoutId);
+          iframe.removeEventListener('load', onReady);
+          removeFrameReadyProbe(iframe);
+        };
+        const finish = success => {
+          if (finalized) return;
+          finalized = true;
+          cleanup();
           this.inFlight.delete(safeUrl);
+          this.isProcessing = false;
           try {
-            const doc = iframe.contentDocument || (iframe.contentWindow ? iframe.contentWindow.document : null);
-            if (doc && !doc.__alphaInstalled) {
-              doc.__alphaInstalled = true;
+            const doc = iframe.contentDocument;
+            if (success && generation === this.generation && iframe.isConnected && doc &&
+                doc.URL !== 'about:blank' && !tabs.some(t => t.url === safeUrl)) {
               applyThrottleToIframe(iframe, currentThrottleState);
               injectGlobalRuntime(doc, iframe);
-            }
-            // 预热完毕立即下发 AlphaSleep，冻结子页面的动效与定时器
-            if (iframe.contentWindow) {
-              iframe.contentWindow.dispatchEvent(new CustomEvent('AlphaSleep'));
-            }
-          } catch (_) {}
-
-          this.pool.set(safeUrl, iframe);
-          this.isProcessing = false;
-          
-          // 留出 350ms 的喘息周期，给浏览器释放垃圾回收并让出渲染主线程
-          setTimeout(() => {
-            this.schedulePump();
-          }, 350);
+              notifyFrameSleep(iframe);
+              this.pool.set(safeUrl, iframe);
+            } else disposeDetachedPhysicalFrame(iframe);
+          } catch (_) {
+            disposeDetachedPhysicalFrame(iframe);
+          } finally {
+            if (generation === this.generation) this.schedulePump(350);
+          }
         };
-
-        // 绑定高频探测与 load 兜底
-        watchFrameReady(prewarmId, iframe, onPrewarmReady);
-        iframe.addEventListener('load', () => {
-          cancelFrameReadyProbe(prewarmId);
-          onPrewarmReady();
-        }, { once: true });
-
+        const onReady = () => finish(true);
+        const job = { cancel: () => {
+          if (finalized) return;
+          finalized = true;
+          cleanup();
+          disposeDetachedPhysicalFrame(iframe);
+        } };
+        this.inFlight.set(safeUrl, job);
+        iframe.addEventListener('load', onReady);
         iframeContainer.appendChild(iframe);
         if (iframe.contentWindow) knownFrameSources.add(iframe.contentWindow);
+        watchFrameReady(prewarmId, iframe, onReady);
+        timeoutId = setTimeout(() => finish(false), 10000);
       },
 
-      // 启动全量后台错峰空闲预热
       startIdlePrewarm() {
-        if (!ENABLE_IFRAME_PREWARM || this.started) return;
+        if (!ENABLE_IFRAME_PREWARM || this.started || wrapperDisposed) return;
         this.started = true;
-        for (const target of this.CORE_TARGETS) {
-          this.prewarm(target, 'idle');
-        }
+        for (const target of this.CORE_TARGETS) this.prewarm(target);
       }
     };
 
@@ -3180,6 +3209,7 @@
 
     function rememberCurrentHistoryScroll(tab) {
       if (!tab || !Number.isInteger(tab.historyIndex)) return;
+      frameScrollFlushers.get(iframeMap.get(tab.id))?.();
       captureTabScroll(tab.id, null, { includeTracked: true });
       if (!(tab.historyScroll instanceof Map)) tab.historyScroll = new Map();
       const snapshot = cloneScrollSnapshot(tabScrollSnapshot.get(tab.id));
@@ -3215,7 +3245,7 @@
       if (!job) return;
       currentPageNavigationJobs.delete(tabId);
       if (job.timeoutId !== null) clearTimeout(job.timeoutId);
-      cancelFrameReadyProbe(tabId);
+      cancelFrameReadyProbe(tabId, job.candidateFrame);
       if (iframeMap.get(tabId) !== job.candidateFrame) disposeDetachedPhysicalFrame(job.candidateFrame);
     }
 
@@ -3259,7 +3289,7 @@
         if (currentJob !== job || job.activated || !candidateFrame.isConnected) return;
         job.activated = true;
         if (job.timeoutId !== null) clearTimeout(job.timeoutId);
-        cancelFrameReadyProbe(tabId);
+        cancelFrameReadyProbe(tabId, candidateFrame);
 
         // 旧帧在动画期间继续存在，但从逻辑标签引用和复用索引中解除。
         const mayDisposeOldFrame = detachTabFrameReference(tabId, oldFrame);
@@ -3372,7 +3402,17 @@
             return !!meta && meta.tabIds.size > 1;
           }).length,
           prewarmEnabled: ENABLE_IFRAME_PREWARM,
-          frameTransitionsEnabled: ENABLE_FRAME_TRANSITIONS
+          frameTransitionsEnabled: ENABLE_FRAME_TRANSITIONS,
+          pendingReadyFrames: frameReadyProbes.size,
+          pendingNavigations: currentPageNavigationJobs.size,
+          pendingScrollRestores: tabScrollRestoreJobs.size,
+          prewarmReadyFrames: PrewarmPool.pool.size,
+          prewarmInFlight: PrewarmPool.inFlight.size,
+          prewarmQueued: PrewarmPool.pendingQueue.length,
+          sleepingFrames: [...physicalFrames].filter(frame => {
+            try { return frame.contentDocument?.documentElement?.classList.contains('alpha-sleep'); }
+            catch (_) { return false; }
+          }).length
         };
       },
       
@@ -3546,12 +3586,14 @@
     function stabilizeActiveInlineNavigation(frame, tabId, currentUrl, directPair) {
       if (!frame || !tabId || activeTabId !== tabId || iframeMap.get(tabId) !== frame) return;
       const meta = getFrameMeta(frame, true, currentUrl);
+      const navigationDocument = frame.contentDocument;
       for (const timerId of meta.navigationWakeTimers || []) clearTimeout(timerId);
       meta.navigationWakeTimers = [];
       meta.navigationGuardUntil = performance.now() + (directPair ? 2200 : 900);
 
       const assertActive = (phase) => {
-        if (!frame.isConnected || activeTabId !== tabId || iframeMap.get(tabId) !== frame) return;
+        if (!frame.isConnected || frame.contentDocument !== navigationDocument ||
+            activeTabId !== tabId || iframeMap.get(tabId) !== frame) return;
         const liveUrl = getIframePageRelativeUrl(frame) || currentUrl;
         if (getLocalPageName(liveUrl) !== getLocalPageName(currentUrl)) return;
 
@@ -3695,6 +3737,7 @@
       // 放弃等待极其缓慢的原生 load 事件（会被字体/图片等静态资源严重阻塞）。
       // 采用高频智能探测, 一旦子页面的 DOM 树解析完毕 (interactive), 立刻进行标题读取与事件注入
       const initAlphaChild = () => {
+        if (wrapperDisposed || !iframe.isConnected || !getFrameMeta(iframe)?.tabIds.size) return;
         if (!splashReadyNotified && window.electronAPI && window.electronAPI.splashReady) {
           try {
             window.electronAPI.splashReady();
@@ -3799,7 +3842,7 @@
 
         // 2. 兜底策略: 保留 load 事件, 防止遇到极其畸形的页面没有触发 interactive 状态
         iframe.addEventListener('load', () => {
-          cancelFrameReadyProbe(tabId);
+          cancelFrameReadyProbe(tabId, iframe);
           initAlphaChild();
         });
 
@@ -3809,6 +3852,7 @@
         // 预热或共享实例已经在 DOM 容器中，立刻完成初始化同步
         const sharedMeta = getFrameMeta(iframe);
         if (!isSharedInstance || (sharedMeta && sharedMeta.ready)) initAlphaChild();
+        if (isPrewarmed) iframe.addEventListener('load', initAlphaChild);
       }
 
       const tabEl = document.createElement('div');
@@ -3878,6 +3922,17 @@
     }
 
     let tabSnapshotTransitionGeneration = 0;
+    let activeSnapshotTransition = null;
+
+    function cancelTabSnapshotTransition() {
+      ++tabSnapshotTransitionGeneration;
+      pendingSnapshotTabId = null;
+      if (activeSnapshotTransition) {
+        try { activeSnapshotTransition.skipTransition(); } catch (_) {}
+        activeSnapshotTransition = null;
+      }
+      document.documentElement.classList.remove('alpha-tab-snapshot-running', 'alpha-tab-switch-left', 'alpha-tab-switch-right');
+    }
     let pendingSnapshotTabId = null;
     let tabLiveFallbackCleanupTimer = null;
 
@@ -3894,6 +3949,8 @@
           if (doc && doc.documentElement) {
             doc.documentElement.classList.add('alpha-sleep');
           }
+          if (doc.__alphaLifecycleState === 'sleep' && !detail.isDeepSleep) return;
+          doc.__alphaLifecycleState = 'sleep';
           frame.contentWindow.dispatchEvent(new CustomEvent('AlphaSleep', { detail }));
           if (detail && detail.isDeepSleep && typeof frame.contentWindow.gc === 'function') {
             try { frame.contentWindow.gc(); } catch (_) {}
@@ -3911,6 +3968,8 @@
         if (doc && doc.documentElement) {
           doc.documentElement.classList.remove('alpha-sleep');
         }
+        if (doc.__alphaLifecycleState === 'awake' && !detail.forceVisible) return;
+        doc.__alphaLifecycleState = 'awake';
         frame.contentWindow.dispatchEvent(new CustomEvent('AlphaWake', { detail }));
       } catch (_) {}
     }
@@ -3920,6 +3979,8 @@
     let windowBlurSuspendTimer = null;
 
     function suspendFramesForWindowState() {
+      if (wrapperWindowActive && !document.hidden) PrewarmPool.schedulePump(350);
+      else PrewarmPool.cancelPump();
       const uniqueFrames = new Set(iframeMap.values());
       if (!wrapperWindowActive) {
         // 失焦/隐藏时，页面自身的 blur/sleep 处理可能先把视口改为 0。
@@ -4007,6 +4068,7 @@
 
     
     // ======= Windows 原生窗口与任务栏标题实时同步引擎 =======
+    let lastNativeWindowTitle = null;
     function syncNativeWindowTitle(customTitle = null) {
       let pageTitle = customTitle;
       if (!pageTitle && activeTabId) {
@@ -4028,7 +4090,9 @@
       }
 
       const fullTitle = pageTitle ? `${pageTitle} - Tasks` : 'Tasks';
-      document.title = fullTitle;
+      if (document.title !== fullTitle) document.title = fullTitle;
+      if (lastNativeWindowTitle === fullTitle) return;
+      lastNativeWindowTitle = fullTitle;
 
       if (window.electronAPI && typeof window.electronAPI.setWindowTitle === 'function') {
         window.electronAPI.setWindowTitle(fullTitle);
@@ -4051,6 +4115,8 @@
 
       // 在切换前持久化离开标签的滚动，避免 display:none 导致视口丢失
       if (prevTabId) {
+        frameScrollFlushers.get(prevFrame)?.();
+        cancelTabScrollRestore(prevTabId);
         try { captureTabScroll(prevTabId, null, { includeTracked: true }); } catch (_) {}
       }
       // Duplicate logical tabs can share one physical iframe. Switching between them only
@@ -4239,11 +4305,16 @@
       // 已是当前标签（或快照正在切向该标签）时不重启动画。
       if ((activeTabId === tabId && activeTabElCache && activeTabElCache.getAttribute('data-id') === tabId) ||
           pendingSnapshotTabId === tabId) {
+        if (activeTabId === tabId && pendingSnapshotTabId && pendingSnapshotTabId !== tabId) {
+          cancelTabSnapshotTransition();
+          notifyFrameWake(iframeMap.get(tabId));
+        }
         const currentTabEl = tabElementMap.get(tabId) || activeTabElCache;
         if (currentTabEl) ensureTabVisible(currentTabEl);
         return;
       }
 
+      cancelTabSnapshotTransition();
       const isNewTab = !!(options && options.isNewTab);
       const transitionPreset = normalizeContentTransition(
         options && options.transition,
@@ -4290,7 +4361,8 @@
       try {
         transition = document.startViewTransition(() => {
           // 标签可能在旧画面快照完成前被关闭；此时安全保留当前页面。
-          if (!tabDataMap.has(tabId) || !iframeMap.has(tabId)) return;
+          if (generation !== tabSnapshotTransitionGeneration || !tabDataMap.has(tabId) ||
+              tabCloseTimers.has(tabId) || !iframeMap.has(tabId)) return;
           commitTabSwitch(tabId, 'snapshot', transitionPreset);
         });
       } catch (_) {
@@ -4302,10 +4374,11 @@
         return;
       }
 
+      activeSnapshotTransition = transition;
       Promise.resolve(transition.finished).catch(() => {}).then(() => {
         // 只有当前标签在快照完全退场后才恢复其内部动画；快速连续切换时，
         // 被跳过的中间标签会继续休眠，不产生后台动画负载。
-        if (activeTabId === tabId) {
+        if (generation === tabSnapshotTransitionGeneration && activeTabId === tabId) {
           notifyFrameWake(iframeMap.get(tabId), {
             isHomeTransition: isHomeTab(tabId),
             isWrapperSnapshotTransition: true
@@ -4313,6 +4386,7 @@
         }
 
         if (generation === tabSnapshotTransitionGeneration) {
+          activeSnapshotTransition = null;
           pendingSnapshotTabId = null;
           root.classList.remove('alpha-tab-snapshot-running', 'alpha-tab-switch-left', 'alpha-tab-switch-right');
         }
@@ -4338,6 +4412,8 @@
 
     function disposeDetachedPhysicalFrame(iframe) {
       if (!iframe) return;
+      removeFrameReadyProbe(iframe);
+      frameScrollFlushers.delete(iframe);
       const meta = getFrameMeta(iframe);
       if (meta) {
         unindexPhysicalFrame(iframe, meta.key);
@@ -4345,6 +4421,8 @@
         if (meta.uiObserver) meta.uiObserver.disconnect();
         meta.uiCheckTimer = null;
         meta.uiObserver = null;
+        for (const timerId of meta.navigationWakeTimers || []) clearTimeout(timerId);
+        meta.navigationWakeTimers = [];
         meta.tabIds.clear();
       }
       cancelFrameActivation(iframe);
@@ -4675,6 +4753,20 @@
     resizeObserver.observe(tabsContainer);
 
     window.__cleanupWrapper = function() {
+        if (wrapperDisposed) return;
+        wrapperDisposed = true;
+        cancelTabSnapshotTransition();
+        PrewarmPool.evictAll();
+        for (const tabId of [...currentPageNavigationJobs.keys()]) cancelCurrentPageNavigation(tabId);
+        for (const tabId of [...tabScrollRestoreJobs.keys()]) cancelTabScrollRestore(tabId);
+        for (const frame of [...frameReadyProbes.keys()]) removeFrameReadyProbe(frame);
+        if (wrapperIdleTrimTimer !== null) clearTimeout(wrapperIdleTrimTimer);
+        wrapperIdleTrimTimer = null;
+        if (wrapperIdleTrimCallback !== null) cancelIdleCallback(wrapperIdleTrimCallback);
+        wrapperIdleTrimCallback = null;
+        if (tabLiveFallbackCleanupTimer !== null) clearTimeout(tabLiveFallbackCleanupTimer);
+        hideTooltip();
+        if (tooltipRafId !== null) cancelAnimationFrame(tooltipRafId);
         resizeObserver.disconnect();
         cleanupTooltipTree(document);
         if (frameReadyTimer !== null) {
@@ -4691,6 +4783,11 @@
         for (const frame of new Set(iframeMap.values())) {
           cancelFrameActivation(frame);
           cancelFrameExit(frame);
+          cancelSharedFrameSwitch(frame);
+          const meta = getFrameMeta(frame);
+          if (meta?.uiCheckTimer !== null) clearTimeout(meta?.uiCheckTimer);
+          meta?.uiObserver?.disconnect();
+          for (const timerId of meta?.navigationWakeTimers || []) clearTimeout(timerId);
         }
         if (windowBlurSuspendTimer !== null) {
           clearTimeout(windowBlurSuspendTimer);
@@ -5030,6 +5127,12 @@
                 transition: none !important;
                 caret-color: transparent !important;
             }
+            html.alpha-sleep input:focus,
+            html.alpha-sleep textarea:focus,
+            html.alpha-sleep [contenteditable]:focus,
+            html.alpha-sleep [contenteditable="true"]:focus {
+                caret-color: auto !important;
+            }
           `;
           (doc.head || doc.documentElement).appendChild(style);
         }
@@ -5047,6 +5150,7 @@
         };
 
         childWindow.addEventListener('AlphaSleep', () => {
+          doc.__alphaLifecycleState = 'sleep';
           if (doc.documentElement) doc.documentElement.classList.add('alpha-sleep');
           try {
             for (const media of doc.querySelectorAll('video, audio')) {
@@ -5059,9 +5163,21 @@
         });
 
         childWindow.addEventListener('AlphaWake', () => {
+          doc.__alphaLifecycleState = 'awake';
           if (doc.documentElement) doc.documentElement.classList.remove('alpha-sleep');
           childWindow.AlphaLifecycle.onWake.forEach(fn => { try { fn(); } catch (_) {} });
         });
+
+        // 关键安全网: 若正在休眠的文档收到用户输入焦点或键入，立即恢复渲染与光标
+        const wakeOnInteraction = () => {
+          if (doc.documentElement && doc.documentElement.classList.contains('alpha-sleep')) {
+            doc.documentElement.classList.remove('alpha-sleep');
+            doc.__alphaLifecycleState = 'awake';
+            childWindow.AlphaLifecycle.onWake.forEach(fn => { try { fn(); } catch (_) {} });
+          }
+        };
+        childWindow.addEventListener('focusin', wakeOnInteraction, true);
+        childWindow.addEventListener('input', wakeOnInteraction, true);
     }
     // 保留原入口函数名, 避免破坏上游对于 iframe load 的回调逻辑
     function injectGlobalRuntime(doc, iframeNode) {
@@ -5072,6 +5188,8 @@
         return;
       }
 
+      if (doc.__alphaGlobalRuntimeInstalled) return;
+      doc.__alphaGlobalRuntimeInstalled = true;
       bindAlphaTooltipTree(doc);
       injectLifecycle(doc);
       if (window.AlphaReduceMotion) {
@@ -5080,21 +5198,29 @@
       if (window.AlphaLiquidGlass) {
         window.AlphaLiquidGlass.init(doc);
       }
-      doc.addEventListener('pointerdown', () => {
+      const ensureFrameAwakeOnActivity = () => {
         requestHostIdleMemoryTrim(5000);
         if (typeof toggleMenu === 'function') toggleMenu(false);
         if (!wrapperWindowActive && !document.hidden) {
           wrapperWindowActive = true;
           suspendFramesForWindowState();
+        } else if (activeFrameCache) {
+          const activeDoc = activeFrameCache.contentDocument || (activeFrameCache.contentWindow ? activeFrameCache.contentWindow.document : null);
+          if (activeDoc && activeDoc.documentElement && activeDoc.documentElement.classList.contains('alpha-sleep')) {
+            notifyFrameWake(activeFrameCache, { userInteraction: true });
+          }
         }
-      }, true);
+      };
+      doc.addEventListener('pointerdown', ensureFrameAwakeOnActivity, true);
       doc.addEventListener('keydown', (e) => {
-        requestHostIdleMemoryTrim(5000);
+        ensureFrameAwakeOnActivity();
         if (e.key === 'F11' || e.keyCode === 122 || e.code === 'F11') {
           e.preventDefault();
           e.stopPropagation();
         }
       }, true);
+      doc.addEventListener('focusin', ensureFrameAwakeOnActivity, true);
+      doc.addEventListener('touchstart', ensureFrameAwakeOnActivity, { passive: true, capture: true });
       doc.addEventListener('wheel', () => requestHostIdleMemoryTrim(5000), { passive: true });
       doc.addEventListener('pointerup', () => {
         if (window.AlphaLiquidGlass && typeof window.AlphaLiquidGlass.releaseAll === 'function') {
@@ -5110,16 +5236,51 @@
 
     // ======= 全局静默与闲置内存压缩引擎 (Host Idle Memory Trimmer) =======
     let wrapperIdleTrimTimer = null;
-    function requestHostIdleMemoryTrim(delayMs = 3500) {
-      if (wrapperIdleTrimTimer) clearTimeout(wrapperIdleTrimTimer);
+    let wrapperIdleTrimCallback = null;
+    let wrapperIdleTrimDueAt = 0;
+    let lastHostActivityAt = performance.now();
+    let lastHostTrimAt = -Infinity;
+    const HOST_TRIM_MIN_INTERVAL = 30000;
+
+    function hasForegroundWork() {
+      return !!tabDragState || !!pendingSnapshotTabId || currentPageNavigationJobs.size > 0 ||
+        performance.now() - lastHostActivityAt < 200 ||
+        !!iframeContainer.querySelector('.frame-transitioning,.exit-left,.exit-right,.exit-depth,.shared-switch-left,.shared-switch-right,.shared-switch-top') ||
+        iframeContainer.classList.contains('entering');
+    }
+
+    function runHostIdleMemoryTrim(deadline) {
+      wrapperIdleTrimCallback = null;
+      if (wrapperDisposed) return;
+      const now = performance.now();
+      const remaining = Math.max(wrapperIdleTrimDueAt, lastHostTrimAt + HOST_TRIM_MIN_INTERVAL) - now;
+      if (remaining > 0 || hasForegroundWork() ||
+          (deadline && !deadline.didTimeout && deadline.timeRemaining() < 5)) {
+        armHostIdleTrim(Math.max(remaining, 250));
+        return;
+      }
+      lastHostTrimAt = now;
+      try { window.electronAPI?.trimMemory?.(); } catch (_) {}
+    }
+
+    function armHostIdleTrim(delay) {
+      if (wrapperDisposed || wrapperIdleTrimTimer !== null || wrapperIdleTrimCallback !== null) return;
       wrapperIdleTrimTimer = setTimeout(() => {
         wrapperIdleTrimTimer = null;
-        try {
-          if (window.electronAPI && typeof window.electronAPI.trimMemory === 'function') {
-            window.electronAPI.trimMemory();
-          }
-        } catch (_) {}
-      }, delayMs);
+        if (wrapperDisposed) return;
+        if (typeof requestIdleCallback === 'function' && !document.hidden) {
+          wrapperIdleTrimCallback = requestIdleCallback(runHostIdleMemoryTrim, { timeout: 2000 });
+        } else runHostIdleMemoryTrim(null);
+      }, Math.max(0, delay));
+    }
+
+    function requestHostIdleMemoryTrim(delayMs = 3500) {
+      if (wrapperDisposed) return;
+      const now = performance.now();
+      if (delayMs >= 5000) lastHostActivityAt = now;
+      if (typeof window.electronAPI?.trimMemory !== 'function') return;
+      wrapperIdleTrimDueAt = now + delayMs;
+      armHostIdleTrim(Math.max(delayMs, lastHostTrimAt + HOST_TRIM_MIN_INTERVAL - now));
     }
 
     const hostActivityEvents = ['pointerdown', 'keydown', 'wheel', 'touchstart'];
@@ -5264,6 +5425,10 @@
           PrewarmPool.evictAll();
           const uniqueFrames = new Set(iframeMap.values());
           for (const frame of uniqueFrames) {
+            // 当前前台活跃展示的标签页正在被用户使用，不能强行休眠，否则会导致光标消失、动画停滞与 liquidStat 渲染中断
+            if (frame === activeFrameCache && wrapperWindowActive && !document.hidden) {
+              continue;
+            }
             notifyFrameSleep(frame, { isDeepSleep: true });
           }
           try {

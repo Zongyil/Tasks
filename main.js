@@ -10,7 +10,7 @@ try {
   try { require('v8-compile-cache'); } catch (_) {}
 }
 
-const { app, BrowserWindow, ipcMain, protocol, net, Notification, Tray, powerMonitor, screen, nativeTheme } = require('electron')
+const { app, BrowserWindow, ipcMain, protocol, net, Notification, Tray, powerMonitor, screen, nativeTheme, shell } = require('electron')
 const path = require('path')
 const os = require('os')
 
@@ -27,13 +27,14 @@ protocol.registerSchemesAsPrivileged([
   }
 ]);
 
-app.commandLine.appendSwitch('disable-features', 'OverlayScrollbar');
-app.commandLine.appendSwitch('enable-features', 'ElasticOverscrollWin,VaapiVideoDecoder,CanvasOopRasterization');
-app.commandLine.appendSwitch('ignore-gpu-blocklist');
-app.commandLine.appendSwitch('enable-gpu-rasterization');
-app.commandLine.appendSwitch('enable-gpu-compositing');
-app.commandLine.appendSwitch('enable-accelerated-2d-canvas');
-app.commandLine.appendSwitch('js-flags', '--max-old-space-size=256');
+app.commandLine.appendSwitch('disable-features', 'OverlayScrollbar,SpareRendererForSitePerProcess');
+app.commandLine.appendSwitch('enable-features', 'ElasticOverscrollWin,VaapiVideoDecoder');
+app.commandLine.appendSwitch('js-flags', '--expose-gc --max-old-space-size=256');
+app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
+
+if (process.platform === 'win32') {
+  app.setAppUserModelId(app.isPackaged ? 'com.zongyi.pjalpha.tasks' : process.execPath);
+}
 const { pathToFileURL } = require('url') 
 const fs = require('fs')
 let globalCloseToTray = false // 默认根据设置中的“关闭应用后退出”生效 (默认开启退出)
@@ -119,6 +120,136 @@ function getPerformanceThrottleState() {
   };
 }
 
+
+const { execFile } = require('child_process')
+
+// ======= 后台与托盘深度节能与内存释放引擎 =======
+let backgroundMemoryTrimTimer = null;
+let isPerformingCleanup = false;
+
+let nodeGc = null;
+try {
+  const v8 = require('v8');
+  const vm = require('vm');
+  v8.setFlagsFromString('--expose_gc');
+  nodeGc = vm.runInNewContext('gc');
+} catch (_) {}
+
+function getAllAppPids() {
+  const pids = new Set([process.pid]);
+  try {
+    if (typeof app.getAppMetrics === 'function') {
+      for (const m of app.getAppMetrics()) {
+        if (m && m.pid) pids.add(m.pid);
+      }
+    }
+  } catch (_) {}
+  try {
+    const { webContents } = require('electron');
+    if (webContents && typeof webContents.getAllWebContents === 'function') {
+      for (const wc of webContents.getAllWebContents()) {
+        if (wc && !wc.isDestroyed() && typeof wc.getOSProcessId === 'function') {
+          const pid = wc.getOSProcessId();
+          if (pid) pids.add(pid);
+        }
+      }
+    }
+  } catch (_) {}
+  return Array.from(pids);
+}
+
+function trimAllWorkingSets() {
+  if (process.platform !== 'win32') return;
+  const pids = getAllAppPids();
+  if (!pids.length) return;
+  const exePath = path.join(__dirname, 'scripts', 'trim_ws.exe');
+  if (fs.existsSync(exePath)) {
+    // 传递每个 PID 作为独立参数，同时首个参数包含逗号连接以最大兼容
+    const args = [pids.join(','), ...pids.map(String)];
+    execFile(exePath, args, { windowsHide: true, timeout: 4000 }, () => {});
+  }
+}
+
+function performBackgroundMemoryRelease() {
+  if (isPerformingCleanup) return;
+  isPerformingCleanup = true;
+
+  try {
+    // 1. 通知所有活跃窗口的渲染层释放空闲缓存与执行垃圾回收
+    const allWindows = BrowserWindow.getAllWindows();
+    for (const win of allWindows) {
+      if (win && !win.isDestroyed() && win.webContents) {
+        try {
+          win.webContents.send('background-deep-cleanup');
+        } catch (_) {}
+
+        try {
+          win.webContents.executeJavaScript('try { if (typeof window.gc === "function") window.gc(); } catch (_) {}').catch(() => {});
+        } catch (_) {}
+      }
+    }
+
+    // 2. 清理 Chromium 共享 Session 网络与临时渲染缓存（仅当主窗口处于非活跃状态时清理，避免在前台活跃展示时频繁擦除资源缓存）
+    try {
+      const throttleState = getPerformanceThrottleState();
+      if (!throttleState.isWindowActive) {
+        if (mainWindow && !mainWindow.isDestroyed() && mainWindow.webContents && mainWindow.webContents.session) {
+          mainWindow.webContents.session.clearCache().catch(() => {});
+        }
+      }
+    } catch (_) {}
+
+    // 3. 主进程 V8 堆内存紧缩与真实垃圾回收
+    try {
+      if (typeof nodeGc === 'function') {
+        nodeGc();
+      } else if (typeof global.gc === 'function') {
+        global.gc();
+      }
+    } catch (_) {}
+
+    // 4. 原生 Windows 物理内存 Working Set 深度压缩 (两阶段冲刷，确保异步释放的堆内存被物理清除)
+    setTimeout(() => {
+      trimAllWorkingSets();
+    }, 200);
+
+    setTimeout(() => {
+      trimAllWorkingSets();
+    }, 1000);
+  } finally {
+    isPerformingCleanup = false;
+  }
+}
+
+function scheduleBackgroundMemoryRelease(delayMs = 1500) {
+  if (backgroundMemoryTrimTimer) clearTimeout(backgroundMemoryTrimTimer);
+  backgroundMemoryTrimTimer = setTimeout(() => {
+    backgroundMemoryTrimTimer = null;
+    performBackgroundMemoryRelease();
+  }, delayMs);
+  backgroundMemoryTrimTimer.unref?.();
+}
+
+function cancelBackgroundMemoryRelease() {
+  if (backgroundMemoryTrimTimer) {
+    clearTimeout(backgroundMemoryTrimTimer);
+    backgroundMemoryTrimTimer = null;
+  }
+}
+
+function broadcastToAllWindows(channel, ...args) {
+  try {
+    const windows = BrowserWindow.getAllWindows();
+    for (const win of windows) {
+      if (win && !win.isDestroyed() && win.webContents) {
+        try {
+          win.webContents.send(channel, ...args);
+        } catch (_) {}
+      }
+    }
+  } catch (_) {}
+}
+
 function evaluatePerformanceThrottle() {
   // 迟滞回差判定
   if (currentCpuUsage >= 40) {
@@ -134,14 +265,21 @@ function evaluatePerformanceThrottle() {
   }
 
   const currentState = getPerformanceThrottleState();
-
-  if (!lastBroadcastThrottle ||
+  const stateChanged = !lastBroadcastThrottle ||
       lastBroadcastThrottle.pauseClockBreath !== currentState.pauseClockBreath ||
       lastBroadcastThrottle.pauseBgMotion !== currentState.pauseBgMotion ||
-      lastBroadcastThrottle.isWindowActive !== currentState.isWindowActive) {
+      lastBroadcastThrottle.isWindowActive !== currentState.isWindowActive;
+
+  if (stateChanged) {
+    const wasActive = lastBroadcastThrottle ? lastBroadcastThrottle.isWindowActive : true;
     lastBroadcastThrottle = currentState;
-    if (mainWindow && !mainWindow.isDestroyed() && mainWindow.webContents) {
-      mainWindow.webContents.send('performance-throttle-changed', currentState);
+    broadcastToAllWindows('performance-throttle-changed', currentState);
+
+    // 仅当窗口状态从活动真正转入非活动/隐藏/后台时，调度内存释放
+    if (!currentState.isWindowActive && wasActive) {
+      scheduleBackgroundMemoryRelease(2000);
+    } else if (currentState.isWindowActive) {
+      cancelBackgroundMemoryRelease();
     }
   }
 }
@@ -341,13 +479,32 @@ function createWindow() {
     isWindowFocused = false;
     evaluatePerformanceThrottle();
     rescheduleCpuMonitor();
+    scheduleBackgroundMemoryRelease(1500);
   });
 
+  mainWindow.on('show', () => {
+    cancelBackgroundMemoryRelease();
+  });
+
+  mainWindow.on('restore', () => {
+    cancelBackgroundMemoryRelease();
+  });
+
+  let isHidingToTray = false;
   mainWindow.on('close', (e) => {
     if (globalCloseToTray && !app.isQuiting) {
-      e.preventDefault()
-      mainWindow.hide()
-      return
+      e.preventDefault();
+      if (isHidingToTray) return;
+      isHidingToTray = true;
+      // 允许原生 Windows 标题栏覆盖按钮 (titleBarOverlay) 完成点击与悬停动画的退场帧，
+      // 避免由于瞬时 hide 导致 Chromium Views 原生 Button 的 CompositorAnimationObserver 被长久挂起报错
+      setTimeout(() => {
+        isHidingToTray = false;
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.hide();
+        }
+      }, 80);
+      return;
     }
     if (!mainWindow.isMaximized() && !mainWindow.isMinimized() && !mainWindow.isFullScreen()) {
       try {
@@ -526,26 +683,44 @@ function bringWindowToFront(window = mainWindow) {
 
 ipcMain.on('bring-main-to-front', () => bringWindowToFront())
 
-// ======= 自动更新懒加载管理器 (Lazy Auto-Updater) =======
+// ======= 自动更新引擎 (Robust Auto-Updater Engine) =======
 let autoUpdater = null;
 let isUpdaterInitialized = false;
 
-function getAutoUpdater() {
-  if (!autoUpdater) {
-    try {
-      autoUpdater = require('electron-updater').autoUpdater;
-      setupAutoUpdater();
-    } catch (e) {
-      console.warn('electron-updater 模块未加载 (可能处于纯本地开发/无 node_modules 环境):', e.message);
-    }
-  }
-  return autoUpdater;
-}
-
 let isUpdateDownloaded = false;
 let updateDownloadedInfo = null;
+let directDownloadedInstallerPath = null;
+let isDownloadingUpdate = false;
+let currentAvailableUpdate = null;
 let pendingUpdateProgress = null;
 let updateProgressTimer = null;
+let isCheckingForUpdate = false;
+
+// 友好的更新错误信息格式化工具 (防止抛出过长堆栈或技术 URL)
+function formatFriendlyUpdaterError(err) {
+  if (!err) return '网络连接异常，请稍后重试';
+  const msg = typeof err === 'string' ? err : (err.message || String(err));
+  if (msg.includes('CHANNEL_FILE_NOT_FOUND') || msg.includes('latest.yml') || msg.includes('404')) {
+    return '未在服务器找到更新配置文件，请稍后再试';
+  }
+  if (msg.includes('403') || msg.includes('rate limit') || msg.includes('API rate limit')) {
+    return '请求更新服务器过于频繁，请稍后再试';
+  }
+  if (msg.includes('ENOTFOUND') || msg.includes('ERR_INTERNET_DISCONNECTED') || msg.includes('ECONNREFUSED') || msg.includes('net::ERR_')) {
+    return '无法连接到更新服务器，请检查网络设置';
+  }
+  if (msg.includes('ETIMEDOUT') || msg.includes('timeout')) {
+    return '连接更新服务器超时，请稍后重试';
+  }
+  if (msg.includes('ERR_UPDATER_INVALID_SIGNATURE') || msg.includes('signature') || msg.includes('签名')) {
+    return '更新安装包安全签名验证未通过';
+  }
+  const cleaned = msg.replace(/https?:\/\/[^\s)]+/g, '').replace(/HttpError:\s*/g, '').replace(/Error:\s*/g, '').replace(/[()]/g, '').trim();
+  if (cleaned.length > 50 || cleaned.length === 0) {
+    return '检查更新遇到问题，请稍后重试';
+  }
+  return cleaned;
+}
 
 function clearPendingUpdateProgress() {
   pendingUpdateProgress = null;
@@ -564,13 +739,96 @@ function flushUpdateProgress() {
   if (mainWindow && !mainWindow.isDestroyed()) {
     const progressRatio = Math.min(Math.max((progressObj.percent || 0) / 100, 0), 1);
     mainWindow.setProgressBar(progressRatio);
-    mainWindow.webContents.send('updater-progress', {
-      percent: progressObj.percent || 0,
-      bytesPerSecond: progressObj.bytesPerSecond || 0,
-      transferred: progressObj.transferred || 0,
-      total: progressObj.total || 0
-    });
   }
+  broadcastToAllWindows('updater-progress', {
+    percent: progressObj.percent || 0,
+    bytesPerSecond: progressObj.bytesPerSecond || 0,
+    transferred: progressObj.transferred || 0,
+    total: progressObj.total || 0
+  });
+}
+
+// 语义化版本比对工具 (SemVer Comparator)
+function compareSemVer(v1, v2) {
+  if (!v1 || !v2) return 0;
+  const clean1 = String(v1).trim().replace(/^[vV]/, '').split('-')[0].split('.').map(n => parseInt(n, 10) || 0);
+  const clean2 = String(v2).trim().replace(/^[vV]/, '').split('-')[0].split('.').map(n => parseInt(n, 10) || 0);
+  for (let i = 0; i < Math.max(clean1.length, clean2.length); i++) {
+    const n1 = clean1[i] || 0;
+    const n2 = clean2[i] || 0;
+    if (n1 > n2) return 1;
+    if (n1 < n2) return -1;
+  }
+  return 0;
+}
+
+// 自定义 Authenticode 签名安全校验器 (兼顾安全校验与自签名证书支持)
+function verifyWindowsCodeSignature(publisherNames, unescapedTempUpdateFile) {
+  return new Promise((resolve) => {
+    if (process.platform !== 'win32') {
+      return resolve(null);
+    }
+    const tempUpdateFile = unescapedTempUpdateFile.replace(/'/g, "''");
+    const cmd = `Get-AuthenticodeSignature -LiteralPath '${tempUpdateFile}' | ConvertTo-Json -Compress`;
+    const { execFile } = require('child_process');
+    execFile(
+      'powershell.exe',
+      ['-NoProfile', '-NonInteractive', '-InputFormat', 'None', '-Command', cmd],
+      { timeout: 25000, windowsHide: true },
+      (error, stdout, stderr) => {
+        if (error || stderr) {
+          console.warn('[AutoUpdater] PowerShell 验签命令警告:', error || stderr);
+          return resolve(null); // 系统异常时不阻断升级
+        }
+        try {
+          const data = JSON.parse(stdout);
+          // Status: 0=Valid, 4=NotTrusted (自签证书正常状态)
+          // Status: 2=NotSigned (未签名), 3=HashMismatch (被篡改)
+          if (data.Status === 2) {
+            return resolve('安装包未包含 Authenticode 数字签名 (Status: NotSigned)');
+          }
+          if (data.Status === 3) {
+            return resolve('安装包数字签名哈希校验不匹配，文件可能已损坏或遭篡改 (Status: HashMismatch)');
+          }
+          if (!data.SignerCertificate || !data.SignerCertificate.Subject) {
+            return resolve('安装包缺少有效的签名证书信息');
+          }
+
+          const subject = data.SignerCertificate.Subject || '';
+          const thumbprint = (data.SignerCertificate.Thumbprint || '').toUpperCase();
+
+          // 预期证书信息 (匹配 devcert.pfx: CN=Zongyi, AF9A37626A4396289C03C7A037C3ECC3D44A0C3D)
+          const expectedCn = 'CN=Zongyi';
+          const expectedThumbprint = 'AF9A37626A4396289C03C7A037C3ECC3D44A0C3D';
+          const isPublisherMatch = subject.includes(expectedCn) ||
+            (Array.isArray(publisherNames) && publisherNames.some(p => subject.includes(p)));
+          const isThumbprintMatch = thumbprint === expectedThumbprint;
+
+          if (isPublisherMatch || isThumbprintMatch) {
+            console.log(`[AutoUpdater] 签名校验通过: Subject=${subject}, Thumbprint=${thumbprint}, Status=${data.Status}`);
+            return resolve(null);
+          }
+
+          return resolve(`签名发布者不匹配: ${subject}, 预期包含: ${expectedCn}`);
+        } catch (e) {
+          console.warn('[AutoUpdater] 解析签名信息异常:', e);
+          return resolve(null);
+        }
+      }
+    );
+  });
+}
+
+function getAutoUpdater() {
+  if (!autoUpdater) {
+    try {
+      autoUpdater = require('electron-updater').autoUpdater;
+      setupAutoUpdater();
+    } catch (e) {
+      console.warn('electron-updater 模块未加载 (可能处于纯本地开发/无 node_modules 环境):', e.message);
+    }
+  }
+  return autoUpdater;
 }
 
 function setupAutoUpdater() {
@@ -579,21 +837,50 @@ function setupAutoUpdater() {
 
   autoUpdater.autoDownload = false;
   autoUpdater.autoInstallOnAppQuit = true;
+  autoUpdater.logger = console;
+
+  // 开发环境启用 forceDevUpdateConfig 并注入源配置
+  if (!app.isPackaged) {
+    autoUpdater.forceDevUpdateConfig = true;
+    try {
+      autoUpdater.setFeedURL({
+        provider: 'github',
+        owner: 'Zongyil',
+        repo: 'Tasks'
+      });
+    } catch (_) {}
+  }
+
+  // 注入 Windows 自定义签名校验器
+  try {
+    autoUpdater.verifyUpdateCodeSignature = (publisherNames, tempUpdateFile) =>
+      verifyWindowsCodeSignature(publisherNames, tempUpdateFile);
+  } catch (_) {}
 
   autoUpdater.on('checking-for-update', () => {
-    mainWindow?.webContents.send('updater-status', { status: 'checking' });
+    if (!isCheckingForUpdate) {
+      broadcastToAllWindows('updater-status', { status: 'checking' });
+    }
   });
 
   autoUpdater.on('update-available', (info) => {
-    mainWindow?.webContents.send('updater-status', {
-      status: 'available',
-      info: info,
-      alreadyDownloaded: isUpdateDownloaded
-    });
+    currentAvailableUpdate = info;
+    if (!isCheckingForUpdate) {
+      broadcastToAllWindows('updater-status', {
+        status: 'available',
+        info: info,
+        version: info.version,
+        releaseDate: info.releaseDate,
+        releaseNotes: info.releaseNotes,
+        alreadyDownloaded: isUpdateDownloaded
+      });
+    }
   });
 
   autoUpdater.on('update-not-available', (info) => {
-    mainWindow?.webContents.send('updater-status', { status: 'not-available', info });
+    if (!isCheckingForUpdate) {
+      broadcastToAllWindows('updater-status', { status: 'not-available', info });
+    }
   });
 
   autoUpdater.on('error', (err) => {
@@ -601,14 +888,22 @@ function setupAutoUpdater() {
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.setProgressBar(-1);
     }
-    mainWindow?.webContents.send('updater-status', {
-      status: 'error',
-      error: err ? (err.message || String(err)) : '未知错误'
-    });
+    console.warn('[AutoUpdater] autoUpdater 错误:', err ? (err.message || err) : '未知');
+    // 若处于手动检查更新期间，不广播全局错误，避免打扰用户或与后续智能降级机制产生冲突
+    if (isCheckingForUpdate) {
+      return;
+    }
+    // 仅在正在后台下载更新失败时，才向窗口广播下载错误
+    if (isDownloadingUpdate) {
+      isDownloadingUpdate = false;
+      broadcastToAllWindows('updater-status', {
+        status: 'error',
+        error: formatFriendlyUpdaterError(err)
+      });
+    }
   });
 
   autoUpdater.on('download-progress', (progressObj) => {
-    // 下载器可能高频回调；按 100ms 合并任务栏与渲染进程更新。
     pendingUpdateProgress = progressObj;
     if (!updateProgressTimer) {
       updateProgressTimer = setTimeout(flushUpdateProgress, 100);
@@ -620,12 +915,10 @@ function setupAutoUpdater() {
     isUpdateDownloaded = true;
     updateDownloadedInfo = info;
 
-    // 清除任务栏进度条
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.setProgressBar(-1);
     }
 
-    // 接入系统原生 Notification 提示用户重启
     if (Notification.isSupported()) {
       const notif = new Notification({
         title: 'Tasks 更新已准备就绪',
@@ -633,19 +926,180 @@ function setupAutoUpdater() {
         urgency: 'normal'
       });
       notif.on('click', () => {
-        try {
-          if (autoUpdater) autoUpdater.quitAndInstall();
-        } catch (e) {
-          app.relaunch();
-          app.exit(0);
-        }
+        quitAndInstallUpdate();
       });
       notif.show();
     }
 
-    // 推送 update-downloaded 事件到渲染进程
-    mainWindow?.webContents.send('updater-status', { status: 'downloaded', info });
+    broadcastToAllWindows('updater-status', { status: 'downloaded', info });
   });
+}
+
+// 降级检索 GitHub Releases (当 electron-updater 因缺失 latest.yml 或网络异常失败时触发)
+async function fetchLatestGitHubReleaseFallback() {
+  try {
+    const res = await net.fetch('https://api.github.com/repos/Zongyil/Tasks/releases/latest', {
+      headers: {
+        'User-Agent': 'Tasks-Electron-App',
+        'Accept': 'application/vnd.github.v3+json'
+      }
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const tagName = data.tag_name || '';
+      const version = tagName.replace(/^[vV]/, '');
+      const exeAsset = Array.isArray(data.assets)
+        ? data.assets.find(a => a && a.name && a.name.toLowerCase().endsWith('.exe'))
+        : null;
+      return {
+        version,
+        tagName,
+        releaseName: data.name || tagName,
+        releaseNotes: data.body || '',
+        releaseDate: data.published_at,
+        releaseUrl: data.html_url,
+        downloadUrl: exeAsset ? exeAsset.browser_download_url : data.html_url,
+        assetName: exeAsset ? exeAsset.name : null,
+        assetSize: exeAsset ? exeAsset.size : 0,
+        isDirectDownload: !!exeAsset
+      };
+    }
+  } catch (e) {
+    console.warn('[AutoUpdater] Fallback GitHub API 请求失败:', e.message);
+  }
+  return null;
+}
+
+// 降级直接下载安装包 (带进度广播与 Authenticode 验签)
+async function downloadDirectInstaller(downloadUrl, assetName) {
+  const updateDir = path.join(app.getPath('userData'), 'pending-update');
+  await fs.promises.mkdir(updateDir, { recursive: true });
+  const targetFile = path.join(updateDir, assetName || 'Tasks-Setup-latest.exe');
+  const tempFile = targetFile + '.downloading';
+
+  if (fs.existsSync(tempFile)) {
+    try { await fs.promises.unlink(tempFile); } catch (_) {}
+  }
+
+  return new Promise((resolve, reject) => {
+    const request = net.request({
+      url: downloadUrl,
+      method: 'GET'
+    });
+
+    request.on('response', (response) => {
+      if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
+        const redirectUrl = Array.isArray(response.headers.location) ? response.headers.location[0] : response.headers.location;
+        return downloadDirectInstaller(redirectUrl, assetName).then(resolve).catch(reject);
+      }
+
+      if (response.statusCode !== 200) {
+        return reject(new Error(`下载更新失败 (HTTP ${response.statusCode})`));
+      }
+
+      const totalBytes = parseInt(response.headers['content-length'] || '0', 10);
+      let transferredBytes = 0;
+      let startTime = Date.now();
+      let lastProgressTime = startTime;
+      const fileStream = fs.createWriteStream(tempFile);
+
+      response.on('data', (chunk) => {
+        transferredBytes += chunk.length;
+        fileStream.write(chunk);
+
+        const now = Date.now();
+        if (now - lastProgressTime >= 100 || (totalBytes && transferredBytes >= totalBytes)) {
+          const elapsedSec = (now - startTime) / 1000;
+          const bytesPerSecond = elapsedSec > 0 ? Math.round(transferredBytes / elapsedSec) : 0;
+          const percent = totalBytes > 0 ? (transferredBytes / totalBytes) * 100 : 0;
+
+          pendingUpdateProgress = { percent, bytesPerSecond, transferred: transferredBytes, total: totalBytes };
+          if (!updateProgressTimer) {
+            updateProgressTimer = setTimeout(flushUpdateProgress, 100);
+          }
+          lastProgressTime = now;
+        }
+      });
+
+      response.on('end', async () => {
+        fileStream.end(async () => {
+          clearPendingUpdateProgress();
+          try {
+            if (fs.existsSync(targetFile)) {
+              try { await fs.promises.unlink(targetFile); } catch (_) {}
+            }
+            await fs.promises.rename(tempFile, targetFile);
+
+            // 运行安全验签
+            const signErr = await verifyWindowsCodeSignature(['CN=Zongyi'], targetFile);
+            if (signErr) {
+              try { await fs.promises.unlink(targetFile); } catch (_) {}
+              return reject(new Error(`安全校验失败: ${signErr}`));
+            }
+
+            directDownloadedInstallerPath = targetFile;
+            isUpdateDownloaded = true;
+            updateDownloadedInfo = {
+              version: currentAvailableUpdate?.version || 'new',
+              downloadedFile: targetFile
+            };
+
+            if (mainWindow && !mainWindow.isDestroyed()) {
+              mainWindow.setProgressBar(-1);
+            }
+
+            if (Notification.isSupported()) {
+              const notif = new Notification({
+                title: 'Tasks 更新已准备就绪',
+                body: `新版本已下载完成，点击或在设置中重启应用即可完成更新。`,
+                urgency: 'normal'
+              });
+              notif.on('click', () => {
+                quitAndInstallUpdate();
+              });
+              notif.show();
+            }
+
+            broadcastToAllWindows('updater-status', { status: 'downloaded', info: updateDownloadedInfo });
+            resolve(targetFile);
+          } catch (err) {
+            reject(err);
+          }
+        });
+      });
+
+      response.on('error', (err) => {
+        fileStream.close();
+        try { fs.unlinkSync(tempFile); } catch (_) {}
+        reject(err);
+      });
+    });
+
+    request.on('error', (err) => {
+      reject(err);
+    });
+
+    request.end();
+  });
+}
+
+function quitAndInstallUpdate() {
+  if (directDownloadedInstallerPath && fs.existsSync(directDownloadedInstallerPath)) {
+    const { spawn } = require('child_process');
+    spawn(directDownloadedInstallerPath, ['--updated'], {
+      detached: true,
+      stdio: 'ignore'
+    }).unref();
+    app.exit(0);
+    return;
+  }
+  const updater = getAutoUpdater();
+  if (updater && isUpdateDownloaded) {
+    updater.quitAndInstall(false, true);
+  } else {
+    app.relaunch();
+    app.exit(0);
+  }
 }
 
 // ======= 版本信息读取 & 自动更新 IPC =======
@@ -665,21 +1119,86 @@ ipcMain.handle('read-version-json', async () => {
   return versionInfoPromise;
 });
 
-
 ipcMain.handle('check-for-update', async () => {
   if (isUpdateDownloaded) {
     return { status: 'downloaded', info: updateDownloadedInfo };
   }
-  const updater = getAutoUpdater();
-  if (!updater) {
-    return { status: 'unavailable', message: 'electron-updater 未就绪' };
-  }
+
+  isCheckingForUpdate = true;
   try {
-    const result = await updater.checkForUpdates();
-    return { status: 'checking', updateInfo: result?.updateInfo };
-  } catch (e) {
-    console.error('检查更新失败:', e);
-    return { status: 'error', error: e.message };
+    let currentVer = '12.8.0';
+    try {
+      const versionData = await fs.promises.readFile(path.join(__dirname, 'version.json'), 'utf8');
+      currentVer = JSON.parse(versionData).version || currentVer;
+    } catch (_) {}
+
+    const updater = getAutoUpdater();
+    let autoUpdaterError = null;
+
+    if (updater) {
+      try {
+        const result = await updater.checkForUpdates();
+        if (result) {
+          const updateInfo = result.updateInfo;
+          const latestVer = updateInfo.version;
+          const cmp = compareSemVer(latestVer, currentVer);
+
+          if (cmp > 0 && result.isUpdateAvailable) {
+            currentAvailableUpdate = updateInfo;
+            return {
+              status: 'available',
+              updateInfo,
+              version: latestVer,
+              releaseDate: updateInfo.releaseDate,
+              releaseNotes: updateInfo.releaseNotes,
+              isDifferential: true
+            };
+          } else if (cmp < 0) {
+            return { status: 'ahead', version: latestVer, currentVersion: currentVer };
+          } else {
+            return { status: 'not-available', version: latestVer, currentVersion: currentVer };
+          }
+        }
+      } catch (err) {
+        autoUpdaterError = err;
+        console.warn('[AutoUpdater] electron-updater 检查失败, 尝试启动智能降级引擎:', err.message);
+      }
+    }
+
+    // 触发 Fallback GitHub Release 检索
+    const fallbackRelease = await fetchLatestGitHubReleaseFallback();
+    if (fallbackRelease && fallbackRelease.version) {
+      const cmp = compareSemVer(fallbackRelease.version, currentVer);
+      if (cmp > 0) {
+        currentAvailableUpdate = fallbackRelease;
+        return {
+          status: 'available',
+          updateInfo: fallbackRelease,
+          version: fallbackRelease.version,
+          releaseDate: fallbackRelease.releaseDate,
+          releaseNotes: fallbackRelease.releaseNotes,
+          downloadUrl: fallbackRelease.downloadUrl,
+          releaseUrl: fallbackRelease.releaseUrl,
+          isDirectDownload: fallbackRelease.isDirectDownload
+        };
+      } else if (cmp < 0) {
+        return { status: 'ahead', version: fallbackRelease.version, currentVersion: currentVer };
+      } else {
+        return { status: 'not-available', version: fallbackRelease.version, currentVersion: currentVer };
+      }
+    }
+
+    if (autoUpdaterError) {
+      return {
+        status: 'error',
+        error: formatFriendlyUpdaterError(autoUpdaterError),
+        releaseUrl: 'https://github.com/Zongyil/Tasks/releases'
+      };
+    }
+
+    return { status: 'not-available', version: currentVer };
+  } finally {
+    isCheckingForUpdate = false;
   }
 });
 
@@ -687,28 +1206,67 @@ ipcMain.handle('start-download-update', async () => {
   if (isUpdateDownloaded) {
     return { status: 'downloaded', info: updateDownloadedInfo };
   }
-  const updater = getAutoUpdater();
-  if (!updater) {
-    return { status: 'unavailable', message: 'electron-updater 未就绪' };
-  }
-  try {
-    await updater.downloadUpdate();
+
+  if (isDownloadingUpdate) {
     return { status: 'downloading' };
-  } catch (e) {
-    console.error('触发下载更新失败:', e);
-    return { status: 'error', error: e.message };
   }
+  isDownloadingUpdate = true;
+
+  const updater = getAutoUpdater();
+
+  // 若 autoUpdater 已经成功识别更新配置，优先尝试差分下载
+  if (updater && updater.updateInfoAndProvider) {
+    try {
+      await updater.downloadUpdate();
+      return { status: 'downloading' };
+    } catch (diffErr) {
+      console.warn('[AutoUpdater] 差分更新失败, 自动回退全量下载:', diffErr.message);
+      try {
+        updater.disableDifferentialDownload = true;
+        await updater.downloadUpdate();
+        return { status: 'downloading' };
+      } catch (fullErr) {
+        console.error('[AutoUpdater] 全量更新下载失败:', fullErr.message);
+      }
+    }
+  }
+
+  // 若 autoUpdater 无法直接下载（如 Release 缺少 latest.yml），采用 directDownload 回退机制
+  if (currentAvailableUpdate && currentAvailableUpdate.downloadUrl && currentAvailableUpdate.isDirectDownload) {
+    try {
+      downloadDirectInstaller(currentAvailableUpdate.downloadUrl, currentAvailableUpdate.assetName)
+        .then(() => {
+          isDownloadingUpdate = false;
+        })
+        .catch((err) => {
+          isDownloadingUpdate = false;
+          console.error('[AutoUpdater] 直接下载安装包失败:', err);
+          broadcastToAllWindows('updater-status', { status: 'error', error: formatFriendlyUpdaterError(err) });
+        });
+      return { status: 'downloading' };
+    } catch (err) {
+      isDownloadingUpdate = false;
+      return { status: 'error', error: formatFriendlyUpdaterError(err) };
+    }
+  }
+
+  isDownloadingUpdate = false;
+  return { status: 'error', error: '未找到可用的安装包下载地址' };
 });
 
 ipcMain.handle('quit-and-install-update', () => {
-  const updater = getAutoUpdater();
-  if (updater && isUpdateDownloaded) {
-    updater.quitAndInstall();
-  } else {
-    app.relaunch();
-    app.exit(0);
+  quitAndInstallUpdate();
+});
+
+// 外部超链接安全打开处理 (仅限 http/https)
+ipcMain.on('open-external', (event, targetUrl) => {
+  if (typeof targetUrl === 'string' && (targetUrl.startsWith('https://') || targetUrl.startsWith('http://'))) {
+    shell.openExternal(targetUrl).catch((err) => {
+      console.warn('打开外部链接失败:', err);
+    });
   }
 });
+
 
 // ======= 单实例运行 & 自定义协议 handle 逻辑 =======
 function extractProtocolUrl(args) {
@@ -821,6 +1379,7 @@ if (!gotTheLock) {
   // ======= 托盘、自启与无边框小窗管理引擎 =======
   let contextMenuReadyPromise = null;
   let contextMenuHideTimer = null;
+  let contextMenuIdleDestroyTimer = null;
 
   function showMainWindow() {
     if (!mainWindow || mainWindow.isDestroyed()) {
@@ -830,7 +1389,27 @@ if (!gotTheLock) {
     bringWindowToFront(mainWindow);
   }
 
+  function scheduleContextMenuIdleDestroy() {
+    if (contextMenuIdleDestroyTimer) clearTimeout(contextMenuIdleDestroyTimer);
+    contextMenuIdleDestroyTimer = setTimeout(() => {
+      contextMenuIdleDestroyTimer = null;
+      if (contextMenuWindow && !contextMenuWindow.isDestroyed() && !contextMenuWindow.isVisible()) {
+        try {
+          contextMenuWindow.destroy();
+        } catch (_) {}
+        contextMenuWindow = null;
+        contextMenuReadyPromise = null;
+      }
+    }, 20000);
+    contextMenuIdleDestroyTimer.unref?.();
+  }
+
   function createContextMenuWindow() {
+    if (contextMenuIdleDestroyTimer) {
+      clearTimeout(contextMenuIdleDestroyTimer);
+      contextMenuIdleDestroyTimer = null;
+    }
+
     if (contextMenuWindow && !contextMenuWindow.isDestroyed()) {
       return contextMenuReadyPromise || Promise.resolve();
     }
@@ -902,6 +1481,7 @@ if (!gotTheLock) {
     contextMenuHideTimer = setTimeout(() => {
       if (contextMenuWindow && !contextMenuWindow.isDestroyed()) {
         contextMenuWindow.hide();
+        scheduleContextMenuIdleDestroy();
       }
       contextMenuHideTimer = null;
     }, 95);
@@ -1227,6 +1807,16 @@ if (!gotTheLock) {
     globalCloseToTray = enable;
   });
 
+  ipcMain.on('trim-memory', () => {
+    performBackgroundMemoryRelease();
+  });
+
+  ipcMain.on('set-window-title', (_event, title) => {
+    if (mainWindow && !mainWindow.isDestroyed() && typeof title === 'string') {
+      mainWindow.setTitle(title);
+    }
+  });
+
   ipcMain.on('app-quit', () => {
     app.isQuiting = true;
     app.quit();
@@ -1270,7 +1860,6 @@ if (!gotTheLock) {
     if (tray) return;
     tray = new Tray(path.join(__dirname, 'Icon.ico'));
     tray.setToolTip('Tasks');
-    void createContextMenuWindow();
 
     tray.on('click', () => {
       showMainWindow();
@@ -1292,25 +1881,29 @@ if (!gotTheLock) {
     setupProtocolClient();
     createTray();
 
-    // 监听系统电源与锁屏状态, 联动降载引擎
+    // 监听系统电源与锁屏状态, 联动降载引擎并广播至所有窗口
     if (powerMonitor) {
       powerMonitor.on('suspend', () => {
         isSystemSuspended = true;
+        broadcastToAllWindows('system-suspend');
         evaluatePerformanceThrottle();
         rescheduleCpuMonitor();
       });
       powerMonitor.on('resume', () => {
         isSystemSuspended = false;
+        broadcastToAllWindows('system-resume');
         evaluatePerformanceThrottle();
         rescheduleCpuMonitor(true);
       });
       powerMonitor.on('lock-screen', () => {
         isSystemLocked = true;
+        broadcastToAllWindows('system-lock-screen');
         evaluatePerformanceThrottle();
         rescheduleCpuMonitor();
       });
       powerMonitor.on('unlock-screen', () => {
         isSystemLocked = false;
+        broadcastToAllWindows('system-unlock-screen');
         evaluatePerformanceThrottle();
         rescheduleCpuMonitor(true);
       });
@@ -1342,11 +1935,16 @@ if (!gotTheLock) {
     // 建立唯一的带有系统材质的主窗口
     createWindow(); 
 
+    // 初始化全局日程闹钟调度器 (支持托盘/后台持续监听)
+    loadAlarmsFromDisk();
+    loadRingtoneFromDisk();
+    startAlarmScheduler();
   });
 
   app.on('before-quit', () => {
     app.isQuiting = true;
     stopCpuMonitor();
+    stopAlarmScheduler();
     clearPendingUpdateProgress();
 
     if (bringToFrontTimer) {
@@ -1366,33 +1964,202 @@ if (!gotTheLock) {
       clearTimeout(contextMenuFocusTimer);
       contextMenuFocusTimer = null;
     }
+    if (contextMenuIdleDestroyTimer) {
+      clearTimeout(contextMenuIdleDestroyTimer);
+      contextMenuIdleDestroyTimer = null;
+    }
   });
 }
 
-// ======= 日程系统级持续通知逻辑 =======
+// ======= 全局日程闹钟主进程持久化与高精度调度引擎 =======
+let globalAlarms = [];
+let globalRingtone = null;
+let alarmSchedulerTimer = null;
+
+function getAlarmsFilePath() {
+  return path.join(app.getPath('userData'), 'alpha_alarms.json');
+}
+
+function getRingtoneFilePath() {
+  return path.join(app.getPath('userData'), 'alpha_ringtone.json');
+}
+
+function loadAlarmsFromDisk() {
+  try {
+    const filePath = getAlarmsFilePath();
+    if (fs.existsSync(filePath)) {
+      const data = fs.readFileSync(filePath, 'utf8');
+      const parsed = JSON.parse(data);
+      if (Array.isArray(parsed)) {
+        globalAlarms = parsed;
+      }
+    }
+  } catch (err) {
+    console.error('Failed to load alarms from disk:', err);
+  }
+}
+
+function saveAlarmsToDisk() {
+  try {
+    const filePath = getAlarmsFilePath();
+    fs.writeFileSync(filePath, JSON.stringify(globalAlarms, null, 2), 'utf8');
+  } catch (err) {
+    console.error('Failed to save alarms to disk:', err);
+  }
+}
+
+function loadRingtoneFromDisk() {
+  try {
+    const filePath = getRingtoneFilePath();
+    if (fs.existsSync(filePath)) {
+      const data = fs.readFileSync(filePath, 'utf8');
+      globalRingtone = JSON.parse(data);
+    }
+  } catch (err) {
+    globalRingtone = null;
+  }
+}
+
+function saveRingtoneToDisk(ringtone) {
+  try {
+    globalRingtone = ringtone;
+    const filePath = getRingtoneFilePath();
+    fs.writeFileSync(filePath, JSON.stringify(ringtone, null, 2), 'utf8');
+  } catch (err) {
+    console.error('Failed to save ringtone to disk:', err);
+  }
+}
+
+function stopAlarmAll() {
+  const windows = [mainWindow, taskHubSmWindow, taskFlowSmWindow, taskTimerSmWindow, pipWindow];
+  for (const win of windows) {
+    if (win && !win.isDestroyed() && win.webContents) {
+      try { win.webContents.send('stop-alarm'); } catch (_) {}
+    }
+  }
+}
+
+function triggerAlarm(al) {
+  // 1. 发送 Windows / 系统原生 Toast 通知
+  if (Notification.isSupported()) {
+    const iconPath = path.join(__dirname, 'Icon.png');
+    const notification = new Notification({
+      title: `日程提醒: ${al.time} 到了!`,
+      body: al.name || '日程提醒',
+      icon: fs.existsSync(iconPath) ? iconPath : undefined,
+      urgency: 'critical',
+      timeoutType: 'never',
+      silent: false
+    });
+
+    notification.on('click', () => {
+      stopAlarmAll();
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        if (mainWindow.isMinimized()) mainWindow.restore();
+        if (!mainWindow.isVisible()) mainWindow.show();
+        mainWindow.focus();
+      }
+    });
+
+    notification.on('close', () => {
+      stopAlarmAll();
+    });
+
+    notification.show();
+  }
+
+  // 2. 向所有窗口广播闹钟触发事件
+  const windows = [mainWindow, taskHubSmWindow, taskFlowSmWindow, taskTimerSmWindow, pipWindow];
+  for (const win of windows) {
+    if (win && !win.isDestroyed() && win.webContents) {
+      try {
+        win.webContents.send('alarm-triggered', {
+          id: al.id,
+          time: al.time,
+          name: al.name,
+          triggeredDay: al.triggeredDay
+        });
+      } catch (_) {}
+    }
+  }
+}
+
+function checkAlarmsTick() {
+  if (!globalAlarms || !globalAlarms.length) return;
+  const now = new Date();
+  const currentHM = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  const todayStr = `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}`;
+
+  let hasTriggered = false;
+  for (const al of globalAlarms) {
+    if (al && al.time === currentHM && al.triggeredDay !== todayStr) {
+      al.triggeredDay = todayStr;
+      hasTriggered = true;
+      triggerAlarm(al);
+    }
+  }
+
+  if (hasTriggered) {
+    saveAlarmsToDisk();
+  }
+}
+
+function startAlarmScheduler() {
+  if (alarmSchedulerTimer) clearInterval(alarmSchedulerTimer);
+  alarmSchedulerTimer = setInterval(checkAlarmsTick, 1000);
+  alarmSchedulerTimer.unref?.();
+}
+
+function stopAlarmScheduler() {
+  if (alarmSchedulerTimer) {
+    clearInterval(alarmSchedulerTimer);
+    alarmSchedulerTimer = null;
+  }
+}
+
+// ======= 日程闹钟与系统通知 IPC 绑定 =======
+ipcMain.on('sync-alarms', (event, alarms) => {
+  if (Array.isArray(alarms)) {
+    globalAlarms = alarms;
+    saveAlarmsToDisk();
+  }
+});
+
+ipcMain.on('sync-ringtone', (event, ringtoneData) => {
+  saveRingtoneToDisk(ringtoneData);
+});
+
+ipcMain.handle('get-alarms', () => {
+  return globalAlarms;
+});
+
+ipcMain.on('stop-alarm-audio', () => {
+  stopAlarmAll();
+});
+
 ipcMain.on('show-alarm-notification', (event, { title, body }) => {
   if (!Notification.isSupported()) return;
-  
+  const iconPath = path.join(__dirname, 'Icon.png');
   const notification = new Notification({
     title: title || 'TaskHub 日程提醒',
-    body: body,
-    // 已移除 actions 数组
-    urgency: 'critical', // Windows/Linux: 提高优先级
-    timeoutType: 'never' // Windows: 保持通知不自动消失
+    body: body || '',
+    icon: fs.existsSync(iconPath) ? iconPath : undefined,
+    urgency: 'critical',
+    timeoutType: 'never',
+    silent: false
   });
 
-  // 点击通知的文本/主体任意地方 → 仅静音, 【绝对不】执行窗口恢复或置顶
   notification.on('click', () => {
-    if (mainWindow) {
-      mainWindow.webContents.send('stop-alarm');
+    stopAlarmAll();
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      if (!mainWindow.isVisible()) mainWindow.show();
+      mainWindow.focus();
     }
   });
 
-  // 点击系统自带“关闭”按钮（或划走通知）→ 仅静音, 【绝对不】打开软件
   notification.on('close', () => {
-    if (mainWindow) {
-      mainWindow.webContents.send('stop-alarm');
-    }
+    stopAlarmAll();
   });
 
   notification.show();

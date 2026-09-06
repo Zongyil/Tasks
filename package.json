@@ -4,7 +4,7 @@
   "description": "轻量时间管理助手",
   "keywords": [],
   "main": "./main.js",
-  "version": "12.0.0",
+  "version": "12.8.0",
   "author": "Zongyi",
   "scripts": {
     "start": "electron .",
@@ -15,7 +15,7 @@
     "electron-updater": "^6.8.9"
   },
   "devDependencies": {
-    "electron": "44.0.0-beta.5",
+    "electron": "^44.0.0",
     "electron-builder": "^27.0.0-alpha.5",
     "electron-link": "^0.6.0",
     "v8-compile-cache": "^2.4.0"
@@ -57,7 +57,7 @@
       "icons/**/*",
       "lite/**/*",
       "scripts/**/*",
-      ".cache"
+      ".cache/**/*"
     ],
     "publish": [
       {
@@ -71,17 +71,21 @@
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         },
         {
           "target": "msix",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "sign": {
-      "type": "signtool",
-      "certificateFile": "devcert.pfx",
-      "certificatePassword": "password"
+        "type": "signtool",
+        "certificateFile": "devcert.pfx",
+        "certificatePassword": "password"
       },
       "fileAssociations": [
         {

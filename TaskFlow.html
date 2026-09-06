@@ -409,6 +409,12 @@ body::after {
 .side-label { color: var(--sub); font-size: 14px; margin-bottom: 8px; font-weight: 600;}
 .side-number { font-size: 28px; font-weight: 800; display: inline-flex; align-items: center; }
 
+/* 保证侧栏卡片内文字处于高光层之上，防止 mix-blend-mode 覆盖冲淡文字 */
+.side-card > *:not(.alpha-card-glow-host) {
+    position: relative;
+    z-index: 2;
+}
+
 .main { 
     grid-column: 3; /* 锁定在第三列 */
     display: flex; 
@@ -445,7 +451,7 @@ label { font-size: 14px; font-weight: 700; color: #334155; }
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
     isolation: isolate;
-    transition: transform .3s var(--ease), background-color .3s var(--ease), box-shadow .3s var(--ease), border-color .3s var(--ease), color .3s var(--ease); 
+    transition: transform 0.16s cubic-bezier(0.16, 1, 0.3, 1), background 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, color 0.2s ease; 
     font-size: 14px; font-weight: 700; color: #475569;
     cursor: pointer; user-select: none;
 }
@@ -458,21 +464,51 @@ label { font-size: 14px; font-weight: 700; color: #334155; }
     color: #0f172a;
 }
 
-.subject-item:active span,
-.subject-item:active input:checked + span {
+.subject-item:active span {
     background-color: rgba(255, 255, 255, 0.25);
     box-shadow: 0 2px 4px rgba(15, 23, 42, 0.04), inset 0 2px 6px rgba(0, 0, 0, 0.02);
     transition-duration: 0.1s; 
 }
 
 .subject-item input:checked + span {
-    background-color: rgba(157, 210, 255, 0.15) !important;
-    border-color: rgba(157, 210, 255, 0.7) !important;
+    background: radial-gradient(ellipse at 52% 40%, rgba(180, 222, 255, 0.52) 0%, rgba(186, 225, 255, 0.28) 16%, rgba(195, 230, 255, 0.19) 32%, rgba(205, 234, 255, 0.11) 48%, rgba(218, 240, 255, 0.055) 64%, rgba(232, 245, 255, 0.022) 80%, rgba(255, 255, 255, 0.010) 92%, transparent 96%) !important;
+    border: 0.5px solid rgba(147, 197, 253, 0.28) !important;
+    border-top: 0.75px solid rgba(210, 235, 255, 0.50) !important;
     color: #17436b !important;
-    box-shadow: 0 8px 20px rgba(157, 210, 255, 0.2), inset 0 2px 4px rgba(255, 255, 255, 0.95), inset 0 -1px 3px rgba(157, 210, 255, 0.15) !important;
+    box-shadow: inset 0 0 0 0.25px rgba(147, 197, 253, 0.35),
+                0 8px 20px rgba(15, 23, 42, 0.06), 
+                0 0 12px rgba(147, 197, 253, 0.20), 
+                inset 1.5px 2px 5px rgba(255, 255, 255, 0.55), 
+                inset -1px -2px 6px rgba(147, 197, 253, 0.16), 
+                inset 0 0 12px rgba(186, 230, 253, 0.18) !important;
     transform: translate3d(0, -2px, 0) scale(1.02);
-    backdrop-filter: blur(12px) saturate(130%);
-    -webkit-backdrop-filter: blur(12px) saturate(130%);
+    backdrop-filter: blur(16px) saturate(140%) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(140%) !important;
+}
+
+.subject-item:hover input:checked + span {
+    background: radial-gradient(ellipse at 52% 40%, rgba(180, 222, 255, 0.60) 0%, rgba(186, 225, 255, 0.33) 16%, rgba(195, 230, 255, 0.22) 32%, rgba(205, 234, 255, 0.13) 48%, rgba(218, 240, 255, 0.065) 64%, rgba(232, 245, 255, 0.030) 80%, rgba(255, 255, 255, 0.015) 92%, transparent 96%) !important;
+    border: 0.5px solid rgba(147, 197, 253, 0.35) !important;
+    border-top: 0.75px solid rgba(225, 240, 255, 0.60) !important;
+    box-shadow: inset 0 0 0 0.25px rgba(147, 197, 253, 0.45),
+                0 10px 24px rgba(147, 197, 253, 0.20), 
+                0 0 14px rgba(147, 197, 253, 0.22), 
+                inset 1.5px 2px 6px rgba(255, 255, 255, 0.70), 
+                inset -1px -2px 6px rgba(147, 197, 253, 0.20), 
+                inset 0 0 14px rgba(186, 230, 253, 0.22) !important;
+    color: #17436b !important;
+}
+
+.subject-item:active input:checked + span {
+    background: radial-gradient(ellipse at 52% 40%, rgba(180, 222, 255, 0.52) 0%, rgba(186, 225, 255, 0.26) 16%, rgba(195, 230, 255, 0.16) 32%, rgba(205, 234, 255, 0.08) 48%, rgba(218, 240, 255, 0.035) 64%, transparent 82%) !important;
+    border: 0.5px solid rgba(147, 197, 253, 0.28) !important;
+    border-top: 0.75px solid rgba(210, 235, 255, 0.50) !important;
+    box-shadow: inset 0 0 0 0.25px rgba(147, 197, 253, 0.35),
+                0 2px 8px rgba(147, 197, 253, 0.15), 
+                inset 1px 1.5px 4px rgba(255, 255, 255, 0.50), 
+                inset 0 0 10px rgba(186, 230, 253, 0.16) !important;
+    color: #17436b !important;
+    transform: translate3d(0, 0, 0) scale(0.98);
 }
 
 /* 输入框 */
@@ -1823,7 +1859,7 @@ select.flatpickr-monthDropdown-months,
     position: fixed; right: 40px; bottom: 40px; width: 64px; height: 64px;
     border-radius: 50%; cursor: grab; z-index: 9999;
     display: flex; align-items: center; justify-content: center;
-    background: radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0.15) 55%, transparent 92%) !important;
+    background: radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.38) 0%, rgba(255, 255, 255, 0.10) 55%, transparent 92%);
     border-top: 2px solid rgba(255, 255, 255, 0.95) !important;
     border-left: 1px solid rgba(255, 255, 255, 0.8) !important;
     border-right: 1px solid rgba(255, 255, 255, 0.35) !important;
@@ -1831,20 +1867,19 @@ select.flatpickr-monthDropdown-months,
     backdrop-filter: blur(20px) saturate(130%); -webkit-backdrop-filter: blur(20px) saturate(130%);
     
     box-shadow: 0 16px 36px rgba(15, 23, 42, 0.15), inset 0 0 0 1px rgba(255, 255, 255, 0.12), inset 2px 3px 10px rgba(255, 255, 255, 0.5), inset -2px -3px 10px rgba(0, 0, 0, 0.04), inset 5px 6px 20px rgba(255, 255, 255, 0.2) !important;
-    transition: transform 0.2s cubic-bezier(0.4, 2.08, 0.55, 0.44), backdrop-filter 0.2s ease, -webkit-backdrop-filter 0.2s ease, background 0.2s ease;
+    transition: transform 0.36s cubic-bezier(0.34, 1.6, 0.64, 1);
     user-select: none; touch-action: none;
 }
 .glass-sphere:hover {
     transform: scale(1.05);
-    backdrop-filter: blur(20px) saturate(130%) brightness(1.08);
-    -webkit-backdrop-filter: blur(20px) saturate(130%) brightness(1.08);
 }
 .glass-sphere:active {
-    cursor: grabbing; transform: scale(0.95);
-    backdrop-filter: blur(20px) saturate(130%);
-    -webkit-backdrop-filter: blur(20px) saturate(130%);
-    background: radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.35) 0%, rgba(255, 255, 255, 0.05) 55%, transparent 92%) !important;
-    transition: transform 0.1s;
+    cursor: grabbing; transform: scale(0.92);
+    transition: transform 0.12s cubic-bezier(0.25, 1, 0.5, 1);
+}
+.glass-sphere.is-dragging {
+    cursor: grabbing !important;
+    will-change: left, top;
 }
 .sphere-icon { width: 34px; height: 34px; object-fit: contain; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.1)); pointer-events: none;}
 
@@ -2047,6 +2082,22 @@ select.flatpickr-monthDropdown-months,
 .liquid-leave, .view-date-tag.liquid-leave {
     animation: liquidSubmerge 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards !important;
     pointer-events: none;
+}
+html.alpha-sleep .liquid-enter,
+html.pause-bg-motion .liquid-enter {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+}
+html.alpha-sleep .liquid-leave,
+html.pause-bg-motion .liquid-leave {
+    display: none !important;
+}
+html.alpha-sleep input:focus,
+html.alpha-sleep textarea:focus,
+html.alpha-sleep [contenteditable]:focus {
+    caret-color: auto !important;
 }
 @keyframes liquidSurface {
     0% { opacity: 0; transform: translateY(16px) scale(0.96); filter: blur(10px); }
@@ -2271,27 +2322,40 @@ select.flatpickr-monthDropdown-months,
     width: 56px !important; /* 缩小 Logo 按钮 */
     height: 56px !important;
     margin: 0 !important;
-    background: rgba(255, 255, 255, 0.25);
-    border: 1px solid rgba(255, 255, 255, 0.8);
+    background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.08) 45%, transparent 75%) !important;
+    border-top: 2px solid rgba(255, 255, 255, 0.95) !important;
+    border-left: 1px solid rgba(255, 255, 255, 0.80) !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.35) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.25) !important;
     border-radius: var(--radius-sub) !important;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    backdrop-filter: blur(20px) saturate(130%);
-    -webkit-backdrop-filter: blur(20px) saturate(130%);
+    backdrop-filter: blur(32px) saturate(135%);
+    -webkit-backdrop-filter: blur(32px) saturate(135%);
     box-shadow: 
-        0 8px 24px rgba(15, 23, 42, 0.08), 
-        inset 0 2px 4px rgba(255, 255, 255, 0.95),
-        inset 0 -1.5px 2px rgba(157, 210, 255, 0.2) !important;
+        0 12px 32px rgba(15, 23, 42, 0.08),
+        0 4px 12px -2px rgba(15, 23, 42, 0.04),
+        inset 0 1.5px 2px 0 rgba(255, 255, 255, 0.85),
+        inset 2px 3px 10px rgba(255, 255, 255, 0.35),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.10),
+        inset 4px 6px 20px rgba(255, 255, 255, 0.15),
+        inset -2px -3px 8px rgba(0, 0, 0, 0.02) !important;
     cursor: pointer;
-    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.4s ease !important;
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.4s ease, border-color 0.4s ease !important;
 }
 .logo-icon-box:hover {
     transform: scale(1.05);
+    border-top: 2px solid rgba(255, 255, 255, 1) !important;
+    border-left: 1px solid rgba(255, 255, 255, 1) !important;
     box-shadow: 
-        0 14px 32px rgba(15, 23, 42, 0.15), 
-        inset 0 2px 5px rgba(255, 255, 255, 1) !important;
+        0 18px 40px rgba(15, 23, 42, 0.16), 
+        0 0 22px rgba(255, 255, 255, 0.65),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.30), 
+        inset 2px 3px 14px rgba(255, 255, 255, 0.85), 
+        inset 0 2px 4px rgba(255, 255, 255, 0.95), 
+        inset 4px 6px 22px rgba(255, 255, 255, 0.35) !important;
 }
 .logo-icon-box:active {
     transform: scale(0.95);
@@ -2337,140 +2401,156 @@ select.flatpickr-monthDropdown-months,
    App Switcher 渐变模糊遮罩 (Gradient & Base Blur Mask)
 =========================== */
 .app-switcher-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 9998; /* 确保在轨道下方, 但在页面内容上方 */
+    position: fixed; inset: 0; z-index: 10001;
     background-color: rgba(148, 163, 184, 0.4);
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.04'/%3E%3C/svg%3E");
     backdrop-filter: blur(12px) saturate(140%);
     -webkit-backdrop-filter: blur(12px) saturate(140%);
-    
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.5s cubic-bezier(0.22, 1, 0.36, 1), visibility 0s 0.5s;
+    opacity: 0; visibility: hidden;
+    transition: opacity 0.28s cubic-bezier(0.22, 1, 0.36, 1), visibility 0s 0.28s;
     will-change: opacity;
+    pointer-events: none;
+    transform: translateZ(0);
 }
-
-/* 全局第二层: 从左上到右下的渐变增强模糊 */
 .app-switcher-overlay::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    backdrop-filter: blur(40px);
-    -webkit-backdrop-filter: blur(40px);
-    -webkit-mask-image: linear-gradient(to bottom right, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 85%);
-    mask-image: linear-gradient(to bottom right, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 85%);
-    pointer-events: none;
+    display: none !important;
 }
+.app-switcher-overlay.open { opacity: 1; visibility: visible; pointer-events: auto; transition: opacity 0.28s cubic-bezier(0.22, 1, 0.36, 1), visibility 0s 0s; }
 
-.app-switcher-overlay.open {
-    opacity: 1;
-    visibility: visible;
-    pointer-events: auto;
-    transition: opacity 0.5s cubic-bezier(0.22, 1, 0.36, 1), visibility 0s 0s;
-}
-
-/* ===========================
-   App Switcher 动态轨道与图标
-=========================== */
 .dynamic-switcher-track {
-    position: fixed;
-    z-index: 9999;
-    display: flex;
-    align-items: center;
-    gap: 20px;
-    opacity: 0;
-    visibility: hidden;
-    transform: translate3d(var(--track-x, 0px), var(--track-y, 0px), 0);
-    /* 无透明度过渡, 完全依靠 js 的延迟实现瞬间切换 */
-    transition: none;
-    /* will-change removed: CSS transitions auto-promote */
-    pointer-events: none;
-    user-select: none;
-    -webkit-user-select: none;
-    touch-action: none;
+    position: fixed; z-index: 10002; display: flex; align-items: center; gap: 20px;
+    opacity: 0; visibility: hidden; transform: translate3d(var(--track-x, 0px), var(--track-y, 0px), 0);
+    transition: none; will-change: transform, opacity;
+    pointer-events: none; user-select: none; -webkit-user-select: none; touch-action: none;
 }
-
-.dynamic-switcher-track.open {
-    opacity: 1;
-    visibility: visible;
-    pointer-events: auto;
-    transition: none;
-}
+.dynamic-switcher-track.open { opacity: 1; visibility: visible; pointer-events: auto; transition: none; }
 
 /* 微型应用图标 (极简留白体系) */
 .mini-app-icon {
+    position: relative;
     width: 48px; height: 48px; 
-    /* 动态消除 transform: scale() 对 border-radius 的放大拉伸, 确保视觉上圆角永远恒定为 14px */
     border-radius: calc(var(--radius-sub) / var(--icon-scale, 1)) !important;
-    /* 弱化未选中描边, 增加柔和毛玻璃充盈感 */
-    background: rgba(255, 255, 255, 0.38); 
-    border: 1.5px solid rgba(255, 255, 255, 0.25);
+    background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.40) 0%, rgba(255, 255, 255, 0.26) 60%, rgba(255, 255, 255, 0.18) 100%) !important; 
+    border-top: 2px solid rgba(255, 255, 255, 0.75) !important;
+    border-left: 1px solid rgba(255, 255, 255, 0.60) !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.30) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.24) !important;
     display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-    backdrop-filter: blur(20px) saturate(130%); -webkit-backdrop-filter: blur(20px) saturate(130%);
-    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.05), inset 0 1px 1.5px rgba(255, 255, 255, 0.40), inset 0 -1px 1.5px rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(32px) saturate(130%); -webkit-backdrop-filter: blur(32px) saturate(130%);
+    box-shadow: 
+        0 12px 32px rgba(15, 23, 42, 0.1), 
+        inset 0 0 0 1px rgba(255, 255, 255, 0.08), 
+        inset 2px 3px 10px rgba(255, 255, 255, 0.35), 
+        inset -2px -3px 10px rgba(0, 0, 0, 0.03), 
+        inset 4px 6px 20px rgba(255, 255, 255, 0.15) !important;
     
     --icon-scale: 1;
     --unfold-x: 0px;
-    transform: translateX(var(--unfold-x)) scale(var(--icon-scale));
-    transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), 
-                background 0.4s cubic-bezier(0.22, 1, 0.36, 1), 
-                border-color 0.4s cubic-bezier(0.22, 1, 0.36, 1), 
-                box-shadow 0.4s cubic-bezier(0.22, 1, 0.36, 1), 
-                opacity 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+    --unfold-scale: 1;
+    --hover-scale: 1;
+    transform: translateX(var(--unfold-x)) scale(calc(var(--icon-scale) * var(--unfold-scale, 1) * var(--hover-scale, 1)));
+    transition: transform 0.34s cubic-bezier(0.34, 1.56, 0.64, 1), 
+                background 0.28s cubic-bezier(0.22, 1, 0.36, 1), 
+                border-color 0.28s cubic-bezier(0.22, 1, 0.36, 1), 
+                box-shadow 0.28s cubic-bezier(0.22, 1, 0.36, 1), 
+                opacity 0.24s cubic-bezier(0.22, 1, 0.36, 1);
     user-select: none; -webkit-user-drag: none; transform-origin: center center;
+    contain: layout style;
+    cursor: pointer;
+}
+
+.logo-icon-box img, .mini-app-icon img {
+    display: block;
+    flex: none;
 }
 
 .mini-app-icon img {
-    width: 27.55px; height: 27.55px; object-fit: contain;
+    width: calc(32px * 48 / 56) !important;
+    height: calc(32px * 48 / 56) !important;
+    object-fit: contain;
     filter: drop-shadow(0 3px 6px rgba(0,0,0,0.12)); 
     pointer-events: none;
     opacity: 0.68;
-    transition: opacity 0.4s cubic-bezier(0.22, 1, 0.36, 1), filter 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+    transform: translateY(calc(-4px / 70)) scale(var(--artwork-scale, 1)) !important;
+    transition: opacity 0.28s cubic-bezier(0.22, 1, 0.36, 1), filter 0.28s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.mini-app-icon:hover {
-    background: rgba(255, 255, 255, 0.48);
-    border-color: rgba(255, 255, 255, 0.30);
-    box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08), inset 0 2px 3px rgba(255, 255, 255, 0.9);
+.dynamic-switcher-track.is-preparing .mini-app-icon,
+.dynamic-switcher-track.is-preparing .mini-app-icon img {
+    transition: none !important;
+    transition-delay: 0s !important;
 }
 
-.mini-app-icon:hover img {
-    opacity: 0.88;
+.mini-app-icon:not(.is-anchor):hover {
+    --hover-scale: 1.08;
+    background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.62) 0%, rgba(255, 255, 255, 0.44) 60%, rgba(255, 255, 255, 0.30) 100%) !important;
+    border-top: 2px solid rgba(255, 255, 255, 1) !important;
+    border-left: 1px solid rgba(255, 255, 255, 0.95) !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.48) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.36) !important;
+    box-shadow: 
+        0 16px 36px rgba(15, 23, 42, 0.16), 
+        inset 0 0 0 1px rgba(255, 255, 255, 0.18), 
+        inset 2px 3px 12px rgba(255, 255, 255, 0.60), 
+        inset -2px -3px 10px rgba(0, 0, 0, 0.03), 
+        inset 4px 6px 20px rgba(255, 255, 255, 0.25) !important;
+    z-index: 6;
+}
+
+.mini-app-icon:not(.is-anchor):hover img {
+    opacity: 0.95;
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.16));
 }
 
 /* 锚点态 (完全对齐并居于原 Logo 坐标点的图标) */
 .mini-app-icon.is-anchor {
-    background: rgba(255, 255, 255, 0.82);
-    border-color: rgba(255, 255, 255, 0.95);
-    box-shadow: 0 16px 36px rgba(15, 23, 42, 0.16), inset 0 2px 4px rgba(255, 255, 255, 1);
+    background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.70) 0%, rgba(255, 255, 255, 0.52) 60%, rgba(255, 255, 255, 0.40) 100%) !important;
+    border-top: 2px solid rgba(255, 255, 255, 1) !important;
+    border-left: 1px solid rgba(255, 255, 255, 0.95) !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.65) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.55) !important;
+    box-shadow: 
+        0 16px 38px rgba(15, 23, 42, 0.16), 
+        inset 0 0 0 1px rgba(255, 255, 255, 0.15), 
+        inset 2px 3px 12px rgba(255, 255, 255, 0.55), 
+        inset -2px -3px 10px rgba(0, 0, 0, 0.03), 
+        inset 4px 6px 20px rgba(255, 255, 255, 0.25) !important;
+    z-index: 10;
 }
 
 .mini-app-icon.is-anchor img {
-    opacity: 1;
-    filter: drop-shadow(0 6px 12px rgba(0,0,0,0.2));
+    opacity: 1 !important;
+    filter: drop-shadow(0 6px 12px rgba(0,0,0,0.2)) !important;
 }
 
 /* 菜单收拢淡回原 Logo 样式态: 在 0.45s 动画内将阴影/光泽平滑弱化回原 Logo 样式 */
 .mini-app-icon.is-folding-back {
-    background: rgba(255, 255, 255, 0.25) !important;
-    border-color: rgba(255, 255, 255, 0.8) !important;
+    background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.08) 45%, transparent 75%) !important;
+    border-top: 2px solid rgba(255, 255, 255, 0.95) !important;
+    border-left: 1px solid rgba(255, 255, 255, 0.80) !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.35) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.25) !important;
     box-shadow: 
-        0 8px 24px rgba(15, 23, 42, 0.08), 
-        inset 0 2px 4px rgba(255, 255, 255, 0.95),
-        inset 0 -1.5px 2px rgba(157, 210, 255, 0.2) !important;
-    transition: background 0.45s ease, border-color 0.45s ease, box-shadow 0.45s ease !important;
+        0 12px 32px rgba(15, 23, 42, 0.08),
+        0 4px 12px -2px rgba(15, 23, 42, 0.04),
+        inset 0 1.5px 2px 0 rgba(255, 255, 255, 0.85),
+        inset 2px 3px 10px rgba(255, 255, 255, 0.35),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.10),
+        inset 4px 6px 20px rgba(255, 255, 255, 0.15),
+        inset -2px -3px 8px rgba(0, 0, 0, 0.02) !important;
+    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), --ig-anchor 0.26s ease, background 0.28s ease, border-color 0.28s ease, box-shadow 0.28s ease, opacity 0.24s ease !important;
 }
 
 .mini-app-icon.is-folding-back img {
     opacity: 1 !important;
     filter: drop-shadow(0 4px 6px rgba(0,0,0,0.18)) !important;
-    transition: opacity 0.45s ease, filter 0.45s ease !important;
+    transition: opacity 0.28s ease, filter 0.28s ease !important;
 }
 
 .mini-app-icon:active {
-    transform: translateX(var(--unfold-x)) scale(calc(var(--icon-scale) * 0.95));
-    transition-duration: 0.1s;
+    --hover-scale: 0.92 !important;
+    transition: transform 0.12s cubic-bezier(0.25, 1, 0.5, 1) !important;
+    transition-delay: 0s !important;
 }
 
 /* ================== 管理模式动画引擎 ================== */
@@ -2569,16 +2649,6 @@ body.manage-mode-active .task-checkbox-wrap .round-checkbox {
     animation: pageOutToHome 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards !important;
 }
 
-/* TaskHub Icon 尺寸校准 */
-.logo-icon-box img[src*="TaskHub.png"],
-.mini-app-icon img[src*="TaskHub.png"] {
-    transform: scale(1.12);
-}
-.mini-app-icon:hover img[src*="TaskHub.png"],
-.mini-app-icon.is-anchor img[src*="TaskHub.png"],
-.mini-app-icon.is-folding-back img[src*="TaskHub.png"] {
-    transform: scale(1.12) !important;
-}
 
 /* =================================================================
    修复换行溢出
@@ -3069,7 +3139,7 @@ body.is-dark-bg .toast-notification::before,
     z-index: 99 !important;
     transform: translate3d(0, var(--task-card-hover-lift, -3px), 0);
 }
-/* 侧边栏卡片参与层叠系统, 悬浮时维持自身层级与静态位置, 避免光效跳变 */
+/* 侧边栏卡片参与层叠系统, 悬浮时维持自身层级与静态位置, 避免遮挡 */
 .side-card:hover {
     transform: none !important;
 }
@@ -3701,7 +3771,7 @@ button:focus-visible,
 <div class="app">
     <aside class="sidebar">
         <div class="logo-area">
-            <div class="logo-icon-box" id="logoTrigger" onclick="openAppSwitcher()">
+            <div class="logo-icon-box" id="logoTrigger" data-input-glow onclick="openAppSwitcher()">
                 <img src="./icons/TaskFlow.png" alt="TaskFlow">
             </div>
             <div class="logo-text-group">
@@ -3875,7 +3945,7 @@ button:focus-visible,
 <!-- ==========================================================================
    C. 悬浮球、弹窗与应用切换轨道 (Floating Widgets, Modals & Switcher)
    ========================================================================== -->
-<div id="glassSphere" class="glass-sphere">
+<div id="glassSphere" class="glass-sphere" data-input-glow title="使用提示">
     <img class="sphere-icon" src="icons/Tips.png" alt="Tips">
 </div>
 
@@ -3909,16 +3979,16 @@ button:focus-visible,
 <div id="appSwitcherOverlay" class="app-switcher-overlay"></div>
 
 <div id="dynamicSwitcherTrack" class="dynamic-switcher-track">
-    <div class="mini-app-icon" data-href="./Home.html" title="主页">
+    <div class="mini-app-icon" data-input-glow data-href="./Home.html" title="主页">
         <img src="./Icon.png" alt="Home">
     </div>
-    <div class="mini-app-icon" data-href="./TaskHub.html" title="TaskHub">
+    <div class="mini-app-icon" data-input-glow data-href="./TaskHub.html" title="TaskHub">
         <img src="./icons/TaskHub.png" alt="TaskHub">
     </div>
-    <div class="mini-app-icon" data-href="./TaskTimer.html" title="TaskTimer">
+    <div class="mini-app-icon" data-input-glow data-href="./TaskTimer.html" title="TaskTimer">
         <img src="./icons/TaskTimer.png" alt="TaskTimer">
     </div>
-    <div class="mini-app-icon" data-href="./TaskFlow.html" title="TaskFlow">
+    <div class="mini-app-icon" data-input-glow data-href="./TaskFlow.html" title="TaskFlow">
         <img src="./icons/TaskFlow.png" alt="TaskFlow">
     </div>
 </div>
@@ -4050,9 +4120,19 @@ window.updateLiquidStat = function(el, newHTML) {
         el.appendChild(tempContainer.firstChild);
     }
 
+    // 检查当前文档是否处于休眠挂起或后台隐藏状态
+    const isSuspended = document.documentElement.classList.contains('alpha-sleep') ||
+                        document.documentElement.classList.contains('pause-bg-motion') ||
+                        document.hidden;
+
     // 处理旧文字退场: 下沉 + 模糊淡出 (防止影响新元素排版, 赋予绝对定位)
     const containerRect = el.getBoundingClientRect();
     leavingParts.forEach(part => {
+        if (isSuspended) {
+            // 若当前处于休眠或动效挂起态，直接移除旧节点，杜绝延迟定时器引起的重影
+            part.remove();
+            return;
+        }
         const rect = oldRects.get(part.dataset.key);
         if (rect) {
             // 仅在此处按需计算即将离场的元素的样式, 避免对所有旧元素调用 getComputedStyle
@@ -4083,41 +4163,53 @@ window.updateLiquidStat = function(el, newHTML) {
     currentNewParts.forEach(part => {
         const key = part.dataset.key;
         if (oldRects.has(key)) {
-            flipData.push({ part, newRect: part.getBoundingClientRect(), oldRect: oldRects.get(key) });
+            if (!isSuspended) {
+                flipData.push({ part, newRect: part.getBoundingClientRect(), oldRect: oldRects.get(key) });
+            }
         } else {
             if (!part.classList.contains('view-date-tag')) {
-                part.classList.add('liquid-enter');
+                if (!isSuspended) {
+                    part.classList.add('liquid-enter');
+                    part.addEventListener('animationend', () => {
+                        part.classList.remove('liquid-enter');
+                    }, { once: true });
+                    setTimeout(() => {
+                        if (part.isConnected) part.classList.remove('liquid-enter');
+                    }, 460);
+                }
             }
         }
     });
     
-    flipData.forEach(({part, newRect, oldRect}) => {
-        const dx = oldRect.left - newRect.left;
-        const dy = oldRect.top - newRect.top;
-        if (dx !== 0 || dy !== 0) {
-            part.style.transform = `translate(${dx}px, ${dy}px)`;
-            part.style.transition = 'none';
-        }
-    });
-    
-    if (flipData.length > 0) void el.offsetWidth; // 全局统一回流一次
-
-    requestAnimationFrame(() => {
+    if (!isSuspended && flipData.length > 0) {
         flipData.forEach(({part, newRect, oldRect}) => {
             const dx = oldRect.left - newRect.left;
             const dy = oldRect.top - newRect.top;
             if (dx !== 0 || dy !== 0) {
-                part.style.transition = 'transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)';
-                part.style.transform = 'translate(0, 0)';
-                setTimeout(() => {
-                    if (part.isConnected) {
-                        part.style.transition = '';
-                        part.style.transform = '';
-                    }
-                }, 420);
+                part.style.transform = `translate(${dx}px, ${dy}px)`;
+                part.style.transition = 'none';
             }
         });
-    });
+        
+        void el.offsetWidth; // 全局统一回流一次
+
+        requestAnimationFrame(() => {
+            flipData.forEach(({part, newRect, oldRect}) => {
+                const dx = oldRect.left - newRect.left;
+                const dy = oldRect.top - newRect.top;
+                if (dx !== 0 || dy !== 0) {
+                    part.style.transition = 'transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)';
+                    part.style.transform = 'translate(0, 0)';
+                    setTimeout(() => {
+                        if (part.isConnected) {
+                            part.style.transition = '';
+                            part.style.transform = '';
+                        }
+                    }, 420);
+                }
+            });
+        });
+    }
 };
 
 (function renderEarlyUI() {
@@ -4610,7 +4702,6 @@ function loadData() {
         if (raw === __cachedRaw && __cachedData !== null) {
             return __cachedData;
         }
-        __cachedRaw = raw;
         let data = JSON.parse(raw);
         for (let date in data) {
             if (!Array.isArray(data[date])) continue;
@@ -4622,6 +4713,7 @@ function loadData() {
                 if (!task.createdAt) task.createdAt = Date.now() - (1000000 - index * 1000); 
             });
         }
+        __cachedRaw = raw;
         __cachedData = data;
         return data;
     } catch { return {}; }
@@ -4636,9 +4728,11 @@ function getFilteredTasks() {
     const modeEl = viewTypeInputs.find(input => input.checked);
     const mode = modeEl ? modeEl.value : "day";
     
-    let tasks = [];
-    for (const date in data) { 
-        if (matchDate(date, current, mode)) tasks.push(...data[date]); 
+    let tasks = mode === 'day' ? (data[current] || []).slice() : [];
+    if (mode !== 'day') {
+        for (const date in data) {
+            if (matchDate(date, current, mode)) tasks.push(...data[date]);
+        }
     }
     return tasks;
 }
@@ -5129,13 +5223,27 @@ if (typeof window !== 'undefined') {
     }
 }
 
+let pendingAnalysis = null;
+let analysisLoadPending = false;
 function renderAnalysis(tasks, allData) {
     if (typeof Chart === 'undefined') {
-        ensureChartLoaded().then(() => {
-            renderAnalysis(tasks, allData);
-        }).catch(err => console.warn('Chart.js 动态加载失败:', err));
+        pendingAnalysis = { tasks, allData };
+        if (!analysisLoadPending) {
+            analysisLoadPending = true;
+            ensureChartLoaded().then(() => {
+                analysisLoadPending = false;
+                const latest = pendingAnalysis;
+                pendingAnalysis = null;
+                if (latest) renderAnalysis(latest.tasks, latest.allData);
+            }).catch(err => {
+                analysisLoadPending = false;
+                pendingAnalysis = null;
+                console.warn('Chart.js 动态加载失败:', err);
+            });
+        }
         return;
     }
+    pendingAnalysis = null;
     if (!allData) allData = loadData();
     const trendLabels = []; const trendValues = [];
     const [targetY, targetM, targetD] = (dateInput.value || getToday()).split("-").map(Number);
@@ -5749,6 +5857,8 @@ function renderAnalysis(tasks, allData) {
 let lastRenderKey = ""; 
 let renderMotionCycle = 0;
 let renderMotionCleanupTimer = 0;
+let renderPanelCleanupTimer = 0;
+let renderedTaskCards = new Map();
 
 function finishRenderCardMotion(card, cycle) {
     if (!card || card.dataset.motionCycle !== String(cycle)) return;
@@ -5788,9 +5898,11 @@ function performRender() {
     window.updateLiquidStat(uiStats.taskCount, todayTasks.length);
     window.updateLiquidStat(uiStats.totalTime, `${todayTotal} <span class="unit-min">分钟</span>`);
 
-    let tasks = [];
-    for (const date in data) { 
-        if (matchDate(date, current, mode)) tasks.push(...data[date]); 
+    let tasks = mode === 'day' ? (data[current] || []).slice() : [];
+    if (mode !== 'day') {
+        for (const date in data) {
+            if (matchDate(date, current, mode)) tasks.push(...data[date]);
+        }
     }
     
     // 默认仍按创建时间倒序；手动拖拽过的卡片保留用户排序, 新任务继续置顶
@@ -5826,10 +5938,30 @@ function performRender() {
 
     let total = 0;
     let cardsHTML = "";
+    const nextTaskCards = new Map();
+    const cardEntries = [];
+    const keyOccurrences = new Map();
 
     if (tasks.length > 0) {
         tasks.forEach((task) => {
             total += task.duration;
+
+            // Include an occurrence index so even legacy duplicate IDs render.
+            const baseKey = JSON.stringify([task.date, task.id]);
+            const occurrence = keyOccurrences.get(baseKey) || 0;
+            keyOccurrences.set(baseKey, occurrence + 1);
+            const key = baseKey + ':' + occurrence;
+            const signature = JSON.stringify([task.name, task.date, task.id,
+                task.start, task.end, task.duration, task.category, task.remark,
+                task.createdAt, task.category.map(getSubjectColor)]);
+            const previous = !isViewSwitch && renderedTaskCards.get(key);
+            const entry = { signature, node: null };
+            if (previous && previous.signature === signature && previous.node.parentNode === container) {
+                entry.node = previous.node;
+            }
+            nextTaskCards.set(key, entry);
+            cardEntries.push(entry);
+            if (entry.node) return;
 
             const formattedDateWithFadedSlash = formatDateHTML(task.date);
             const recordDate = task.createdAt ? new Date(task.createdAt) : null;
@@ -5905,8 +6037,45 @@ function performRender() {
 
     // ================= 动画与渲染核心引擎 (macOS Fluid 级精调) =================
     
-    // 单次批量解析与替换 DOM，避免任务较多时逐卡片触发 HTML 解析器。
-    container.innerHTML = cardsHTML;
+    // Parse only new/changed cards in one batch. Reuse unchanged DOM in place,
+    // including its glass bindings, expanded detail, checkbox and marquee state.
+    if (tasks.length) {
+        const template = document.createElement('template');
+        template.innerHTML = cardsHTML;
+        const parsed = Array.from(template.content.children);
+        let parsedIndex = 0;
+        for (const entry of cardEntries) {
+            if (!entry.node) entry.node = parsed[parsedIndex++];
+        }
+        const keep = new Set(cardEntries.map(entry => entry.node));
+        for (const child of Array.from(container.children)) {
+            if (!keep.has(child)) child.remove();
+        }
+        let cursor = container.firstElementChild;
+        for (const { node } of cardEntries) {
+            if (node === cursor) cursor = cursor.nextElementSibling;
+            else container.insertBefore(node, cursor);
+            // Old visual positions were read above. Clear an interrupted FLIP
+            // before measuring the new layout, avoiding compounded transforms.
+            if (node.dataset.motionCycle) {
+                finishRenderCardMotion(node, Number(node.dataset.motionCycle));
+                node.style.opacity = '1';
+            }
+        }
+    } else {
+        container.innerHTML = cardsHTML;
+    }
+    renderedTaskCards = nextTaskCards;
+
+    // A previous height animation must not constrain this render's measurement
+    // or let an older timeout clear the new animation halfway through.
+    clearTimeout(renderPanelCleanupTimer);
+    if (panel && renderPanelCleanupTimer) {
+        panel.style.transition = '';
+        panel.style.height = '';
+        panel.style.overflow = '';
+        renderPanelCleanupTimer = 0;
+    }
 
     if (container.dataset.detailDelegated !== 'true') {
         container.dataset.detailDelegated = 'true';
@@ -5984,7 +6153,8 @@ function performRender() {
         panel.style.transition = `height 0.55s ${easing}`;
         panel.style.height = `${newPanelHeight}px`;
 
-        setTimeout(() => {
+        renderPanelCleanupTimer = setTimeout(() => {
+            renderPanelCleanupTimer = 0;
             panel.style.transition = '';
             panel.style.height = '';
             panel.style.overflow = '';
@@ -7562,75 +7732,93 @@ window.addEventListener('DOMContentLoaded', function() {
     if (!sphere || !modal) return;
 
     let isDragging = false;
-    let startX, startY, startLeft, startTop, sphereSize;
+    let startX = 0, startY = 0, startLeft = 0, startTop = 0;
     let sphereDragFrame = 0;
-    let pendingSphereX = 0;
-    let pendingSphereY = 0;
-    const DRAG_THRESHOLD = 5; // 移动超过 5px 视为物理拖拽, 否则视为点击
+    let pendingSphereX = 0, pendingSphereY = 0;
+    const DRAG_THRESHOLD = 4; // 移动超过 4px 视为物理拖拽, 否则视为点击
 
     function applySphereDragFrame() {
         sphereDragFrame = 0;
-        if (!isDragging) return;
         const deltaX = pendingSphereX - startX;
         const deltaY = pendingSphereY - startY;
-        const newLeft = Math.max(0, Math.min(window.innerWidth - sphereSize, startLeft + deltaX));
-        const newTop = Math.max(0, Math.min(window.innerHeight - sphereSize, startTop + deltaY));
 
-        sphere.style.left = newLeft + 'px';
-        sphere.style.top = newTop + 'px';
-        sphere.style.right = 'auto';
-        sphere.style.bottom = 'auto';
+        if (!isDragging && (Math.abs(deltaX) > DRAG_THRESHOLD || Math.abs(deltaY) > DRAG_THRESHOLD)) {
+            isDragging = true;
+            sphere.classList.add('is-dragging');
+            sphere.style.right = 'auto';
+            sphere.style.bottom = 'auto';
+        }
+
+        if (isDragging) {
+            const sphereW = sphere.offsetWidth || 64;
+            const sphereH = sphere.offsetHeight || 64;
+            const newLeft = Math.max(0, Math.min(window.innerWidth - sphereW, startLeft + deltaX));
+            const newTop = Math.max(0, Math.min(window.innerHeight - sphereH, startTop + deltaY));
+
+            sphere.style.left = newLeft + 'px';
+            sphere.style.top = newTop + 'px';
+        }
     }
 
     function onPointerDown(e) {
-        e.preventDefault(); // 阻断默认行为
-        sphere.setPointerCapture(e.pointerId);
-        isDragging = false; // 每次按下重新初始化拖拽状态
+        isDragging = false;
         startX = e.clientX;
         startY = e.clientY;
+        pendingSphereX = e.clientX;
+        pendingSphereY = e.clientY;
+
         const rect = sphere.getBoundingClientRect();
         startLeft = rect.left;
         startTop = rect.top;
-        sphereSize = rect.width;
-        pendingSphereX = e.clientX;
-        pendingSphereY = e.clientY;
+
+        try { sphere.setPointerCapture(e.pointerId); } catch (_) {}
+
+        sphere.addEventListener('pointermove', onPointerMove);
+        sphere.addEventListener('pointerup', onPointerUp);
+        sphere.addEventListener('pointercancel', onPointerCancel);
     }
 
     function onPointerMove(e) {
-        if (!sphere.hasPointerCapture(e.pointerId)) return;
-        const deltaX = e.clientX - startX;
-        const deltaY = e.clientY - startY;
-        
-        // 赋予阻尼缓冲: 仅当偏移量大于设定阈值时, 才判定用户是在拖拽
-        if (Math.abs(deltaX) > DRAG_THRESHOLD || Math.abs(deltaY) > DRAG_THRESHOLD) {
-            isDragging = true;               
-        }
-        
-        if (isDragging) {
-            pendingSphereX = e.clientX;
-            pendingSphereY = e.clientY;
-            if (!sphereDragFrame) sphereDragFrame = requestAnimationFrame(applySphereDragFrame);
+        pendingSphereX = e.clientX;
+        pendingSphereY = e.clientY;
+        if (!sphereDragFrame) {
+            sphereDragFrame = requestAnimationFrame(applySphereDragFrame);
         }
     }
 
     function onPointerUp(e) {
-        if (!sphere.hasPointerCapture(e.pointerId)) return;
         if (sphereDragFrame) {
             cancelAnimationFrame(sphereDragFrame);
+            sphereMoveFrame = 0;
+        }
+        if (isDragging || Math.abs(pendingSphereX - startX) > DRAG_THRESHOLD || Math.abs(pendingSphereY - startY) > DRAG_THRESHOLD) {
             applySphereDragFrame();
         }
-        sphere.releasePointerCapture(e.pointerId);
-        
+        sphere.removeEventListener('pointermove', onPointerMove);
+        sphere.removeEventListener('pointerup', onPointerUp);
+        sphere.removeEventListener('pointercancel', onPointerCancel);
+        try { sphere.releasePointerCapture(e.pointerId); } catch (_) {}
+        sphere.classList.remove('is-dragging');
+
         // 完美解耦: 如果没有发生拖拽, 则判定为原生点击, 调用自定义毛玻璃弹窗
         if (!isDragging) {
             modal.classList.remove('hidden');
         }
     }
 
+    function onPointerCancel(e) {
+        if (sphereDragFrame) {
+            cancelAnimationFrame(sphereDragFrame);
+            sphereDragFrame = 0;
+        }
+        sphere.removeEventListener('pointermove', onPointerMove);
+        sphere.removeEventListener('pointerup', onPointerUp);
+        sphere.removeEventListener('pointercancel', onPointerCancel);
+        try { sphere.releasePointerCapture(e.pointerId); } catch (_) {}
+        sphere.classList.remove('is-dragging');
+    }
+
     sphere.addEventListener('pointerdown', onPointerDown);
-    sphere.addEventListener('pointermove', onPointerMove);
-    sphere.addEventListener('pointerup', onPointerUp);
-    sphere.addEventListener('pointercancel', onPointerUp); // 防止丢失捕获
 });
 
 // ================= MARQUEE TEXT ENGINE & SCROLL OPTIMIZATION =================
@@ -7838,38 +8026,73 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    function getUntransformedAnchorCenter(el) {
-        if (!el) return { x: 52, y: 52 };
-        const parent = el.parentElement;
-        if (parent) {
-            const parentRect = parent.getBoundingClientRect();
-            const left = parentRect.left + el.offsetLeft;
-            const top = parentRect.top + el.offsetTop;
-            const width = el.offsetWidth || 56;
-            const height = el.offsetHeight || 56;
-            return {
-                x: left + width / 2,
-                y: top + height / 2
-            };
+    const pageIndex = currentIndex;
+    currentPath = miniIcons[pageIndex].getAttribute('data-href').replace('./', '');
+    let BASE_Y = 0;
+    let openFrame = 0;
+    let dragFrame = 0;
+    let dragPointerId = null;
+    let navigationStarted = false;
+
+    // Border widths stay constant: interpolating them moves the PNG containing block.
+    const handoffProperties = ['box-shadow', 'border-top-color',
+        'border-right-color', 'border-bottom-color', 'border-left-color'];
+    const scalePixels = (value, ratio) => value.replace(/(-?\d*\.?\d+)px/g,
+        (_, number) => `${Number(number) * ratio}px`);
+
+    function alignTrackToLogo() {
+        const rect = logoTrigger.getBoundingClientRect();
+        switcherTrack.style.transition = 'none';
+        switcherTrack.style.left = '0px';
+        switcherTrack.style.top = '0px';
+        switcherTrack.style.setProperty('--track-x', '0px');
+        switcherTrack.style.setProperty('--track-y', '0px');
+        const trackRect = switcherTrack.getBoundingClientRect();
+        const unitX = trackRect.width / (switcherTrack.offsetWidth || trackRect.width) || 1;
+        const unitY = trackRect.height / (switcherTrack.offsetHeight || trackRect.height) || 1;
+        BASE_X = (rect.left + rect.width / 2 - trackRect.left) / unitX - 24;
+        BASE_Y = (rect.top + rect.height / 2 - trackRect.top) / unitY - 24;
+        trackX = BASE_X - currentIndex * iconSpacing;
+        trackY = BASE_Y;
+    }
+
+    function transferGlow(from, to) {
+        if (window.AlphaInputGlow?.transferElement) {
+            window.AlphaInputGlow.transferElement(from, to);
         }
-        const rect = el.getBoundingClientRect();
-        return {
-            x: rect.left + rect.width / 2,
-            y: rect.top + rect.height / 2
-        };
+    }
+
+    function restoreLogo() {
+        if (!logoTrigger) return;
+        transferGlow(miniIcons[pageIndex], logoTrigger);
+        ['transition', 'transform', '--lq-hover-ty', '--lq-hover-scale', '--lq-tx',
+            '--lq-ty', '--lq-scale', '--lq-sx', '--lq-sy', '--lq-rot'].forEach(
+                property => logoTrigger.style.removeProperty(property));
+        logoTrigger.style.visibility = 'visible';
+        logoTrigger.style.opacity = '1';
+        logoTrigger.style.pointerEvents = 'auto';
     }
 
     function setIconUnfoldPositions(open) {
         miniIcons.forEach((icon, i) => {
+            const distFromAnchor = Math.abs(i - pageIndex);
             if (open) {
+                const delay = distFromAnchor * 26;
+                icon.style.transitionDelay = `${delay}ms`;
                 icon.style.setProperty('--unfold-x', '0px');
+                icon.style.setProperty('--unfold-scale', '1');
                 icon.style.opacity = '1';
+                icon.style.visibility = 'visible';
             } else {
                 const foldOffset = -(i - currentIndex) * iconSpacing;
+                const delay = distFromAnchor * 18;
+                icon.style.transitionDelay = `${delay}ms`;
                 icon.style.setProperty('--unfold-x', `${foldOffset}px`);
                 if (i !== currentIndex) {
+                    icon.style.setProperty('--unfold-scale', '0.85');
                     icon.style.opacity = '0';
                 } else {
+                    icon.style.setProperty('--unfold-scale', '1');
                     icon.style.opacity = '1';
                 }
             }
@@ -7883,10 +8106,23 @@ window.addEventListener('DOMContentLoaded', () => {
 
     window.openAppSwitcher = function() {
         if (switcherState === 'opened') return;
+        const wasVisible = switcherTrack.classList.contains('open');
         switcherState = 'opened';
         window.__switcherState = 'opened';
-
-        
+        navigationStarted = false;
+        currentIndex = pageIndex;
+        switcherTrack.style.pointerEvents = '';
+        switcherOverlay.style.pointerEvents = '';
+        switcherOverlay.style.removeProperty('background');
+        switcherOverlay.style.removeProperty('background-color');
+        switcherOverlay.style.removeProperty('backdrop-filter');
+        switcherOverlay.style.removeProperty('-webkit-backdrop-filter');
+        switcherOverlay.style.removeProperty('transition');
+        miniIcons.forEach(icon => {
+            icon.classList.remove('is-folding-back');
+            icon.style.removeProperty('transform');
+        });
+        if (openFrame) { cancelAnimationFrame(openFrame); openFrame = 0; }
         if (closeTimeoutTimer) {
             clearTimeout(closeTimeoutTimer);
             closeTimeoutTimer = null;
@@ -7896,116 +8132,97 @@ window.addEventListener('DOMContentLoaded', () => {
             openRecoilTimer = null;
         }
 
-        // 第一步: 弹出面板前, 流体图标归位
-        if (logoTrigger) {
-            if (window.AlphaLiquidGlass && typeof window.AlphaLiquidGlass.resetElement === 'function') {
-                window.AlphaLiquidGlass.resetElement(logoTrigger);
-            }
-            logoTrigger.style.setProperty('--lq-tx', '0px');
-            logoTrigger.style.setProperty('--lq-ty', '0px');
-            logoTrigger.style.setProperty('--lq-scale', '1');
-            logoTrigger.style.setProperty('--lq-sx', '1');
-            logoTrigger.style.setProperty('--lq-sy', '1');
-            logoTrigger.style.setProperty('--lq-rot', '0deg');
-            logoTrigger.style.setProperty('transition', 'transform 0.12s cubic-bezier(0.25, 1, 0.5, 1)', 'important');
-            logoTrigger.style.setProperty('transform', 'translate3d(0, 0, 0) scale(1)', 'important');
+        if (wasVisible) {
+            switcherOverlay.classList.add('open');
+            updateTrackPosition(true);
+            setIconUnfoldPositions(true);
+            return;
         }
 
-        // 第二步: 通过容器绝对坐标计算绝对原点, 彻底免疫任何拖拽残余变形
-        openRecoilTimer = setTimeout(() => {
+        // 零延迟瞬时几何接力 (0ms 极速响应)
+        const anchorIcon = miniIcons[pageIndex];
+        const sourceImage = logoTrigger.querySelector('img');
+        const targetImage = anchorIcon.querySelector('img');
+        const sourceStyle = getComputedStyle(logoTrigger);
+        const sourceImageStyle = getComputedStyle(sourceImage);
+        const ratio = 48 / 56;
+        const handoffStyles = handoffProperties.map(property =>
+            [property, scalePixels(sourceStyle.getPropertyValue(property), ratio)]);
+        const sourceFilter = scalePixels(sourceImageStyle.filter, ratio);
+
+        switcherTrack.classList.add('is-preparing');
+        anchorIcon.classList.add('is-launch-origin');
+        handoffStyles.forEach(([property, value]) => anchorIcon.style.setProperty(property, value, 'important'));
+        targetImage.style.setProperty('filter', sourceFilter, 'important');
+        alignTrackToLogo();
+        updateTrackPosition(false);
+        setIconUnfoldPositions(false);
+        transferGlow(logoTrigger, anchorIcon);
+
+        logoTrigger.style.visibility = 'hidden';
+        logoTrigger.style.opacity = '0';
+        logoTrigger.style.pointerEvents = 'none';
+        switcherOverlay.classList.add('open');
+        switcherTrack.classList.add('open');
+        switcherTrack.classList.remove('is-preparing');
+
+        // 首帧直接发起涟漪交错物理展开
+        openFrame = requestAnimationFrame(() => {
+            openFrame = 0;
             if (switcherState !== 'opened') return;
-
-            const center = getUntransformedAnchorCenter(logoTrigger);
-            const targetCenterX = center.x;
-            const targetCenterY = center.y;
-            
-            switcherTrack.style.top = `${targetCenterY - 24}px`;
-            switcherTrack.style.left = `0px`; 
-            
-            BASE_X = targetCenterX - 24; 
-            trackX = BASE_X - currentIndex * iconSpacing;
-            trackY = 0;
-            
-            if (logoTrigger) {
-                logoTrigger.style.visibility = 'hidden';
-                logoTrigger.style.opacity = '0';
-                logoTrigger.style.pointerEvents = 'none';
-            }
-
-            updateTrackPosition(false);
-            setIconUnfoldPositions(false);
-
-            void switcherTrack.offsetWidth;
-            
-            switcherOverlay.classList.add('open');
-            switcherTrack.classList.add('open');
-            
-            requestAnimationFrame(() => {
-                updateTrackPosition(true);
-                setIconUnfoldPositions(true);
-            });
-        }, 120);
+            updateTrackPosition(true);
+            setIconUnfoldPositions(true);
+            anchorIcon.classList.remove('is-launch-origin');
+            handoffProperties.forEach(property => anchorIcon.style.removeProperty(property));
+            anchorIcon.style.removeProperty('border-color');
+            anchorIcon.style.removeProperty('box-shadow');
+            targetImage.style.removeProperty('filter');
+        });
     };
 
     window.closeAppSwitcher = function() {
         if (switcherState === 'closed') return;
         switcherState = 'closed';
         window.__switcherState = 'closed';
-
-        
-        if (openRecoilTimer) {
-            clearTimeout(openRecoilTimer);
-            openRecoilTimer = null;
-        }
-        if (typeof switchPageTimeout !== 'undefined' && switchPageTimeout) {
-            clearTimeout(switchPageTimeout);
-            switchPageTimeout = null;
-        }
-
         switcherOverlay.classList.remove('open');
+        if (openFrame) { cancelAnimationFrame(openFrame); openFrame = 0; }
+        if (openRecoilTimer) { clearTimeout(openRecoilTimer); openRecoilTimer = null; }
+        if (closeTimeoutTimer) { clearTimeout(closeTimeoutTimer); closeTimeoutTimer = null; }
+
+        if (!switcherTrack.classList.contains('open')) { restoreLogo(); return; }
+        currentIndex = pageIndex;
+        trackX = BASE_X - currentIndex * iconSpacing;
+        trackY = BASE_Y;
+        switcherTrack.style.pointerEvents = 'none';
+        switcherTrack.style.removeProperty('background');
+        switcherOverlay.style.removeProperty('background');
+        switcherOverlay.style.removeProperty('background-color');
+        switcherOverlay.style.removeProperty('backdrop-filter');
+        switcherOverlay.style.removeProperty('-webkit-backdrop-filter');
+        updateTrackPosition(true);
         setIconUnfoldPositions(false);
-
-        const anchorIcon = miniIcons[currentIndex];
-        if (anchorIcon) {
-            anchorIcon.classList.remove('is-anchor');
-            anchorIcon.classList.add('is-folding-back');
-        }
-
-        if (closeTimeoutTimer) clearTimeout(closeTimeoutTimer);
+        const anchorIcon = miniIcons[pageIndex];
+        anchorIcon.classList.remove('is-anchor', 'is-launch-origin');
+        anchorIcon.classList.add('is-folding-back');
+        handoffProperties.forEach(property => anchorIcon.style.removeProperty(property));
+        anchorIcon.style.removeProperty('border-color');
+        anchorIcon.style.removeProperty('box-shadow');
+        anchorIcon.querySelector('img').style.removeProperty('filter');
 
         closeTimeoutTimer = setTimeout(() => {
-            if (switcherState === 'closed') {
-                switcherTrack.classList.remove('open');
-                if (anchorIcon) {
-                    anchorIcon.classList.remove('is-folding-back');
-                }
-                if (logoTrigger) {
-                    if (window.AlphaLiquidGlass && typeof window.AlphaLiquidGlass.resetElement === 'function') {
-                        window.AlphaLiquidGlass.resetElement(logoTrigger);
-                    }
-                    logoTrigger.style.removeProperty('transition');
-                    logoTrigger.style.removeProperty('transform');
-                    logoTrigger.style.removeProperty('--lq-hover-ty');
-                    logoTrigger.style.removeProperty('--lq-hover-scale');
-                    logoTrigger.style.removeProperty('--lq-tx');
-                    logoTrigger.style.removeProperty('--lq-ty');
-                    logoTrigger.style.removeProperty('--lq-scale');
-                    logoTrigger.style.removeProperty('--lq-sx');
-                    logoTrigger.style.removeProperty('--lq-sy');
-                    logoTrigger.style.removeProperty('--lq-rot');
-                    logoTrigger.style.visibility = 'visible';
-                    logoTrigger.style.opacity = '1';
-                    logoTrigger.style.pointerEvents = 'auto';
-                }
-            }
-        }, 420);
+            closeTimeoutTimer = null;
+            if (switcherState !== 'closed') return;
+            switcherTrack.classList.remove('open');
+            anchorIcon.classList.remove('is-folding-back');
+            restoreLogo();
+        }, 280);
     };
 
-switcherOverlay.addEventListener('click', closeAppSwitcher);
+    switcherOverlay.addEventListener('click', closeAppSwitcher);
 
     function updateTrackPosition(animate = false) {
         if (animate) {
-            switcherTrack.style.transition = 'transform 0.42s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.4s ease, visibility 0s 0s';
+            switcherTrack.style.transition = 'transform 0.32s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.28s ease, visibility 0s 0s';
         } else {
             switcherTrack.style.transition = 'none';
         }
@@ -8015,9 +8232,10 @@ switcherOverlay.addEventListener('click', closeAppSwitcher);
         
         miniIcons.forEach((icon, i) => {
             if (animate) {
-                icon.style.transition = 'transform 0.42s cubic-bezier(0.22, 1, 0.36, 1), background 0.4s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.4s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.4s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.4s ease';
+                icon.style.transition = '--ig-anchor 0.3s cubic-bezier(0.22, 1, 0.36, 1), transform 0.32s cubic-bezier(0.16, 1, 0.3, 1), background 0.28s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.28s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.28s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.24s cubic-bezier(0.22, 1, 0.36, 1)';
             } else {
-                icon.style.transition = 'transform 0s, background 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease, opacity 0.4s ease';
+                icon.style.transition = 'none';
+                icon.style.transitionDelay = '0s';
             }
             
             const iconCenterRelative = 24 + i * iconSpacing;
@@ -8037,6 +8255,20 @@ switcherOverlay.addEventListener('click', closeAppSwitcher);
                 icon.classList.remove('is-anchor');
             }
         });
+    }
+
+    function scheduleTrackPosition() {
+        if (switcherMoveRAF) return;
+        switcherMoveRAF = requestAnimationFrame(() => {
+            switcherMoveRAF = 0;
+            updateTrackPosition(false);
+        });
+    }
+
+    function cancelPendingTrackPosition() {
+        if (!switcherMoveRAF) return;
+        cancelAnimationFrame(switcherMoveRAF);
+        switcherMoveRAF = 0;
     }
 
     // Tap & Click Switcher Navigation Logic with smooth slide & natural scale
@@ -8103,27 +8335,17 @@ switcherOverlay.addEventListener('click', closeAppSwitcher);
             trackX = minTrackX + (trackX - minTrackX) * 0.3;
         }
         
-        if (!switcherMoveRAF) {
-            switcherMoveRAF = requestAnimationFrame(() => {
-                switcherMoveRAF = 0;
-                if (isDraggingSwitcher) updateTrackPosition(false);
-            });
-        }
+        scheduleTrackPosition();
     });
 
     switcherTrack.addEventListener('pointerup', (e) => {
         if (!isDraggingSwitcher) return;
         isDraggingSwitcher = false;
-        if (switcherMoveRAF) {
-            cancelAnimationFrame(switcherMoveRAF);
-            switcherMoveRAF = 0;
-        }
+        cancelPendingTrackPosition();
         try { switcherTrack.releasePointerCapture(e.pointerId); } catch (_) {}
         
         const deltaX = e.clientX - startDragX;
         const deltaY = e.clientY - startDragY;
-        
-
         
         if (Math.abs(deltaX) < 6 && Math.abs(deltaY) < 6) {
             // 点按判定: 通过点击坐标精准命中目标 App 图标并执行平滑切换
@@ -8146,11 +8368,8 @@ switcherOverlay.addEventListener('click', closeAppSwitcher);
     switcherTrack.addEventListener('pointercancel', () => {
         if (!isDraggingSwitcher) return;
         isDraggingSwitcher = false;
-        if (switcherMoveRAF) {
-            cancelAnimationFrame(switcherMoveRAF);
-            switcherMoveRAF = 0;
-        }
-        trackY = 0;
+        cancelPendingTrackPosition();
+        trackY = BASE_Y;
         snapToClosest();
     });
 
@@ -8160,7 +8379,7 @@ switcherOverlay.addEventListener('click', closeAppSwitcher);
         
         currentIndex = closestIndex;
         trackX = BASE_X - currentIndex * iconSpacing;
-        trackY = 0; // 确保彻底下沉归位
+        trackY = BASE_Y;
         updateTrackPosition(true);
         
         if (switchPageTimeout) clearTimeout(switchPageTimeout);
@@ -8240,11 +8459,12 @@ switcherOverlay.addEventListener('click', closeAppSwitcher);
 
 let yellowSources = [];
 let yellowVisibleTargets = new Set();
+const yellowObservedTargets = new Set();
 let yellowRAF = 0;
 
 const yellowTargetObserver = new IntersectionObserver(entries => {
     entries.forEach(entry => {
-        if (entry.isIntersecting) {
+        if (entry.isIntersecting && yellowObservedTargets.has(entry.target)) {
             yellowVisibleTargets.add(entry.target);
         } else {
             yellowVisibleTargets.delete(entry.target);
@@ -8257,18 +8477,29 @@ const yellowTargetObserver = new IntersectionObserver(entries => {
 });
 
 function refreshYellowTargets() {
-    yellowTargetObserver.disconnect();
-    yellowVisibleTargets.clear();
-
     yellowSources = Array.from(
         document.querySelectorAll(
             '.alpha-ambient-bg .sunbeam, .alpha-ambient-bg .orb-3'
         )
     );
 
-    document.querySelectorAll(
+    const targets = new Set(document.querySelectorAll(
         '.task-card, .chart-wrap, .chart-card'
-    ).forEach(element => yellowTargetObserver.observe(element));
+    ));
+    for (const element of yellowObservedTargets) {
+        if (!targets.has(element)) {
+            yellowTargetObserver.unobserve(element);
+            yellowObservedTargets.delete(element);
+            yellowVisibleTargets.delete(element);
+        }
+    }
+    for (const element of targets) {
+        if (!yellowObservedTargets.has(element)) {
+            yellowObservedTargets.add(element);
+            yellowTargetObserver.observe(element);
+        }
+    }
+    scheduleYellowUpdate();
 }
 
 function updateYellowBackgroundContact() {
@@ -8278,7 +8509,7 @@ function updateYellowBackgroundContact() {
         element => element.getBoundingClientRect()
     );
 
-    yellowVisibleTargets.forEach(card => {
+    const contacts = Array.from(yellowVisibleTargets, card => {
         const cardRect = card.getBoundingClientRect();
 
         const isContact = sourceRects.some(sourceRect =>
@@ -8288,6 +8519,9 @@ function updateYellowBackgroundContact() {
             cardRect.top < sourceRect.bottom
         );
 
+        return { card, isContact };
+    });
+    contacts.forEach(({ card, isContact }) => {
         card.classList.toggle('yellow-contact', isContact);
     });
 }
@@ -8417,7 +8651,10 @@ if (document.readyState === 'loading') {
     }
 
     function onUserActive() {
-        if (isSleeping) return;
+        if (isSleeping) {
+            onWake();
+            return;
+        }
         lastActivityAt = performance.now();
         if (isIdle) {
             isIdle = false;
@@ -8464,7 +8701,7 @@ if (document.readyState === 'loading') {
         armIdleTimer();
     }
 
-    const activityEvents = ['pointermove', 'pointerdown', 'keydown', 'scroll', 'wheel', 'touchstart'];
+    const activityEvents = ['pointermove', 'pointerdown', 'keydown', 'scroll', 'wheel', 'touchstart', 'focusin', 'input'];
     activityEvents.forEach(evt => {
         window.addEventListener(evt, onUserActive, { passive: true, capture: true });
     });
@@ -9180,7 +9417,7 @@ try { if (window.self !== window.top) document.documentElement.classList.add('is
             activeSurface = null;
         }
 
-        if (tracked.size || union.classList.contains('is-visible')) ensureLoop();
+        if (activeSurface && tracked.has(activeSurface)) ensureLoop();
     }
 
     document.addEventListener('pointerover', event => {
